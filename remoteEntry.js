@@ -1,5 +1,5 @@
 import { i as init_1, v as veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__ } from './assets/veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__-YRia8a0_.js';
-import exposesMap from './assets/virtualExposes-a6vnbvIv.js';
+import exposesMap from './assets/virtualExposes-nAKzrwyl.js';
 import { _ as __vitePreload } from './assets/preload-helper-CqoC6PUU.js';
 
 const importMap = {
@@ -26,11 +26,6 @@ const importMap = {
       ,
         "@react-three/drei": async () => {
           let pkg = await __vitePreload(() => import('./assets/index-DoqVf8DA.js'),true              ?[]:void 0);
-          return pkg
-        }
-      ,
-        "@k3/core": async () => {
-          let pkg = await __vitePreload(() => import('./assets/index-xUg6czhj.js'),true              ?[]:void 0);
           return pkg
         }
       ,
@@ -155,32 +150,6 @@ const importMap = {
             async get () {
               usedShared["@react-three/drei"].loaded = true;
               const {"@react-three/drei": pkgDynamicImport} = importMap; 
-              const res = await pkgDynamicImport();
-              const exportModule = {...res};
-              // All npm packages pre-built by vite will be converted to esm
-              Object.defineProperty(exportModule, "__esModule", {
-                value: true,
-                enumerable: false
-              });
-              return function () {
-                return exportModule
-              }
-            },
-            shareConfig: {
-              singleton: true,
-              requiredVersion: "*"
-            }
-          }
-        ,
-          "@k3/core": {
-            name: "@k3/core",
-            version: "0.0.0",
-            scope: ["default"],
-            loaded: false,
-            from: "veranda-plugin",
-            async get () {
-              usedShared["@k3/core"].loaded = true;
-              const {"@k3/core": pkgDynamicImport} = importMap; 
               const res = await pkgDynamicImport();
               const exportModule = {...res};
               // All npm packages pre-built by vite will be converted to esm

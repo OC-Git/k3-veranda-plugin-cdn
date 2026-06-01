@@ -12,9 +12,7 @@ const ABKANTUNG_LAENGE = 5e-3;
 const GLAS_PANEL_LUFT = 0.01;
 const DEFAULT_FARBEN = {
   gummi: "#1a1a1a",
-  /** Fallback-Farbe für Profil-Material (Sparren, Querträger etc.) */
   profil: "#A0A0A0",
-  /** Fallback-Farbe für Holz-Material (Schwelle, Pfette) */
   holz: "#8B7355"
 };
 const VERANDA_SLOTS = {
@@ -2010,6 +2008,225 @@ function useKeilInfo() {
   return veranda_mf_2_plugin__loadShare__react__loadShare__.useContext(KeilInfoContext);
 }
 
+const ACCENT = "#00bcd4";
+const BORDER = "#d0d0d0";
+const BG_INPUT = "#ffffff";
+const RADIUS = 6;
+const sectionStyle = {
+  borderBottom: `1px solid #e0e0e0`,
+  padding: "12px 0 8px",
+  background: "transparent"
+};
+const sectionHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  cursor: "pointer",
+  userSelect: "none",
+  padding: "4px 0",
+  marginBottom: 4
+};
+const chevronStyle = (open) => ({
+  transition: "transform 0.2s ease",
+  transform: open ? "rotate(180deg)" : "rotate(0deg)",
+  lineHeight: 1
+});
+const sectionBodyStyle = (open) => ({
+  overflow: "hidden",
+  maxHeight: open ? 1e3 : 0,
+  opacity: open ? 1 : 0,
+  transition: "max-height 0.25s ease, opacity 0.2s ease"
+});
+const fieldRowStyle = {
+  display: "flex",
+  gap: 8,
+  marginBottom: 4
+};
+const fieldRowChildStyle = {
+  flex: 1,
+  minWidth: 0
+};
+const radioGroupWrapperStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+  marginBottom: 8
+};
+const radioOptionsRowStyle = {
+  display: "flex",
+  gap: 0,
+  borderRadius: RADIUS,
+  overflow: "hidden",
+  border: `1px solid ${BORDER}`
+};
+const radioOptionStyle = (active, isLast) => ({
+  flex: 1,
+  padding: "8px 12px",
+  textAlign: "center",
+  cursor: "pointer",
+  userSelect: "none",
+  fontSize: "0.85rem",
+  fontWeight: active ? 600 : 400,
+  background: active ? ACCENT : BG_INPUT,
+  color: active ? "#fff" : "inherit",
+  borderRight: isLast ? "none" : `1px solid ${BORDER}`,
+  transition: "background 0.15s ease, color 0.15s ease",
+  boxSizing: "border-box"
+});
+function Section({
+  title,
+  children,
+  collapsible = false,
+  defaultOpen = true
+}) {
+  const [open, setOpen] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(defaultOpen);
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: sectionStyle, children: [
+    title && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+      "div",
+      {
+        style: sectionHeaderStyle,
+        onClick: collapsible ? () => setOpen((o) => !o) : void 0,
+        role: collapsible ? "button" : void 0,
+        "aria-expanded": collapsible ? open : void 0,
+        children: [
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { style: { fontWeight: 600, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "inherit" }, children: title }),
+          collapsible && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { style: chevronStyle(open), "aria-hidden": true, children: "▾" })
+        ]
+      }
+    ),
+    collapsible ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: sectionBodyStyle(open), children }) : children
+  ] });
+}
+function FieldRow({ children }) {
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: fieldRowStyle, children: React.Children.map(children, (child) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: fieldRowChildStyle, children: child })) });
+}
+function ColorPicker({
+  label,
+  value,
+  onChange
+}) {
+  const toInputHex = (v) => {
+    if (typeof v === "number") return `#${v.toString(16).padStart(6, "0")}`;
+    const s = String(v).trim();
+    if (/^0[xX][0-9a-fA-F]+$/.test(s))
+      return `#${parseInt(s, 16).toString(16).padStart(6, "0")}`;
+    if (/^#[0-9a-fA-F]{6}$/.test(s)) return s;
+    return "#ccddee";
+  };
+  const hexColor = toInputHex(value);
+  const colorPickerRowStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    gap: 8
+  };
+  const colorSwatchStyle = {
+    width: 40,
+    height: 28,
+    cursor: "pointer",
+    border: `1px solid ${BORDER}`,
+    borderRadius: RADIUS,
+    padding: 2,
+    background: "none"
+  };
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: colorPickerRowStyle, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { children: label }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      "input",
+      {
+        type: "color",
+        value: hexColor,
+        style: colorSwatchStyle,
+        onChange: (e) => {
+          const hex = e.target.value;
+          onChange("0x" + hex.slice(1));
+        }
+      }
+    )
+  ] });
+}
+function ExprInput({
+  label,
+  value,
+  onChange
+}) {
+  const inputStyle = {
+    width: "100%",
+    padding: "7px 10px",
+    border: `1px solid ${BORDER}`,
+    borderRadius: RADIUS,
+    background: BG_INPUT,
+    color: "inherit",
+    fontSize: "0.875rem",
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "border-color 0.15s ease, box-shadow 0.15s ease"
+  };
+  const wrapStyle = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    marginBottom: 8
+  };
+  const labelStyle = {
+    fontSize: "0.8rem",
+    color: "inherit",
+    opacity: 0.75
+  };
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: wrapStyle, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { style: labelStyle, children: label }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      "input",
+      {
+        type: "text",
+        style: inputStyle,
+        value: String(value ?? ""),
+        onChange: (e) => onChange(e.target.value),
+        onFocus: (e) => {
+          e.currentTarget.style.borderColor = ACCENT;
+          e.currentTarget.style.boxShadow = `0 0 0 2px ${ACCENT}33`;
+        },
+        onBlur: (e) => {
+          e.currentTarget.style.borderColor = BORDER;
+          e.currentTarget.style.boxShadow = "none";
+        }
+      }
+    )
+  ] });
+}
+function RadioGroup({
+  label,
+  value,
+  options,
+  onChange
+}) {
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: radioGroupWrapperStyle, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { children: label }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: radioOptionsRowStyle, children: options.map((opt, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      "div",
+      {
+        style: radioOptionStyle(
+          String(value) === String(opt.value),
+          i === options.length - 1
+        ),
+        role: "radio",
+        "aria-checked": String(value) === String(opt.value),
+        tabIndex: 0,
+        onClick: () => onChange(Number(opt.value)),
+        onKeyDown: (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onChange(Number(opt.value));
+          }
+        },
+        children: opt.label
+      },
+      opt.value
+    )) })
+  ] });
+}
+
 const LIGHT_USER_DATA_KEY = "oc.veranda.shadowLight.v1";
 function SceneShadowLight() {
   const { gl, scene, invalidate } = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useThree();
@@ -2335,6 +2552,82 @@ function VerandaModel(props) {
     )
   ] }) }) });
 }
+function VerandaPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Position & Drehung", collapsible: true, defaultOpen: false, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "X (m)", value: v("posX"), onChange: ec("posX") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Y (m)", value: v("posY"), onChange: ec("posY") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Z (m)", value: v("posZ"), onChange: ec("posZ") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rot X (°)", value: v("rotX"), onChange: ec("rotX") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rot Y (°)", value: v("rotY"), onChange: ec("rotY") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rot Z (°)", value: v("rotZ"), onChange: ec("rotZ") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Abmessungen", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("width"), onChange: ec("width") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe hinten (m)", value: v("height"), onChange: ec("height") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Tiefe (m)", value: v("depth"), onChange: ec("depth") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dachneigung (°)", value: v("dachneigung"), onChange: ec("dachneigung") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dachvorsprung (m)", value: v("dachVorsprung"), onChange: ec("dachVorsprung") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Sparren", collapsible: true, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      RadioGroup,
+      {
+        label: "Sparrenauflage",
+        value: v("sparrenAuflage"),
+        options: [{ value: "0", label: "Aufliegend" }, { value: "1", label: "Innenliegend" }],
+        onChange: ec("sparrenAuflage")
+      }
+    ) }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Balken außen", collapsible: true, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("balkenAussenBreite"), onChange: ec("balkenAussenBreite") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("balkenAussenHoehe"), onChange: ec("balkenAussenHoehe") })
+    ] }) }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Schwelle", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        RadioGroup,
+        {
+          label: "Aktiv",
+          value: v("schwelle"),
+          options: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }],
+          onChange: ec("schwelle")
+        }
+      ),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("schwelleBreite"), onChange: ec("schwelleBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("schwelleHoehe"), onChange: ec("schwelleHoehe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Pfette", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        RadioGroup,
+        {
+          label: "Aktiv",
+          value: v("pfette"),
+          options: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }],
+          onChange: ec("pfette")
+        }
+      ),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("pfettenBreite"), onChange: ec("pfettenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("pfettenHoehe"), onChange: ec("pfettenHoehe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Seitenteile", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Unten-Zone Höhe (m)", value: v("seitenZoneUntenHoehe"), onChange: ec("seitenZoneUntenHoehe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Oben-Zone Höhe (m, 0 = Keil auto)", value: v("seitenZoneObenHoehe"), onChange: ec("seitenZoneObenHoehe") })
+    ] })
+  ] });
+}
 const verandaDynamicModel = {
   type: "veranda",
   label: "Veranda",
@@ -2378,31 +2671,7 @@ const verandaDynamicModel = {
     seitenZoneUntenHoehe: { expression: "0" },
     seitenZoneObenHoehe: { expression: "0" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    posX: { type: "expression", label: "Position X (m)" },
-    posY: { type: "expression", label: "Position Y (m)" },
-    posZ: { type: "expression", label: "Position Z (m)" },
-    rotX: { type: "expression", label: "Rotation X (°)" },
-    rotY: { type: "expression", label: "Rotation Y (°)" },
-    rotZ: { type: "expression", label: "Rotation Z (°)" },
-    width: { type: "expression", label: "Breite (m)" },
-    height: { type: "expression", label: "Höhe hinten (m)" },
-    depth: { type: "expression", label: "Tiefe (m)" },
-    dachneigung: { type: "expression", label: "Dachneigung (°)" },
-    dachVorsprung: { type: "expression", label: "Dachvorsprung (m)" },
-    sparrenAuflage: { type: "expression", label: "Sparrenauflage (0=Aufliegend, 1=Innenliegend)" },
-    balkenAussenBreite: { type: "expression", label: "Balken Aussen Breite (m)" },
-    balkenAussenHoehe: { type: "expression", label: "Balken Aussen Höhe (m)" },
-    schwelle: { type: "expression", label: "Schwelle aktiv (0=Nein, 1=Ja)" },
-    schwelleBreite: { type: "expression", label: "Schwelle Breite (m)" },
-    schwelleHoehe: { type: "expression", label: "Schwelle Höhe (m)" },
-    pfette: { type: "expression", label: "Pfette aktiv (0=Nein, 1=Ja)" },
-    pfettenBreite: { type: "expression", label: "Pfette Breite (m)" },
-    pfettenHoehe: { type: "expression", label: "Pfette Höhe (m)" },
-    seitenZoneUntenHoehe: { type: "expression", label: "Seitenteile Unten-Zone Höhe (m)" },
-    seitenZoneObenHoehe: { type: "expression", label: "Seitenteile Oben-Zone Höhe (m, 0=Keil auto)" }
-  },
+  propsDialog: VerandaPropsDialog,
   component: VerandaModel,
   materials: ["profil"],
   disabledForAR: false
@@ -2579,6 +2848,77 @@ function QubusModel(props) {
     )
   ] });
 }
+function QubusPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Position & Drehung", collapsible: true, defaultOpen: false, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "X (m)", value: v("posX"), onChange: ec("posX") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Y (m)", value: v("posY"), onChange: ec("posY") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Z (m)", value: v("posZ"), onChange: ec("posZ") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rot X (°)", value: v("rotX"), onChange: ec("rotX") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rot Y (°)", value: v("rotY"), onChange: ec("rotY") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rot Z (°)", value: v("rotZ"), onChange: ec("rotZ") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Abmessungen", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("width"), onChange: ec("width") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("height"), onChange: ec("height") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Tiefe (m)", value: v("depth"), onChange: ec("depth") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dachneigung (°)", value: v("dachneigung"), onChange: ec("dachneigung") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Rahmen & Pfosten", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rahmen Breite (m)", value: v("rahmenBreite"), onChange: ec("rahmenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rahmen Höhe (m)", value: v("rahmenHoehe"), onChange: ec("rahmenHoehe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Pfosten Breite (m)", value: v("pfostenBreite"), onChange: ec("pfostenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Pfosten Tiefe (m)", value: v("pfostenTiefe"), onChange: ec("pfostenTiefe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Sparren", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anzahl", value: v("sparrenAnzahl"), onChange: ec("sparrenAnzahl") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("sparrenBreite"), onChange: ec("sparrenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("sparrenHoehe"), onChange: ec("sparrenHoehe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        RadioGroup,
+        {
+          label: "Auflage",
+          value: v("sparrenAuflage"),
+          options: [{ value: "0", label: "Aufliegend" }, { value: "1", label: "Innenliegend" }],
+          onChange: ec("sparrenAuflage")
+        }
+      )
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "LED", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        RadioGroup,
+        {
+          label: "LED-Stripe aktiv",
+          value: v("ledStripe"),
+          options: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }],
+          onChange: ec("ledStripe")
+        }
+      ),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        ColorPicker,
+        {
+          label: "LED Farbe",
+          value: v("ledFarbe"),
+          onChange: ec("ledFarbe")
+        }
+      )
+    ] })
+  ] });
+}
 const qubusDynamicModel = {
   type: "qubus",
   label: "Qubus",
@@ -2606,17 +2946,7 @@ const qubusDynamicModel = {
     ledStripe: { expression: "0" },
     ledFarbe: { expression: "0xffeeaa" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    dachneigung: { type: "expression", label: "Dachneigung (°)" },
-    rahmenBreite: { type: "expression", label: "Rahmen Breite (m)" },
-    rahmenHoehe: { type: "expression", label: "Rahmen Höhe (m)" },
-    sparrenAnzahl: { type: "expression", label: "Sparren Anzahl" },
-    sparrenBreite: { type: "expression", label: "Sparren Breite (m)" },
-    sparrenHoehe: { type: "expression", label: "Sparren Höhe (m)" },
-    sparrenAuflage: { type: "expression", label: "Sparrenauflage (0=Aufliegend, 1=Innenliegend)" },
-    ledStripe: { type: "expression", label: "LED-Stripe aktiv (0=Nein, 1=Ja)" }
-  },
+  propsDialog: QubusPropsDialog,
   component: QubusModel,
   materials: ["profil"],
   disabledForAR: false
@@ -2798,6 +3128,54 @@ function CarportModel(props) {
     )
   ] });
 }
+function CarportPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Dach", children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dachneigung (°)", value: v("dachneigung"), onChange: ec("dachneigung") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dachvorsprung (m)", value: v("dachVorsprung"), onChange: ec("dachVorsprung") })
+    ] }) }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Träger", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anzahl", value: v("traegerAnzahl"), onChange: ec("traegerAnzahl") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("traegerBreite"), onChange: ec("traegerBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("traegerHoehe"), onChange: ec("traegerHoehe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Sparren", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anzahl", value: v("sparrenAnzahl"), onChange: ec("sparrenAnzahl") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("sparrenBreite"), onChange: ec("sparrenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("sparrenHoehe"), onChange: ec("sparrenHoehe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        RadioGroup,
+        {
+          label: "Auflage",
+          value: v("sparrenAuflage"),
+          options: [{ value: "0", label: "Aufliegend" }, { value: "1", label: "Innenliegend" }],
+          onChange: ec("sparrenAuflage")
+        }
+      )
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Pfette", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        RadioGroup,
+        {
+          label: "Aktiv",
+          value: v("pfette"),
+          options: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }],
+          onChange: ec("pfette")
+        }
+      ),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("pfettenBreite"), onChange: ec("pfettenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("pfettenHoehe"), onChange: ec("pfettenHoehe") })
+      ] })
+    ] })
+  ] });
+}
 const carportDynamicModel = {
   type: "carport",
   label: "Carport",
@@ -2831,21 +3209,7 @@ const carportDynamicModel = {
     traegerBreite: { expression: "0.1" },
     traegerHoehe: { expression: "0.12" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    dachneigung: { type: "expression", label: "Dachneigung (°)" },
-    dachVorsprung: { type: "expression", label: "Dachvorsprung (m)" },
-    traegerAnzahl: { type: "expression", label: "Träger Anzahl" },
-    traegerBreite: { type: "expression", label: "Träger Breite (m)" },
-    traegerHoehe: { type: "expression", label: "Träger Höhe (m)" },
-    sparrenAnzahl: { type: "expression", label: "Sparren Anzahl" },
-    sparrenBreite: { type: "expression", label: "Sparren Breite (m)" },
-    sparrenHoehe: { type: "expression", label: "Sparren Höhe (m)" },
-    sparrenAuflage: { type: "expression", label: "Sparrenauflage (0=Aufliegend, 1=Innenliegend)" },
-    pfette: { type: "expression", label: "Pfette aktiv (0=Nein, 1=Ja)" },
-    pfettenBreite: { type: "expression", label: "Pfette Breite (m)" },
-    pfettenHoehe: { type: "expression", label: "Pfette Höhe (m)" }
-  },
+  propsDialog: CarportPropsDialog,
   component: CarportModel,
   materials: ["profil"],
   disabledForAR: false
@@ -2853,16 +3217,16 @@ const carportDynamicModel = {
 
 // dev uses dynamic import to separate chunks
     
-    const {loadShare: loadShare$1} = index_cjs;
-    const {initPromise: initPromise$1} = veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__;
-    const res$1 = initPromise$1.then(_ => loadShare$1("@react-three/drei", {
+    const {loadShare} = index_cjs;
+    const {initPromise} = veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__;
+    const res = initPromise.then(_ => loadShare("@react-three/drei", {
     customShareInfo: {shareConfig:{
       singleton: true,
       strictVersion: false,
       requiredVersion: "*"
     }}}));
-    const exportModule$1 = await res$1.then(factory => factory());
-    var veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__ = exportModule$1;
+    const exportModule = await res.then(factory => factory());
+    var veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__ = exportModule;
 
 const HDR_URL = "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloppenheim_06_1k.hdr";
 function GlasEnvMap() {
@@ -3121,6 +3485,67 @@ function GlasEindeckungModel(props) {
     }
   );
 }
+function GlasEindeckungPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  const ja_nein = [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Typ & Basis", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Material", value: v("eindeckungTyp"), options: [{ value: "0", label: "Glas" }, { value: "1", label: "Polycarbonat" }], onChange: ec("eindeckungTyp") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dicke (m)", value: v("eindeckungDicke"), onChange: ec("eindeckungDicke") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Glas-Eigenschaften", collapsible: true, defaultOpen: false, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Farbe", value: v("glasFarbe"), onChange: ec("glasFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Transparenz (0–1)", value: v("glasOpacity"), onChange: ec("glasOpacity") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rauheit (0–1)", value: v("glasRoughness"), onChange: ec("glasRoughness") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Metalness (0–1)", value: v("glasMetalness"), onChange: ec("glasMetalness") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "EnvMap-Intensität", value: v("glasEnvMapIntensity"), onChange: ec("glasEnvMapIntensity") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Poly-Eigenschaften", collapsible: true, defaultOpen: false, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Kammergröße (m)", value: v("polyKammergroesse"), onChange: ec("polyKammergroesse") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Transparenz (0–1)", value: v("polyOpacity"), onChange: ec("polyOpacity") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rauheit (0–1)", value: v("polyRoughness"), onChange: ec("polyRoughness") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Metalness (0–1)", value: v("polyMetalness"), onChange: ec("polyMetalness") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "EnvMap-Intensität", value: v("polyEnvMapIntensity"), onChange: ec("polyEnvMapIntensity") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Sparren", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anzahl", value: v("sparrenAnzahl"), onChange: ec("sparrenAnzahl") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("sparrenBreite"), onChange: ec("sparrenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("sparrenHoehe"), onChange: ec("sparrenHoehe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Auflage", value: v("sparrenAuflage"), options: [{ value: "0", label: "Aufliegend" }, { value: "1", label: "Innenliegend" }], onChange: ec("sparrenAuflage") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Außen-Sparren", value: v("sparrenAussen"), options: ja_nein, onChange: ec("sparrenAussen") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Glasleisten / Profile", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("leistenBreite"), onChange: ec("leistenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("leistenHoehe"), onChange: ec("leistenHoehe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Profil-Farbe", value: v("leistenFarbe"), onChange: ec("leistenFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rundung (0–10)", value: v("leistenRundung"), onChange: ec("leistenRundung") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Abschlüsse", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Wandanschluss", value: v("wandanschluss"), options: ja_nein, onChange: ec("wandanschluss") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anschluss Höhe (m)", value: v("wandanschlussHoehe"), onChange: ec("wandanschlussHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anschluss Tiefe (m)", value: v("wandanschlussTiefe"), onChange: ec("wandanschlussTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Stirnblech", value: v("stirnblech"), options: ja_nein, onChange: ec("stirnblech") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stirnblech Höhe (m)", value: v("stirnblechHoehe"), onChange: ec("stirnblechHoehe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Seitenabschluss", value: v("seitenabschluss"), options: ja_nein, onChange: ec("seitenabschluss") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Seiten Höhe (m)", value: v("seitenabschlussHoehe"), onChange: ec("seitenabschlussHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Seiten Tiefe (m)", value: v("seitenabschlussTiefe"), onChange: ec("seitenabschlussTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Vorn-Abschlussleiste", value: v("vornAbschlussleiste"), options: ja_nein, onChange: ec("vornAbschlussleiste") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Material-Optionen", collapsible: true, defaultOpen: false, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Eigenes Platten-Material", value: v("platteEigenMaterial"), options: ja_nein, onChange: ec("platteEigenMaterial") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Separate Bauteil-Materialien", value: v("einzelMaterialien"), options: ja_nein, onChange: ec("einzelMaterialien") })
+    ] })
+  ] });
+}
 const glasEindeckungDynamicModel = {
   type: "veranda-glas-eindeckung",
   label: "Veranda Glas/Poly Eindeckung",
@@ -3164,41 +3589,7 @@ const glasEindeckungDynamicModel = {
     platteEigenMaterial: { expression: "0" },
     einzelMaterialien: { expression: "0" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    eindeckungTyp: { type: "expression", label: "Typ (0=Glas, 1=Polycarbonat)" },
-    eindeckungDicke: { type: "expression", label: "Dicke (m)" },
-    glasFarbe: { type: "expression", label: "Glas Farbe (hex)" },
-    glasOpacity: { type: "expression", label: "Glas Transparenz (0–1)" },
-    glasRoughness: { type: "expression", label: "Glas Rauheit (0–1)" },
-    glasMetalness: { type: "expression", label: "Glas Metalness (0–1)" },
-    glasEnvMapIntensity: { type: "expression", label: "Glas EnvMap Intensität" },
-    polyKammergroesse: { type: "expression", label: "Poly Kammergröße (m)" },
-    polyOpacity: { type: "expression", label: "Poly Transparenz (0–1)" },
-    polyRoughness: { type: "expression", label: "Poly Rauheit (0–1)" },
-    polyMetalness: { type: "expression", label: "Poly Metalness (0–1)" },
-    polyEnvMapIntensity: { type: "expression", label: "Poly EnvMap Intensität" },
-    sparrenAnzahl: { type: "expression", label: "Sparren Anzahl" },
-    sparrenBreite: { type: "expression", label: "Sparren Breite (m)" },
-    sparrenHoehe: { type: "expression", label: "Sparren Höhe (m)" },
-    sparrenAuflage: { type: "expression", label: "Sparrenauflage (0=Aufliegend, 1=Innenliegend)" },
-    sparrenAussen: { type: "expression", label: "Außen Sparren (0=Nein, 1=Ja)" },
-    leistenBreite: { type: "expression", label: "Profil Breite (m)" },
-    leistenHoehe: { type: "expression", label: "Profil Höhe (m)" },
-    leistenFarbe: { type: "expression", label: "Profil Farbe (hex)" },
-    leistenRundung: { type: "expression", label: "Profil Rundung (0–10)" },
-    wandanschluss: { type: "expression", label: "Wandanschluss (0=Nein, 1=Ja)" },
-    wandanschlussHoehe: { type: "expression", label: "Wandanschluss Höhe (m)" },
-    wandanschlussTiefe: { type: "expression", label: "Wandanschluss Tiefe (m)" },
-    stirnblech: { type: "expression", label: "Stirnblech (0=Nein, 1=Ja)" },
-    stirnblechHoehe: { type: "expression", label: "Stirnblech Höhe (m)" },
-    seitenabschluss: { type: "expression", label: "Seitenabschluss (0=Nein, 1=Ja)" },
-    seitenabschlussHoehe: { type: "expression", label: "Seitenabschluss Höhe (m)" },
-    seitenabschlussTiefe: { type: "expression", label: "Seitenabschluss Tiefe (m)" },
-    vornAbschlussleiste: { type: "expression", label: "Vorn-Abschlussleiste (0=Nein, 1=Ja)" },
-    platteEigenMaterial: { type: "expression", label: "Eigenes Platten-Material (0=Nein, 1=Ja)" },
-    einzelMaterialien: { type: "expression", label: "Separate Bauteil-Materialien (0=Nein, 1=Ja)" }
-  },
+  propsDialog: GlasEindeckungPropsDialog,
   component: GlasEindeckungModel,
   materials: ["profil", "konstruktion", "sparren", "leisten", "wandanschluss", "platte"],
   disabledForAR: false
@@ -3436,6 +3827,55 @@ function MetallEindeckungModel(props) {
     }
   );
 }
+function MetallEindeckungPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  const ja_nein = [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Typ & Metall", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Typ", value: v("eindeckung"), options: [{ value: "0", label: "Welle" }, { value: "1", label: "Trapez" }], onChange: ec("eindeckung") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dicke (m)", value: v("eindeckungDicke"), onChange: ec("eindeckungDicke") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Farbe", value: v("metallFarbe"), onChange: ec("metallFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Amplitude (cm)", value: v("amplitude"), onChange: ec("amplitude") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Frequenz (cm)", value: v("frequenz"), onChange: ec("frequenz") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Sparrenauflage", value: v("sparrenAuflage"), options: [{ value: "0", label: "Aufliegend" }, { value: "1", label: "Innenliegend" }], onChange: ec("sparrenAuflage") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Querbalken", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anzahl", value: v("balkenAnzahl"), onChange: ec("balkenAnzahl") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("balkenBreite"), onChange: ec("balkenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("balkenHoehe"), onChange: ec("balkenHoehe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Längsbalken", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Außen-Sparren", value: v("sparrenAussen"), options: ja_nein, onChange: ec("sparrenAussen") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("laengsbalkenBreite"), onChange: ec("laengsbalkenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("laengsbalkenHoehe"), onChange: ec("laengsbalkenHoehe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Abschlüsse", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Wandanschluss", value: v("wandanschluss"), options: ja_nein, onChange: ec("wandanschluss") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anschluss Höhe (m)", value: v("wandanschlussHoehe"), onChange: ec("wandanschlussHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anschluss Tiefe (m)", value: v("wandanschlussTiefe"), onChange: ec("wandanschlussTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Stirnblech", value: v("stirnblech"), options: ja_nein, onChange: ec("stirnblech") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stirnblech Höhe (m)", value: v("stirnblechHoehe"), onChange: ec("stirnblechHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stirnblech Tiefe (m)", value: v("stirnblechTiefe"), onChange: ec("stirnblechTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Seitenabschluss", value: v("seitenabschluss"), options: ja_nein, onChange: ec("seitenabschluss") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Seiten Höhe (m)", value: v("seitenabschlussHoehe"), onChange: ec("seitenabschlussHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Seiten Tiefe (m)", value: v("seitenabschlussTiefe"), onChange: ec("seitenabschlussTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Anschluss-Farbe", value: v("anschlussFarbe"), onChange: ec("anschlussFarbe") })
+    ] })
+  ] });
+}
 const metallEindeckungDynamicModel = {
   type: "veranda-metall-eindeckung",
   label: "Veranda Welle/Trapez Eindeckung",
@@ -3467,31 +3907,7 @@ const metallEindeckungDynamicModel = {
     laengsbalkenBreite: { expression: "0.06" },
     laengsbalkenHoehe: { expression: "0.08" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    eindeckung: { type: "expression", label: "Typ (0=Welle, 1=Trapez)" },
-    eindeckungDicke: { type: "expression", label: "Dicke (m)" },
-    metallFarbe: { type: "expression", label: "Farbe (hex)" },
-    amplitude: { type: "expression", label: "Amplitude (cm)" },
-    frequenz: { type: "expression", label: "Frequenz (cm)" },
-    sparrenAuflage: { type: "expression", label: "Sparrenauflage (0=Aufliegend, 1=Innenliegend)" },
-    balkenAnzahl: { type: "expression", label: "Querbalken Anzahl" },
-    balkenBreite: { type: "expression", label: "Querbalken Breite (m)" },
-    balkenHoehe: { type: "expression", label: "Querbalken Höhe (m)" },
-    sparrenAussen: { type: "expression", label: "Längsbalken Außen (0=Nein, 1=Ja)" },
-    laengsbalkenBreite: { type: "expression", label: "Längsbalken Breite (m)" },
-    laengsbalkenHoehe: { type: "expression", label: "Längsbalken Höhe (m)" },
-    wandanschluss: { type: "expression", label: "Wandanschluss (0=Nein, 1=Ja)" },
-    wandanschlussHoehe: { type: "expression", label: "Wandanschluss Höhe (m)" },
-    wandanschlussTiefe: { type: "expression", label: "Wandanschluss Tiefe (m)" },
-    stirnblech: { type: "expression", label: "Stirnblech (0=Nein, 1=Ja)" },
-    stirnblechHoehe: { type: "expression", label: "Stirnblech Höhe (m)" },
-    stirnblechTiefe: { type: "expression", label: "Stirnblech Tiefe (m)" },
-    seitenabschluss: { type: "expression", label: "Seitenabschluss (0=Nein, 1=Ja)" },
-    seitenabschlussHoehe: { type: "expression", label: "Seitenabschluss Höhe (m)" },
-    seitenabschlussTiefe: { type: "expression", label: "Seitenabschluss Tiefe (m)" },
-    anschlussFarbe: { type: "expression", label: "Anschluss Farbe (hex)" }
-  },
+  propsDialog: MetallEindeckungPropsDialog,
   component: MetallEindeckungModel,
   materials: ["profil", "metall", "anschluss"],
   disabledForAR: false
@@ -4137,6 +4553,36 @@ function LamellenEindeckungModel(props) {
     })()
   ] });
 }
+function LamellenEindeckungPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  const ja_nein = [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Lamellen", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Ausrichtung", value: v("lamellenRichtung"), options: [{ value: "0", label: "Quer / Bioclimatic" }, { value: "1", label: "Längs" }], onChange: ec("lamellenRichtung") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("lamellenBreite"), onChange: ec("lamellenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Dicke (m)", value: v("lamellenDicke"), onChange: ec("lamellenDicke") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anzahl (0=auto)", value: v("lamellenAnzahl"), onChange: ec("lamellenAnzahl") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Winkel (°)", value: v("lamellenWinkel"), onChange: ec("lamellenWinkel") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Farbe", value: v("lamellenFarbe"), onChange: ec("lamellenFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Roughness (0–1)", value: v("lamellenRoughness"), onChange: ec("lamellenRoughness") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Einfahrtiefe (0–100)", value: v("slatMoveIn"), onChange: ec("slatMoveIn") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Sparrenauflage", collapsible: true, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Auflage", value: v("sparrenAuflage"), options: [{ value: "0", label: "Aufliegend" }, { value: "1", label: "Innenliegend" }], onChange: ec("sparrenAuflage") }) }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Wandanschluss", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Aktiv", value: v("wandanschluss"), options: ja_nein, onChange: ec("wandanschluss") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("wandanschlussHoehe"), onChange: ec("wandanschlussHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Tiefe (m)", value: v("wandanschlussTiefe"), onChange: ec("wandanschlussTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Anschluss-Farbe", value: v("anschlussFarbe"), onChange: ec("anschlussFarbe") })
+    ] })
+  ] });
+}
 const lamellenEindeckungDynamicModel = {
   type: "veranda-lamellen-eindeckung",
   label: "Lamelleneindeckung (Dach)",
@@ -4157,21 +4603,7 @@ const lamellenEindeckungDynamicModel = {
     wandanschlussTiefe: { expression: "0.06" },
     anschlussFarbe: { expression: "0xc0c0c0" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    lamellenRichtung: { type: "expression", label: "Ausrichtung (0=Quer/Bioclimatic, 1=Längs)" },
-    lamellenBreite: { type: "expression", label: "Breite (m)" },
-    lamellenDicke: { type: "expression", label: "Dicke (m)" },
-    lamellenAnzahl: { type: "expression", label: "Anzahl (0=auto)" },
-    lamellenWinkel: { type: "expression", label: "Winkel (°)" },
-    lamellenFarbe: { type: "expression", label: "Farbe (hex)" },
-    lamellenRoughness: { type: "expression", label: "Roughness (0–1)" },
-    slatMoveIn: { type: "expression", label: "Einfahrtiefe (0–100)" },
-    wandanschluss: { type: "expression", label: "Wandanschluss (0=Nein, 1=Ja)" },
-    wandanschlussHoehe: { type: "expression", label: "Wandanschluss Höhe (m)" },
-    wandanschlussTiefe: { type: "expression", label: "Wandanschluss Tiefe (m)" },
-    anschlussFarbe: { type: "expression", label: "Anschluss Farbe (hex)" }
-  },
+  propsDialog: LamellenEindeckungPropsDialog,
   component: LamellenEindeckungModel,
   materials: ["profil", "lamelle"],
   disabledForAR: false
@@ -4457,6 +4889,53 @@ function SolarEindeckungModel(props) {
     ] })
   ] });
 }
+function SolarEindeckungPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  const ja_nein = [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Sparren", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Auflage", value: v("sparrenAuflage"), options: [{ value: "0", label: "Aufliegend" }, { value: "1", label: "Innenliegend" }], onChange: ec("sparrenAuflage") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anzahl (0=von Veranda)", value: v("sparrenAnzahl"), onChange: ec("sparrenAnzahl") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("sparrenBreite"), onChange: ec("sparrenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("sparrenHoehe"), onChange: ec("sparrenHoehe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Montageschiene", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m, 0=keine)", value: v("leistenBreite"), onChange: ec("leistenBreite") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("leistenHoehe"), onChange: ec("leistenHoehe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Farbe", value: v("leistenFarbe"), onChange: ec("leistenFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Rundung (0–10)", value: v("leistenRundung"), onChange: ec("leistenRundung") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Solar-Material", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Solarzellen-Farbe", value: v("panelFarbe"), onChange: ec("panelFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Rahmen-Farbe", value: v("rahmenFarbe"), onChange: ec("rahmenFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Vorderglas Transparenz (0–1)", value: v("glasOpacity"), onChange: ec("glasOpacity") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Vorderglas Rauheit (0–1)", value: v("glasRoughness"), onChange: ec("glasRoughness") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Vorderglas Metalness (0–1)", value: v("glasMetalness"), onChange: ec("glasMetalness") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Abschlüsse", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Anschluss-Farbe", value: v("anschlussFarbe"), onChange: ec("anschlussFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Wandanschluss", value: v("wandanschluss"), options: ja_nein, onChange: ec("wandanschluss") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anschluss Höhe (m)", value: v("wandanschlussHoehe"), onChange: ec("wandanschlussHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Anschluss Tiefe (m)", value: v("wandanschlussTiefe"), onChange: ec("wandanschlussTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Stirnblech", value: v("stirnblech"), options: ja_nein, onChange: ec("stirnblech") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stirnblech Höhe (m)", value: v("stirnblechHoehe"), onChange: ec("stirnblechHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stirnblech Tiefe (m)", value: v("stirnblechTiefe"), onChange: ec("stirnblechTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Seitenabschluss", value: v("seitenabschluss"), options: ja_nein, onChange: ec("seitenabschluss") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Seiten Höhe (m)", value: v("seitenabschlussHoehe"), onChange: ec("seitenabschlussHoehe") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Seiten Tiefe (m)", value: v("seitenabschlussTiefe"), onChange: ec("seitenabschlussTiefe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Separate Anschluss-Materialien", value: v("einzelMaterialien"), options: ja_nein, onChange: ec("einzelMaterialien") })
+    ] })
+  ] });
+}
 const solarEindeckungDynamicModel = {
   type: "veranda-solar-eindeckung",
   label: "Solareindeckung",
@@ -4487,33 +4966,7 @@ const solarEindeckungDynamicModel = {
     sparrenBreite: { expression: "0" },
     sparrenHoehe: { expression: "0" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    sparrenAuflage: { type: "expression", label: "Sparrenauflage (0=Aufliegend, 1=Innenliegend)" },
-    sparrenAnzahl: { type: "expression", label: "Sparren Anzahl (0=von Veranda)" },
-    sparrenBreite: { type: "expression", label: "Sparren Breite (m, 0=von Veranda)" },
-    sparrenHoehe: { type: "expression", label: "Sparren Höhe (m, 0=von Veranda)" },
-    leistenBreite: { type: "expression", label: "Montageschiene Breite (m, 0=keine)" },
-    leistenHoehe: { type: "expression", label: "Montageschiene Höhe (m)" },
-    leistenFarbe: { type: "expression", label: "Montageschiene Farbe (hex)" },
-    leistenRundung: { type: "expression", label: "Montageschiene Rundung (0–10)" },
-    panelFarbe: { type: "expression", label: "Solar Zellen Farbe (hex)" },
-    rahmenFarbe: { type: "expression", label: "Solar Rahmen Farbe (hex)" },
-    glasOpacity: { type: "expression", label: "Vorderglas Transparenz (0–1)" },
-    glasRoughness: { type: "expression", label: "Vorderglas Rauheit (0–1)" },
-    glasMetalness: { type: "expression", label: "Vorderglas Metalness (0–1)" },
-    anschlussFarbe: { type: "expression", label: "Anschluss Farbe (hex)" },
-    wandanschluss: { type: "expression", label: "Wandanschluss (0=Nein, 1=Ja)" },
-    wandanschlussHoehe: { type: "expression", label: "Wandanschluss Höhe (m)" },
-    wandanschlussTiefe: { type: "expression", label: "Wandanschluss Tiefe (m)" },
-    stirnblech: { type: "expression", label: "Stirnblech (0=Nein, 1=Ja)" },
-    stirnblechHoehe: { type: "expression", label: "Stirnblech Höhe (m)" },
-    stirnblechTiefe: { type: "expression", label: "Stirnblech Tiefe (m)" },
-    seitenabschluss: { type: "expression", label: "Seitenabschluss (0=Nein, 1=Ja)" },
-    seitenabschlussHoehe: { type: "expression", label: "Seitenabschluss Höhe (m)" },
-    seitenabschlussTiefe: { type: "expression", label: "Seitenabschluss Tiefe (m)" },
-    einzelMaterialien: { type: "expression", label: "Separate Anschluss-Materialien (0=Nein, 1=Ja)" }
-  },
+  propsDialog: SolarEindeckungPropsDialog,
   component: SolarEindeckungModel,
   materials: ["profil", "glas", "anschluss", "leisten"],
   disabledForAR: false
@@ -4586,6 +5039,35 @@ function RegenrinneModel(props) {
     }
   );
 }
+function RegenrinnePropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Typ", children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      RadioGroup,
+      {
+        label: "Variante",
+        value: v("typ"),
+        options: [
+          { value: "0", label: "Kasten" },
+          { value: "1", label: "Eckig" },
+          { value: "2", label: "Rund" },
+          { value: "3", label: "Klassisch" },
+          { value: "4", label: "Fantasy" }
+        ],
+        onChange: ec("typ")
+      }
+    ) }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Abmessungen", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite (m)", value: v("rinnenBreite"), onChange: ec("rinnenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Höhe (m)", value: v("rinnenHoehe"), onChange: ec("rinnenHoehe") })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Wandstärke (m)", value: v("wandStaerke"), onChange: ec("wandStaerke") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Farbe", collapsible: true, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Rinnen-Farbe", value: v("farbe"), onChange: ec("farbe") }) })
+  ] });
+}
 const regenrinneDynamicModel = {
   type: "veranda-regenrinne",
   label: "Regenrinne",
@@ -4597,14 +5079,7 @@ const regenrinneDynamicModel = {
     wandStaerke: { expression: "0.003" },
     farbe: { expression: "0x808080" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    typ: { type: "expression", label: "Typ (0=Kasten, 1=Eckig, 2=Rund, 3=Klassisch, 4=Fantasy)" },
-    rinnenBreite: { type: "expression", label: "Breite (m)" },
-    rinnenHoehe: { type: "expression", label: "Höhe (m)" },
-    wandStaerke: { type: "expression", label: "Wandstärke (m)" },
-    farbe: { type: "expression", label: "Farbe (hex)" }
-  },
+  propsDialog: RegenrinnePropsDialog,
   component: RegenrinneModel,
   materials: ["profil"],
   disabledForAR: false
@@ -4671,6 +5146,33 @@ function PfostenModel(props) {
     }
   );
 }
+function PfostenPropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Typ", children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      RadioGroup,
+      {
+        label: "Profiltyp",
+        value: v("typ"),
+        options: [
+          { value: "0", label: "Eckig" },
+          { value: "1", label: "Rund" },
+          { value: "2", label: "Klassisch" }
+        ],
+        onChange: ec("typ")
+      }
+    ) }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Abmessungen", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Breite / Durchmesser (m)", value: v("pfostenBreite"), onChange: ec("pfostenBreite") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Tiefe (m, nur Eckig/Klassisch)", value: v("pfostenTiefe"), onChange: ec("pfostenTiefe") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Section, { title: "Anzahl", collapsible: true, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Vorne", value: v("pfostenAnzahlVorne"), onChange: ec("pfostenAnzahlVorne") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Hinten", value: v("pfostenAnzahlHinten"), onChange: ec("pfostenAnzahlHinten") })
+    ] }) })
+  ] });
+}
 const pfostenDynamicModel = {
   type: "veranda-pfosten",
   label: "Pfosten",
@@ -4682,156 +5184,11 @@ const pfostenDynamicModel = {
     pfostenAnzahlVorne: { expression: "2" },
     pfostenAnzahlHinten: { expression: "2" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    typ: { type: "expression", label: "Typ (0=Eckig, 1=Rund, 2=Klassisch)" },
-    pfostenBreite: { type: "expression", label: "Breite / Durchmesser (m)" },
-    pfostenTiefe: { type: "expression", label: "Tiefe (m, nur Eckig/Klassisch)" },
-    pfostenAnzahlVorne: { type: "expression", label: "Anzahl vorne" },
-    pfostenAnzahlHinten: { type: "expression", label: "Anzahl hinten" }
-  },
+  propsDialog: PfostenPropsDialog,
   component: PfostenModel,
   materials: ["profil"],
   disabledForAR: false
 };
-
-// dev uses dynamic import to separate chunks
-    
-    const {loadShare} = index_cjs;
-    const {initPromise} = veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__;
-    const res = initPromise.then(_ => loadShare("@k3/core", {
-    customShareInfo: {shareConfig:{
-      singleton: true,
-      strictVersion: false,
-      requiredVersion: "*"
-    }}}));
-    const exportModule = await res.then(factory => factory());
-    var veranda_mf_2_plugin__loadShare___mf_0_k3_mf_1_core__loadShare__ = exportModule;
-
-function SyncMaterials({
-  model,
-  onModelUpdate,
-  materials
-}) {
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    if (!model?.id || !onModelUpdate) return;
-    const current = model.materials ?? [];
-    const missing = materials.filter((m) => !current.includes(m));
-    if (missing.length > 0) {
-      onModelUpdate({ materials: [...current, ...missing] });
-    }
-  }, [String(model?.id)]);
-  return null;
-}
-
-const ACCENT = "#00bcd4";
-const BORDER = "#d0d0d0";
-const BG_INPUT = "#ffffff";
-const RADIUS = 6;
-const radioGroupWrapperStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
-  marginBottom: 8
-};
-const radioOptionsRowStyle = {
-  display: "flex",
-  gap: 0,
-  borderRadius: RADIUS,
-  overflow: "hidden",
-  border: `1px solid ${BORDER}`
-};
-const radioOptionStyle = (active, isLast) => ({
-  flex: 1,
-  padding: "8px 12px",
-  textAlign: "center",
-  cursor: "pointer",
-  userSelect: "none",
-  fontSize: "0.85rem",
-  fontWeight: active ? 600 : 400,
-  background: active ? ACCENT : BG_INPUT,
-  color: active ? "#fff" : "inherit",
-  borderRight: isLast ? "none" : `1px solid ${BORDER}`,
-  transition: "background 0.15s ease, color 0.15s ease",
-  boxSizing: "border-box"
-});
-function ColorPicker({
-  label,
-  value,
-  onChange
-}) {
-  const toInputHex = (v) => {
-    if (typeof v === "number") return `#${v.toString(16).padStart(6, "0")}`;
-    const s = String(v).trim();
-    if (/^0[xX][0-9a-fA-F]+$/.test(s))
-      return `#${parseInt(s, 16).toString(16).padStart(6, "0")}`;
-    if (/^#[0-9a-fA-F]{6}$/.test(s)) return s;
-    return "#ccddee";
-  };
-  const hexColor = toInputHex(value);
-  const colorPickerRowStyle = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-    gap: 8
-  };
-  const colorSwatchStyle = {
-    width: 40,
-    height: 28,
-    cursor: "pointer",
-    border: `1px solid ${BORDER}`,
-    borderRadius: RADIUS,
-    padding: 2,
-    background: "none"
-  };
-  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: colorPickerRowStyle, children: [
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { children: label }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-      "input",
-      {
-        type: "color",
-        value: hexColor,
-        style: colorSwatchStyle,
-        onChange: (e) => {
-          const hex = e.target.value;
-          onChange("0x" + hex.slice(1));
-        }
-      }
-    )
-  ] });
-}
-function RadioGroup({
-  label,
-  value,
-  options,
-  onChange
-}) {
-  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: radioGroupWrapperStyle, children: [
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { children: label }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: radioOptionsRowStyle, children: options.map((opt, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-      "div",
-      {
-        style: radioOptionStyle(
-          String(value) === String(opt.value),
-          i === options.length - 1
-        ),
-        role: "radio",
-        "aria-checked": String(value) === String(opt.value),
-        tabIndex: 0,
-        onClick: () => onChange(Number(opt.value)),
-        onKeyDown: (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onChange(Number(opt.value));
-          }
-        },
-        children: opt.label
-      },
-      opt.value
-    )) })
-  ] });
-}
 
 const WAND_TYPE_MAP = {
   [WAND_TYP.KEIL]: "veranda-wand-keil",
@@ -6326,219 +6683,31 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     ...baseDialogKeys,
     ...extraKeys.filter((k) => !baseDialogKeys.includes(k))
   ];
-  function WandPropsDialog(dialogProps) {
-    const { dynamicModelProps, expressionChange } = dialogProps;
-    return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-        SyncMaterials,
-        {
-          model: dialogProps.model,
-          onModelUpdate: dialogProps.onModelUpdate,
-          materials: slots
-        }
-      ),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-        veranda_mf_2_plugin__loadShare___mf_0_k3_mf_1_core__loadShare__.BasicDynamicModelEditor,
-        {
-          ...dialogProps,
-          materialsAreEditable: true,
-          extraFields: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: allDialogKeys.map((key) => {
-            const dlabel = DIALOG_LABELS[key];
-            if (!dlabel) return null;
-            if (key === "glasFarbe") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                ColorPicker,
-                {
-                  label: "Glasfarbe",
-                  value: exprVal(dynamicModelProps[key]) ?? "0xccddee",
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "rahmenTyp") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Typ",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "1", label: "Standard" },
-                    { value: "2", label: "Mit Mittelbalken" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "glasTyp") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Füllung",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Glas" },
-                    { value: "1", label: "Polycarbonat" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "aufDachneigung") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Oberkante",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Standard" },
-                    { value: "1", label: "Volle Höhe" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "mitRahmen") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Variante",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Ohne Rahmen" },
-                    { value: "1", label: "Mit Rahmen" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "griffTyp") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Grifftyp",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Rund (Loch)" },
-                    { value: "1", label: "Muschel" },
-                    { value: "2", label: "Stahl" },
-                    { value: "3", label: "Ohne" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "griffAnordnung") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Griff-Anordnung",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Erste Tür" },
-                    { value: "1", label: "Anfang + Ende" },
-                    { value: "2", label: "Alle Türen" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "griffPosition") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Griffposition",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Links" },
-                    { value: "1", label: "Rechts" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "griffSeite") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Griffseite",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Innen" },
-                    { value: "1", label: "Außen" },
-                    { value: "2", label: "Beidseitig" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "laufrichtung") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Laufrichtung",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Rechts" },
-                    { value: "1", label: "Links" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "schienenSeite") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Schienen-Seite",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Außen" },
-                    { value: "1", label: "Innen" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            if (key === "keil") {
-              return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-                RadioGroup,
-                {
-                  label: "Mit Keil",
-                  value: exprVal(dynamicModelProps[key]),
-                  options: [
-                    { value: "0", label: "Ohne" },
-                    { value: "1", label: "Mit Keil" }
-                  ],
-                  onChange: (v) => expressionChange(key)(v)
-                },
-                key
-              );
-            }
-            return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-              veranda_mf_2_plugin__loadShare___mf_0_k3_mf_1_core__loadShare__.ExpressionInput,
-              {
-                label: dlabel,
-                value: exprVal(dynamicModelProps[key]),
-                onChange: expressionChange(key)
-              },
-              key
-            );
-          }) })
-        }
-      )
-    ] });
-  }
+  const RADIO_OPTIONS = {
+    rahmenTyp: [{ value: "1", label: "Standard" }, { value: "2", label: "Mit Mittelbalken" }],
+    glasTyp: [{ value: "0", label: "Glas" }, { value: "1", label: "Polycarbonat" }],
+    aufDachneigung: [{ value: "0", label: "Standard" }, { value: "1", label: "Volle Höhe" }],
+    mitRahmen: [{ value: "0", label: "Ohne Rahmen" }, { value: "1", label: "Mit Rahmen" }],
+    griffTyp: [{ value: "0", label: "Rund (Loch)" }, { value: "1", label: "Muschel" }, { value: "2", label: "Stahl" }, { value: "3", label: "Ohne" }],
+    griffAnordnung: [{ value: "0", label: "Erste Tür" }, { value: "1", label: "Anfang + Ende" }, { value: "2", label: "Alle Türen" }],
+    griffPosition: [{ value: "0", label: "Links" }, { value: "1", label: "Rechts" }],
+    griffSeite: [{ value: "0", label: "Innen" }, { value: "1", label: "Außen" }, { value: "2", label: "Beidseitig" }],
+    laufrichtung: [{ value: "0", label: "Rechts" }, { value: "1", label: "Links" }],
+    schienenSeite: [{ value: "0", label: "Außen" }, { value: "1", label: "Innen" }],
+    keil: [{ value: "0", label: "Ohne" }, { value: "1", label: "Mit Keil" }]
+  };
+  const propsDialogRecord = {
+    _base: { type: "basic" },
+    ...Object.fromEntries(
+      allDialogKeys.filter((key) => DIALOG_LABELS[key] !== void 0).map((key) => {
+        const radioOpts = RADIO_OPTIONS[key];
+        return [
+          key,
+          radioOpts ? { type: "radioGroup", label: DIALOG_LABELS[key], options: radioOpts } : { type: "expression", label: DIALOG_LABELS[key] }
+        ];
+      })
+    )
+  };
   return {
     type: WAND_TYPE_MAP[wandTyp] ?? `veranda-wand-typ${wandTyp}`,
     label,
@@ -6547,7 +6716,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
       ...baseDefaultProps,
       ...convertedExtra
     },
-    propsDialog: WandPropsDialog,
+    propsDialog: propsDialogRecord,
     component: WandModel,
     materials: slots,
     disabledForAR: false
@@ -7379,6 +7548,30 @@ function UnterdachmarkiseModel(props) {
     }
   );
 }
+function UnterdachmarkisePropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  const ja_nein = [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Kassette", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Kastenart", value: v("kastenArt"), options: [{ value: "0", label: "Rund" }, { value: "1", label: "Eckig" }], onChange: ec("kastenArt") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Kasten drehen", value: v("kastenDrehen"), options: ja_nein, onChange: ec("kastenDrehen") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Kassettenfarbe", value: v("kassettenFarbe"), onChange: ec("kassettenFarbe") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Ausfahrt", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Ausfahrlänge (m)", value: v("tiefe"), onChange: ec("tiefe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Max. Breite (m, 0=kein Limit)", value: v("maxBreite"), onChange: ec("maxBreite") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Öffnungsgrad (0–1)", value: v("oeffnungsgrad"), onChange: ec("oeffnungsgrad") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Führungsschienen", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Halterungen", value: v("halterungen"), options: ja_nein, onChange: ec("halterungen") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Schienenabstand (m, 0=Std)", value: v("schienenAbstand"), onChange: ec("schienenAbstand") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stoffdicke (m, 0=Std)", value: v("stoffDicke"), onChange: ec("stoffDicke") })
+      ] })
+    ] })
+  ] });
+}
 const unterdachmarkiseDynamicModel = {
   type: "veranda-unterdachmarkise",
   label: "Unterdachmarkise",
@@ -7397,18 +7590,7 @@ const unterdachmarkiseDynamicModel = {
     stoffDicke: { expression: "0" },
     halterungen: { expression: "1" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    kastenArt: { type: "expression", label: "Kastenart (0=Rund, 1=Eckig)" },
-    kastenDrehen: { type: "expression", label: "Kasten drehen (0=Nein, 1=Ja)" },
-    kassettenFarbe: { type: "expression", label: "Kassetten-Farbe (hex)" },
-    tiefe: { type: "expression", label: "Ausfahrlänge (m)" },
-    maxBreite: { type: "expression", label: "Max. Breite (m, 0=kein Limit)" },
-    oeffnungsgrad: { type: "expression", label: "Öffnungsgrad (0–1)" },
-    halterungen: { type: "expression", label: "Halterungen (0=Nein, 1=Ja)" },
-    schienenAbstand: { type: "expression", label: "Schienenabstand (m, 0=Standard)" },
-    stoffDicke: { type: "expression", label: "Stoffdicke (m, 0=Standard)" }
-  },
+  propsDialog: UnterdachmarkisePropsDialog,
   component: UnterdachmarkiseModel,
   materials: ["profil", "stoff"],
   disabledForAR: false
@@ -7771,6 +7953,33 @@ function AufdachmarkiseModel(props) {
     }
   );
 }
+function AufdachmarkisePropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  const ja_nein = [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Kassette", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Kastenart", value: v("kastenArt"), options: [{ value: "0", label: "Rund" }, { value: "1", label: "Eckig" }], onChange: ec("kastenArt") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Kasten drehen", value: v("kastenDrehen"), options: ja_nein, onChange: ec("kastenDrehen") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Kassettenfarbe", value: v("kassettenFarbe"), onChange: ec("kassettenFarbe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Durchmesser Rund (m, 0=Standard)", value: v("kassettenDurchmesser"), onChange: ec("kassettenDurchmesser") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(FieldRow, { children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Kasten Breite (m, 0=Std)", value: v("kastenBreite"), onChange: ec("kastenBreite") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Kasten Höhe (m, 0=Std)", value: v("kastenHoehe"), onChange: ec("kastenHoehe") })
+      ] })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Ausfahrt", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Ausfahrlänge (m)", value: v("tiefe"), onChange: ec("tiefe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Max. Breite (m, 0=kein Limit)", value: v("maxBreite"), onChange: ec("maxBreite") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Öffnungsgrad (0–1)", value: v("oeffnungsgrad"), onChange: ec("oeffnungsgrad") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Führungsschienen", collapsible: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Halterungen", value: v("halterungen"), options: ja_nein, onChange: ec("halterungen") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Schienenabstand (m, 0=Standard)", value: v("schienenAbstand"), onChange: ec("schienenAbstand") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stoffdicke (m, 0=Standard)", value: v("stoffDicke"), onChange: ec("stoffDicke") })
+    ] })
+  ] });
+}
 const aufdachmarkiseDynamicModel = {
   type: "veranda-aufdachmarkise",
   label: "Aufdachmarkise",
@@ -7792,21 +8001,7 @@ const aufdachmarkiseDynamicModel = {
     stoffDicke: { expression: "0" },
     halterungen: { expression: "1" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    kastenArt: { type: "expression", label: "Kastenart (0=Rund, 1=Eckig)" },
-    kastenDrehen: { type: "expression", label: "Kasten drehen (0=Nein, 1=Ja)" },
-    kassettenFarbe: { type: "expression", label: "Kassetten-Farbe (hex)" },
-    kassettenDurchmesser: { type: "expression", label: "Durchmesser Rund (m, 0=Standard)" },
-    kastenBreite: { type: "expression", label: "Kasten Breite/Tiefe (m, 0=Standard)" },
-    kastenHoehe: { type: "expression", label: "Kasten Höhe (m, 0=Standard)" },
-    tiefe: { type: "expression", label: "Ausfahrlänge (m)" },
-    maxBreite: { type: "expression", label: "Max. Breite (m, 0=kein Limit)" },
-    oeffnungsgrad: { type: "expression", label: "Öffnungsgrad (0–1)" },
-    halterungen: { type: "expression", label: "Halterungen (0=Nein, 1=Ja)" },
-    schienenAbstand: { type: "expression", label: "Schienenabstand (m, 0=Standard)" },
-    stoffDicke: { type: "expression", label: "Stoffdicke (m, 0=Standard)" }
-  },
+  propsDialog: AufdachmarkisePropsDialog,
   component: AufdachmarkiseModel,
   materials: ["profil", "stoff"],
   disabledForAR: false
@@ -8075,6 +8270,22 @@ function SenkrechtmarkiseModel(props) {
     }
   );
 }
+function SenkrechtmarkisePropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Kassette", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Kastenart", value: v("kastenArt"), options: [{ value: "0", label: "Rund" }, { value: "1", label: "Eckig" }], onChange: ec("kastenArt") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Kassettenfarbe", value: v("kassettenFarbe"), onChange: ec("kassettenFarbe") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Ausfahrt", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Fallhöhe (m)", value: v("tiefe"), onChange: ec("tiefe") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Öffnungsgrad (0–1)", value: v("oeffnungsgrad"), onChange: ec("oeffnungsgrad") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Transparenz (0–1)", value: v("opacity"), onChange: ec("opacity") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stoffdicke (m)", value: v("stoffDicke"), onChange: ec("stoffDicke") })
+    ] })
+  ] });
+}
 const senkrechtmarkiseDynamicModel = {
   type: "veranda-senkrechtmarkise",
   label: "Senkrechtmarkise",
@@ -8091,15 +8302,7 @@ const senkrechtmarkiseDynamicModel = {
     kastenArt: { expression: "1" },
     stoffDicke: { expression: "0.003" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    kastenArt: { type: "expression", label: "Kastenart (0=Rund, 1=Eckig)" },
-    kassettenFarbe: { type: "expression", label: "Kassetten-Farbe (hex)" },
-    tiefe: { type: "expression", label: "Fallhöhe (m)" },
-    oeffnungsgrad: { type: "expression", label: "Öffnungsgrad (0–1)" },
-    opacity: { type: "expression", label: "Transparenz (0–1)" },
-    stoffDicke: { type: "expression", label: "Stoffdicke (m)" }
-  },
+  propsDialog: SenkrechtmarkisePropsDialog,
   component: SenkrechtmarkiseModel,
   materials: ["profil", "stoff"],
   disabledForAR: false
@@ -9139,6 +9342,21 @@ function VertikalmarkiseModel(props) {
     ] })
   ] });
 }
+function VertikalmarkisePropsDialog({ dynamicModelProps, expressionChange }) {
+  const v = (key) => exprVal(dynamicModelProps[key]);
+  const ec = expressionChange;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Kassette", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(RadioGroup, { label: "Kastenart", value: v("kastenArt"), options: [{ value: "0", label: "Ohne" }, { value: "1", label: "Eckig" }, { value: "2", label: "Unsichtbar" }], onChange: ec("kastenArt") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ColorPicker, { label: "Kastenfarbe", value: v("kastenFarbe"), onChange: ec("kastenFarbe") })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(Section, { title: "Ausfahrt", children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Position", value: v("position"), onChange: ec("position") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Öffnungsgrad (0–1)", value: v("oeffnungsgrad"), onChange: ec("oeffnungsgrad") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(ExprInput, { label: "Stoffdicke (m)", value: v("stoffDicke"), onChange: ec("stoffDicke") })
+    ] })
+  ] });
+}
 const vertikalmarkiseDynamicModel = {
   type: "veranda-vertikalmarkise",
   label: "Vertikalmarkise",
@@ -9150,14 +9368,7 @@ const vertikalmarkiseDynamicModel = {
     oeffnungsgrad: { expression: "0" },
     stoffDicke: { expression: "0.005" }
   },
-  propsDialog: {
-    _base: { type: "basic" },
-    kastenArt: { type: "expression", label: "Kastenart (0=Ohne, 1=Eckig, 2=Unsichtbar)" },
-    kastenFarbe: { type: "expression", label: "Kastenfarbe (hex)" },
-    position: { type: "expression", label: "Position" },
-    oeffnungsgrad: { type: "expression", label: "Öffnungsgrad (0–1)" },
-    stoffDicke: { type: "expression", label: "Stoffdicke (m)" }
-  },
+  propsDialog: VertikalmarkisePropsDialog,
   component: VertikalmarkiseModel,
   materials: ["profil", "stoff"],
   disabledForAR: false
