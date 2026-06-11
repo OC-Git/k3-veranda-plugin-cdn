@@ -158,7 +158,8 @@ const MaterialFallback = ({
   metalness = MATERIAL_DEFAULTS.profil.metalness,
   roughness = MATERIAL_DEFAULTS.profil.roughness,
   side = veranda_mf_2_plugin__loadShare__three__loadShare__.FrontSide,
-  depthWrite
+  depthWrite,
+  clippingPlanes
 }) => {
   const fallbackRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
   if (!fallbackRef.current) {
@@ -184,13 +185,30 @@ const MaterialFallback = ({
     if (depthWrite !== void 0) mat.depthWrite = depthWrite;
     mat.needsUpdate = true;
   }, [fallbackColor, transparent, opacity, metalness, roughness, side, depthWrite]);
+  const activeMat = React.useMemo(() => {
+    const baseMat = material ?? fallbackRef.current;
+    if (clippingPlanes && clippingPlanes.length > 0) {
+      const cloned = baseMat.clone();
+      cloned.clippingPlanes = clippingPlanes;
+      cloned.clipShadows = true;
+      cloned.needsUpdate = true;
+      return cloned;
+    }
+    return baseMat;
+  }, [material, clippingPlanes, fallbackColor, transparent, opacity, metalness, roughness, side, depthWrite]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    return () => {
+      if (activeMat !== material && activeMat !== fallbackRef.current) {
+        activeMat.dispose();
+      }
+    };
+  }, [activeMat, material]);
   if (children) {
     if (material) {
-      return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: material, attach: "material" }, material.uuid);
+      return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: activeMat, attach: "material" }, activeMat.uuid);
     }
     return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children });
   }
-  const activeMat = material ?? fallbackRef.current;
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: activeMat, attach: "material" }, activeMat.uuid);
 };
 
@@ -2036,6 +2054,7 @@ function SceneShadowLight() {
       return;
     }
     gl.shadowMap.enabled = true;
+    gl.localClippingEnabled = true;
     gl.shadowMap.type = veranda_mf_2_plugin__loadShare__three__loadShare__.PCFSoftShadowMap;
     const light = new veranda_mf_2_plugin__loadShare__three__loadShare__.DirectionalLight(16777215, 2);
     light.position.set(5, 30, -10);
@@ -4661,6 +4680,130 @@ const pfostenDynamicModel = {
   disabledForAR: false
 };
 
+function PlankenFilling({
+  areaWidth,
+  areaHeight,
+  plankenHoehe,
+  plankenTiefe,
+  material,
+  farbeHex,
+  position = [0, 0, 0],
+  rotation = [0, 0, 0],
+  getPlankWidthAtY,
+  getPlankXOffsetAtY,
+  clippingPlanes
+}) {
+  const meshRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  const groupRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  const [worldPlanes, setWorldPlanes] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(void 0);
+  const posKey = JSON.stringify(position);
+  const rotKey = JSON.stringify(rotation);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
+    const updatePlanes = () => {
+      if (groupRef.current) {
+        groupRef.current.updateWorldMatrix(true, true);
+        const wm = groupRef.current.matrixWorld;
+        const localPlanes = [
+          new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(1, 0, 0), 0),
+          new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(-1, 0, 0), areaWidth),
+          new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(0, 1, 0), 0),
+          new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(0, -1, 0), areaHeight)
+        ];
+        const allLocalPlanes = clippingPlanes ? [...localPlanes, ...clippingPlanes] : localPlanes;
+        const nextWorldPlanes = allLocalPlanes.map((p) => {
+          const p2 = p.clone();
+          p2.applyMatrix4(wm);
+          p2.normal.normalize();
+          return p2;
+        });
+        setWorldPlanes((prev) => {
+          if (!prev || prev.length !== nextWorldPlanes.length) return nextWorldPlanes;
+          const changed = nextWorldPlanes.some((p, idx) => {
+            const op = prev[idx];
+            return !op || Math.abs(p.constant - op.constant) > 1e-3 || p.normal.distanceTo(op.normal) > 1e-3;
+          });
+          return changed ? nextWorldPlanes : prev;
+        });
+      }
+    };
+    updatePlanes();
+    const t1 = setTimeout(updatePlanes, 50);
+    const t2 = setTimeout(updatePlanes, 500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [clippingPlanes, posKey, rotKey, areaWidth, areaHeight]);
+  const nD = Math.min(5e-3, plankenHoehe / 4);
+  const effektivePlankenHoehe = Math.max(1e-3, plankenHoehe - nD);
+  const N = isFinite(areaHeight / effektivePlankenHoehe) ? Math.max(1, Math.ceil(areaHeight / effektivePlankenHoehe) + 5) : 1;
+  const dummy = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => new veranda_mf_2_plugin__loadShare__three__loadShare__.Object3D(), []);
+  const plankShape = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const shape = new veranda_mf_2_plugin__loadShare__three__loadShare__.Shape();
+    const w = plankenHoehe;
+    const t = plankenTiefe;
+    const nW = Math.max(2e-3, t / 3);
+    const f = 15e-4;
+    shape.moveTo(-t / 2, f);
+    shape.lineTo(-t / 2 + f, 0);
+    shape.lineTo(-nW / 2, 0);
+    shape.lineTo(-nW / 2, nD);
+    shape.lineTo(nW / 2, nD);
+    shape.lineTo(nW / 2, 0);
+    shape.lineTo(t / 2 - f, 0);
+    shape.lineTo(t / 2, f);
+    shape.lineTo(t / 2, w - nD - f);
+    shape.lineTo(t / 2 - f, w - nD);
+    shape.lineTo(nW / 2, w - nD);
+    shape.lineTo(nW / 2, w);
+    shape.lineTo(-nW / 2, w);
+    shape.lineTo(-nW / 2, w - nD);
+    shape.lineTo(-t / 2 + f, w - nD);
+    shape.lineTo(-t / 2, w - nD - f);
+    shape.lineTo(-t / 2, f);
+    return shape;
+  }, [plankenHoehe, plankenTiefe, nD]);
+  const extSettings = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => ({
+    depth: 1,
+    bevelEnabled: false
+  }), []);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.instanceMatrix.setUsage(veranda_mf_2_plugin__loadShare__three__loadShare__.DynamicDrawUsage);
+      for (let i = 0; i < N; i++) {
+        let yPos = i * effektivePlankenHoehe;
+        const currentWidth = getPlankWidthAtY ? getPlankWidthAtY(yPos) : areaWidth;
+        const xOff = getPlankXOffsetAtY ? getPlankXOffsetAtY(yPos) : 0;
+        dummy.position.set(xOff, yPos, 0);
+        dummy.rotation.set(0, Math.PI / 2, 0);
+        dummy.scale.set(1, 1, currentWidth);
+        dummy.updateMatrix();
+        meshRef.current.setMatrixAt(i, dummy.matrix);
+      }
+      meshRef.current.instanceMatrix.needsUpdate = true;
+      meshRef.current.computeBoundingSphere();
+    }
+  }, [N, areaHeight, areaWidth, plankenHoehe, effektivePlankenHoehe, dummy, getPlankWidthAtY, getPlankXOffsetAtY, plankenTiefe]);
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { ref: groupRef, position, rotation, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+    "instancedMesh",
+    {
+      ref: meshRef,
+      args: [null, null, N],
+      count: N,
+      castShadow: true,
+      receiveShadow: true,
+      onBeforeRender: (gl) => {
+        gl.localClippingEnabled = true;
+      },
+      children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [plankShape, extSettings] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex, clippingPlanes: worldPlanes })
+      ]
+    },
+    N
+  ) });
+}
+
 function KeilWand({
   length,
   hoeheVorne,
@@ -4681,7 +4824,9 @@ function KeilWand({
   polyRoughness = 0.3,
   polyMetalness = 0,
   polyEnvMapIntensity = 1,
-  polyKammergroesse = 0.05
+  polyKammergroesse = 0.05,
+  plankenHoehe = 0.15,
+  plankenTiefe = 0.02
 }) {
   const SW = 0.06;
   const xF = -length / 2;
@@ -4912,14 +5057,74 @@ function KeilWand({
           ))
         ] }, i);
       })
-    ) : (
+    ) : glasTyp === 2 ? (() => {
+      const innerXS = xF + (yF > 1e-3 ? SW : 0);
+      const innerXE = xB - SW;
+      const totalW = innerXE - innerXS;
+      if (totalW < 0.01) return null;
+      const hS_total = Math.max(SW, innerTopAtX(innerXS)) - SW;
+      const hE_total = Math.max(SW, innerTopAtX(innerXE)) - SW;
+      const hMax_total = Math.max(hS_total, hE_total) + 0.5;
+      if (Math.max(hS_total, hE_total) <= 1e-3) return null;
+      const pos = [innerXS, SW, dicke / 2];
+      return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        KeilPlankenField,
+        {
+          panelW: totalW,
+          hS: hS_total,
+          hE: hE_total,
+          hMax: hMax_total,
+          plankenHoehe,
+          plankenTiefe,
+          material,
+          farbeHex,
+          position: pos
+        }
+      );
+    })() : (
       // Glas: einfaches transparentes Extrusions-Panel
-      glasShapes.map((s, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glas", position: [0, 0, glasZ], castShadow: true, receiveShadow: true, material: glasMaterial, children: [
+      glasShapes.map((s, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glas", position: [0, 0, dicke / 2], castShadow: true, receiveShadow: true, material: glasMaterial, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, glsCfg] }),
         !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOp, roughness: glasRoughness, metalness: glasMetalness, envMapIntensity: glasEnvMapIntensity, clearcoat: 1, clearcoatRoughness: 0.05 })
       ] }, i))
     )
   ] });
+}
+function KeilPlankenField({
+  panelW,
+  hS,
+  hE,
+  hMax,
+  plankenHoehe,
+  plankenTiefe,
+  material,
+  farbeHex,
+  position
+}) {
+  const planes = React.useMemo(() => {
+    const pBot = new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(0, 1, 0), 0);
+    const pLeft = new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(1, 0, 0), 0);
+    const pRight = new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(-1, 0, 0), panelW);
+    const normal = new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(hE - hS, -panelW, 0).normalize();
+    const pTop = new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane().setFromNormalAndCoplanarPoint(
+      normal,
+      new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(0, hS, 0)
+    );
+    return [pBot, pLeft, pRight, pTop];
+  }, [panelW, hS, hE]);
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+    PlankenFilling,
+    {
+      areaWidth: panelW,
+      areaHeight: hMax,
+      plankenHoehe,
+      plankenTiefe,
+      material,
+      farbeHex,
+      position,
+      clippingPlanes: planes
+    }
+  );
 }
 
 function RahmenwandWand({
@@ -4954,7 +5159,9 @@ function RahmenwandWand({
   polyEnvMapIntensityUnten = 1,
   polyKammergroesseUnten = 0.05,
   wandHoeheHinten,
-  aufDachneigung = 0
+  aufDachneigung = 0,
+  plankenHoehe = 0.15,
+  plankenTiefe = 0.02
 }) {
   const FT = 0.05;
   const glasD = 0.012;
@@ -5006,16 +5213,17 @@ function RahmenwandWand({
   const innerW = Math.max(0.01, wandBreite - 2 * FT);
   const innerH = Math.max(0.01, wandHoeheVorne - 2 * FT);
   const panelW = Math.max(0.01, (innerW - divCount * FT) / N);
+  const xS = -wandBreite / 2;
+  const innerXS = xS + FT;
   const isSlanted = (aufDachneigung ?? 0) > 0 && wandHoeheHinten !== void 0;
   const hH = wandHoeheHinten ?? wandHoeheVorne;
   const isTyp2 = mitMittelbalken === 1;
+  const barY = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
   const slantedShapes = React.useMemo(() => {
     if (!isSlanted) return null;
-    const xS = -wandBreite / 2;
     const xE = wandBreite / 2;
     const hV = wandHoeheVorne;
     const topAtX = (x) => hV + (x - xS) / wandBreite * (hH - hV);
-    const innerXS = xS + FT;
     const bottomShape = new veranda_mf_2_plugin__loadShare__three__loadShare__.Shape();
     bottomShape.moveTo(xS, 0);
     bottomShape.lineTo(xE, 0);
@@ -5042,7 +5250,6 @@ function RahmenwandWand({
     rightShape.closePath();
     const topPanelShapes = [];
     const botPanelShapes = [];
-    const barY = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
     for (let i = 0; i < N; i++) {
       const pxS = innerXS + i * (panelW + FT);
       const pxE = pxS + panelW;
@@ -5100,9 +5307,10 @@ function RahmenwandWand({
       topPanelShapes,
       botPanelShapes,
       barShape,
-      dividerShapes
+      dividerShapes,
+      topAtX
     };
-  }, [isSlanted, wandBreite, wandHoeheVorne, hH, N, panelW, divCount, isTyp2, mittelbalkenHoehe]);
+  }, [isSlanted, wandBreite, wandHoeheVorne, hH, N, panelW, divCount, isTyp2, barY]);
   const polyFlatStegeXPosOben = React.useMemo(() => {
     if (glasTypOben !== 1) return [];
     const pos = [];
@@ -5125,13 +5333,13 @@ function RahmenwandWand({
   }, [glasTypUnten, panelW, POLY_KAMMER_UNTEN]);
   const polySlantedStegeDataOben = React.useMemo(() => {
     if (!isSlanted || glasTypOben !== 1) return [];
-    const xS = -wandBreite / 2;
-    const topAtX = (x) => wandHoeheVorne + (x - xS) / wandBreite * (hH - wandHoeheVorne);
-    const innerXS = xS + FT;
-    const barY = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
-    const stegeYBot = isTyp2 ? barY + FT : FT;
+    const xS2 = -wandBreite / 2;
+    const topAtX = (x) => wandHoeheVorne + (x - xS2) / wandBreite * (hH - wandHoeheVorne);
+    const innerXS2 = xS2 + FT;
+    const barY2 = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
+    const stegeYBot = isTyp2 ? barY2 + FT : FT;
     return Array.from({ length: N }, (_, i) => {
-      const pxS = innerXS + i * (panelW + FT);
+      const pxS = innerXS2 + i * (panelW + FT);
       const pxE = pxS + panelW;
       const stege = [];
       let sx = pxS + POLY_KAMMER_OBEN;
@@ -5145,15 +5353,15 @@ function RahmenwandWand({
   }, [isSlanted, glasTypOben, wandBreite, wandHoeheVorne, hH, N, panelW, isTyp2, mittelbalkenHoehe, POLY_KAMMER_OBEN]);
   const polySlantedStegeDataUnten = React.useMemo(() => {
     if (!isSlanted || glasTypUnten !== 1 || !isTyp2) return [];
-    const barY = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
-    const innerXS = -wandBreite / 2 + FT;
+    const barY2 = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
+    const innerXS2 = -wandBreite / 2 + FT;
     return Array.from({ length: N }, (_, i) => {
-      const pxS = innerXS + i * (panelW + FT);
+      const pxS = innerXS2 + i * (panelW + FT);
       const pxE = pxS + panelW;
       const stege = [];
       let sx = pxS + POLY_KAMMER_UNTEN;
       while (sx < pxE - 3e-3) {
-        stege.push({ x: sx, yBot: FT, yTop: barY });
+        stege.push({ x: sx, yBot: FT, yTop: barY2 });
         sx += POLY_KAMMER_UNTEN;
       }
       return stege;
@@ -5220,6 +5428,30 @@ function RahmenwandWand({
             ] }, si))
           ] }, `top-${i}`);
         }
+        if (glasTypOben === 2) {
+          const pxS = innerXS + i * (panelW + FT);
+          const yBot = isTyp2 ? barY + FT : FT;
+          return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+            PlankenFilling,
+            {
+              areaWidth: panelW,
+              areaHeight: hH,
+              plankenHoehe,
+              plankenTiefe,
+              farbeHex,
+              material,
+              position: [pxS, yBot, 0],
+              clippingPlanes: (() => {
+                if (!slantedShapes) return [];
+                const dy = slantedShapes.topAtX(pxS + panelW) - slantedShapes.topAtX(pxS);
+                const dx = panelW;
+                const h_start_rel = slantedShapes.topAtX(pxS) - yBot;
+                const normal = new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(dy, -dx, 0).normalize();
+                return [new veranda_mf_2_plugin__loadShare__three__loadShare__.Plane(normal, -normal.dot(new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(0, h_start_rel, 0)))];
+              })()
+            }
+          ) }, `top-${i}`);
+        }
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, glasZ], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, glasExtCfg] }),
           !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpOben, roughness: glasRoughnessOben, metalness: glasMetalnessOben, envMapIntensity: glasEnvMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
@@ -5243,6 +5475,21 @@ function RahmenwandWand({
               /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessUnten })
             ] }, si))
           ] }, `bot-${i}`);
+        }
+        if (glasTypUnten === 2) {
+          const pxS = innerXS + i * (panelW + FT);
+          return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+            PlankenFilling,
+            {
+              areaWidth: panelW,
+              areaHeight: barY - FT,
+              plankenHoehe,
+              plankenTiefe,
+              farbeHex,
+              material,
+              position: [pxS, FT, 0]
+            }
+          ) }, `bot-${i}`);
         }
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [0, 0, glasZ], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, glasExtCfg] }),
@@ -5316,7 +5563,18 @@ function RahmenwandWand({
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, botGlassH, POLY_INNEN_D] }),
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessUnten })
           ] }, si))
-        ] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [panelCenterX, botGlassCenterY, 0], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
+        ] }) : glasTypUnten === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          PlankenFilling,
+          {
+            areaWidth: panelW,
+            areaHeight: botGlassH,
+            plankenHoehe,
+            plankenTiefe,
+            material,
+            farbeHex,
+            position: [panelCenterX - panelW / 2, -wandHoeheVorne / 2 + FT, 0]
+          }
+        ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [panelCenterX, botGlassCenterY, 0], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, botGlassH, glasD] }),
           !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpUnten, roughness: glasRoughnessUnten, metalness: glasMetalnessUnten, envMapIntensity: glasEnvMapIntensityUnten, clearcoat: 1, clearcoatRoughness: 0.05 })
         ] })),
@@ -5333,7 +5591,18 @@ function RahmenwandWand({
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, topGlassH, POLY_INNEN_D] }),
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessOben })
           ] }, si))
-        ] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [panelCenterX, topGlassCenterY, 0], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
+        ] }) : glasTypOben === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          PlankenFilling,
+          {
+            areaWidth: panelW,
+            areaHeight: topGlassH,
+            plankenHoehe,
+            plankenTiefe,
+            material,
+            farbeHex,
+            position: [panelCenterX - panelW / 2, isTyp2 ? barY - wandHoeheVorne / 2 + FT : -wandHoeheVorne / 2 + FT, 0]
+          }
+        ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [panelCenterX, topGlassCenterY, 0], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, topGlassH, glasD] }),
           !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpOben, roughness: glasRoughnessOben, metalness: glasMetalnessOben, envMapIntensity: glasEnvMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
         ] }))
@@ -5350,7 +5619,18 @@ function RahmenwandWand({
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, innerH, POLY_INNEN_D] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessOben })
         ] }, si))
-      ] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [panelCenterX, 0, 0], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
+      ] }) : glasTypOben === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        PlankenFilling,
+        {
+          areaWidth: panelW,
+          areaHeight: innerH,
+          plankenHoehe,
+          plankenTiefe,
+          material,
+          farbeHex,
+          position: [panelCenterX - panelW / 2, -wandHoeheVorne / 2 + FT, 0]
+        }
+      ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [panelCenterX, 0, 0], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, innerH, glasD] }),
         !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpOben, roughness: glasRoughnessOben, metalness: glasMetalnessOben, envMapIntensity: glasEnvMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
       ] }) }, i);
@@ -5489,6 +5769,8 @@ function SchiebetuerWand({
   polyMetalness = 0,
   polyEnvMapIntensity = 1,
   polyKammergroesse = 0.05,
+  plankenHoehe = 0.15,
+  plankenTiefe = 0.02,
   zShiftDir = 1
 }) {
   const glasD = Math.max(4e-3, glasDicke);
@@ -5660,7 +5942,18 @@ function SchiebetuerWand({
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughness, metalness: polyMetalness, envMapIntensity: polyEnvMapIntensity })
           ] }, si))
         ] });
-      })() : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, glasYOffset, 0], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasPanel, { glasW, glasH, glasD, innerH, showHandle, griffTyp, griffXRelGlas: griffXInPanel, griffYRelGlas, glasMaterial, glasFarbeHex, effectiveOpacity, glasRoughness, glasMetalness, glasEnvMapIntensity }) }),
+      })() : glasTyp === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        PlankenFilling,
+        {
+          areaWidth: glasW,
+          areaHeight: glasH,
+          plankenHoehe,
+          plankenTiefe,
+          material,
+          farbeHex,
+          position: [-glasW / 2, GLAS_LOG_H, 0]
+        }
+      ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, glasYOffset, 0], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasPanel, { glasW, glasH, glasD, innerH, showHandle, griffTyp, griffXRelGlas: griffXInPanel, griffYRelGlas, glasMaterial, glasFarbeHex, effectiveOpacity, glasRoughness, glasMetalness, glasEnvMapIntensity }) }),
       showHandle && griffTyp === 1 && glasTyp === 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MuschelEinsatz, { position: [griffXInPanel, innerH / 2 + griffYRelGlas + glasYOffset, -glasD / 2], glasDicke: glasD }),
       buersten === 1 && index < panelCount - 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [panelWidth / 2, innerH / 2, -trackSpacing / 2], children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [3e-3, innerH - GLAS_LOG_H * 2, trackSpacing] }),
@@ -6118,7 +6411,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
                   polyRoughness: Number(exprVal(kp.polyRoughness) ?? 0.3),
                   polyMetalness: Number(exprVal(kp.polyMetalness) ?? 0),
                   polyEnvMapIntensity: Number(exprVal(kp.polyEnvMapIntensity) ?? 1),
-                  polyKammergroesse: Number(exprVal(kp.polyKammergroesse) || 0.05)
+                  polyKammergroesse: Number(exprVal(kp.polyKammergroesse) || 0.05),
+                  plankenHoehe: Number(exprVal(kp.plankenHoehe) ?? 0.15),
+                  plankenTiefe: Number(exprVal(kp.plankenTiefe) ?? 0.02)
                 }
               )
             }
@@ -6171,7 +6466,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
               polyEnvMapIntensityUnten: Number(exprVal(rp.polyEnvMapIntensityUnten) ?? 1),
               polyKammergroesseUnten: Number(exprVal(rp.polyKammergroesseUnten) || 0.05),
               wandHoeheHinten: isSlantedWand ? sHoeheHinten : void 0,
-              aufDachneigung: isSlantedWand ? 1 : 0
+              aufDachneigung: isSlantedWand ? 1 : 0,
+              plankenHoehe: Number(exprVal(rp.plankenHoehe) ?? 0.15),
+              plankenTiefe: Number(exprVal(rp.plankenTiefe) ?? 0.02)
             }
           ) });
         }
@@ -6217,7 +6514,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
               polyMetalness: Number(exprVal(sp.polyMetalness) ?? 0),
               polyEnvMapIntensity: Number(exprVal(sp.polyEnvMapIntensity) ?? 1),
               polyKammergroesse: Number(exprVal(sp.polyKammergroesse) || 0.05),
-              zShiftDir: isSide ? 1 : -1
+              zShiftDir: isSide ? 1 : -1,
+              plankenHoehe: Number(exprVal(sp.plankenHoehe) ?? 0.15),
+              plankenTiefe: Number(exprVal(sp.plankenTiefe) ?? 0.02)
             }
           ) });
         }
@@ -6322,13 +6621,19 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     breite: { expression: "0" },
     hoehe: { expression: "0" }
   };
-  if (wandTyp !== WAND_TYP.SHUTTERS) {
-    baseDefaultProps.glasOpacity = { expression: "0.3" };
+  if (wandTyp === WAND_TYP.KEIL || wandTyp === WAND_TYP.SCHIEBETUER) {
+    baseDefaultProps.glasTyp = { expression: "0" };
+    baseDefaultProps.glasOpacity = { expression: "0.2" };
+  } else if (wandTyp === WAND_TYP.RAHMENWAND) {
+    baseDefaultProps.glasTypOben = { expression: "0" };
+    baseDefaultProps.glasOpacityOben = { expression: "0.2" };
+    baseDefaultProps.glasTypUnten = { expression: "0" };
+    baseDefaultProps.glasOpacityUnten = { expression: "0.2" };
   }
   const RADIO_OPTIONS = {
-    rahmenTyp: [{ value: "1", label: "Standard" }, { value: "2", label: "Mit Mittelbalken" }],
-    glasTyp: [{ value: "0", label: "Glas" }, { value: "1", label: "Polycarbonat" }],
+    mitMittelbalken: [{ value: "0", label: "Standard" }, { value: "1", label: "Mit Mittelbalken" }],
     mitRahmen: [{ value: "0", label: "Ohne Rahmen" }, { value: "1", label: "Mit Rahmen" }],
+    griffTyp: [{ value: "0", label: "Rund (Loch)" }, { value: "1", label: "Muschel" }, { value: "2", label: "Stahl" }, { value: "3", label: "Ohne" }],
     griffTyp: [{ value: "0", label: "Rund (Loch)" }, { value: "1", label: "Muschel" }, { value: "2", label: "Stahl" }, { value: "3", label: "Ohne" }],
     griffAnordnung: [{ value: "0", label: "Erste Tür" }, { value: "1", label: "Anfang + Ende" }, { value: "2", label: "Alle Türen" }],
     griffPosition: [{ value: "0", label: "Links" }, { value: "1", label: "Rechts" }],
@@ -6346,7 +6651,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
   const DIALOG_LABELS = {
     breite: "Breite (0=auto aus Veranda) (m)",
     hoehe: "Höhe (0=auto aus Veranda) (m)",
-    glasTyp: "Glas-Typ",
+    glasTyp: "Füllungstyp (0=Glas,1=Poly,2=Planken)",
+    glasTypOben: "Füllung oben (0=Glas,1=Poly,2=Planken)",
+    glasTypUnten: "Füllung unten (0=Glas,1=Poly,2=Planken)",
     glasOpacity: "Glas Transparenz (0–1)",
     glasRoughness: "Glas Rauheit (0–1)",
     glasMetalness: "Glas Metalness (0–1)",
@@ -6359,9 +6666,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     keilAbschnitt: "Keilabschnitt vorne (0=Spitze) (m)",
     keilTeiler: "Zwischenpfosten Anzahl",
     dicke: "Profiltiefe (m)",
-    rahmenTyp: "Typ",
+    mitMittelbalken: "Variante",
     aufDachneigung: "Oberkante (0=Standard, 1=Volle Höhe)",
-    rahmenHoehe: "Mittelbalken-Höhe ab Boden (m)",
+    mittelbalkenHoehe: "Mittelbalken-Höhe ab Boden (m)",
     maxScheibenBreite: "Max. Scheibenbreite (0=ohne Limit) (m)",
     mitRahmen: "Variante",
     tuertypPanels: "Anzahl Elemente (0=auto)",
@@ -6384,22 +6691,39 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     wandHoehe: "Wandhöhe (m)",
     plankenHoehe: "Planken-Höhe (m)",
     plankenTiefe: "Planken-Stärke (m)",
+    glasOpacityOben: "Glas Transparenz oben (0–1)",
+    glasOpacityUnten: "Glas Transparenz unten (0–1)",
     querbalken: "Abschlussbalken oben",
     volleHoehe: "Volle Höhe (1=Ja, 0=Nein)"
   };
+  let baseDialogKeys = ["breite", "hoehe"];
+  if (wandTyp === WAND_TYP.KEIL || wandTyp === WAND_TYP.SCHIEBETUER) {
+    baseDialogKeys = ["breite", "hoehe", "glasTyp", "glasOpacity", "plankenHoehe", "plankenTiefe"];
+  } else if (wandTyp === WAND_TYP.RAHMENWAND) {
+    baseDialogKeys = [
+      "breite",
+      "hoehe",
+      "glasTypOben",
+      "glasOpacityOben",
+      "glasTypUnten",
+      "glasOpacityUnten",
+      "plankenHoehe",
+      "plankenTiefe"
+    ];
+  }
   const extraKeys = Object.keys(convertedExtra);
-  const baseDialogKeys = wandTyp === WAND_TYP.SHUTTERS || wandTyp === WAND_TYP.SICHTSCHUTZWAND ? ["breite", "hoehe"] : ["breite", "hoehe", "glasOpacity"];
   const allDialogKeys = [
     ...baseDialogKeys,
     ...extraKeys.filter((k) => !baseDialogKeys.includes(k))
   ];
   const wandPropsSchema = {};
   for (const key of allDialogKeys) {
-    const opts = RADIO_OPTIONS[key];
+    const opts = key === "glasTyp" || key === "glasTypOben" || key === "glasTypUnten" ? void 0 : RADIO_OPTIONS[key];
+    const label2 = DIALOG_LABELS[key] ?? key;
     if (opts) {
-      wandPropsSchema[key] = { type: "radioGroup", label: DIALOG_LABELS[key] ?? key, options: opts };
+      wandPropsSchema[key] = { type: "radioGroup", label: label2, options: opts };
     } else {
-      wandPropsSchema[key] = { type: "expression", label: DIALOG_LABELS[key] ?? key };
+      wandPropsSchema[key] = { type: "expression", label: label2 };
     }
   }
   return {
@@ -6418,69 +6742,75 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
 }
 
 const keilDynamicModel = createWandModel(WAND_TYP.KEIL, "Keil", {
-  glasTyp: 0,
-  glasOpacity: 0.2,
-  glasRoughness: 0,
-  glasMetalness: 0,
-  glasEnvMapIntensity: 1,
-  polyOpacity: 0.65,
-  polyRoughness: 0.3,
-  polyMetalness: 0,
-  polyEnvMapIntensity: 1,
-  polyKammergroesse: 0.05,
-  keilAbschnitt: 0,
-  keilTeiler: 0,
-  dicke: 0.07
+  glasTyp: { expression: "0" },
+  glasOpacity: { expression: "0.2" },
+  glasRoughness: { expression: "0" },
+  glasMetalness: { expression: "0" },
+  glasEnvMapIntensity: { expression: "1.0" },
+  polyOpacity: { expression: "0.65" },
+  polyRoughness: { expression: "0.3" },
+  polyMetalness: { expression: "0" },
+  polyEnvMapIntensity: { expression: "1.0" },
+  polyKammergroesse: { expression: "0.05" },
+  plankenHoehe: { expression: "0.15" },
+  plankenTiefe: { expression: "0.02" },
+  keilAbschnitt: { expression: "0" },
+  keilTeiler: { expression: "0" },
+  dicke: { expression: "0.07" }
 });
 
 const rahmenwandDynamicModel = createWandModel(
   WAND_TYP.RAHMENWAND,
   "Rahmenwand",
   {
-    glasTypOben: 0,
-    glasOpacityOben: 0.2,
-    glasRoughnessOben: 0,
-    glasMetalnessOben: 0,
-    glasEnvMapIntensityOben: 1,
-    polyOpacityOben: 0.65,
-    polyRoughnessOben: 0.3,
-    polyMetalnessOben: 0,
-    polyEnvMapIntensityOben: 1,
-    polyKammergroesseOben: 0.05,
-    glasTypUnten: 0,
-    glasOpacityUnten: 0.2,
-    glasRoughnessUnten: 0,
-    glasMetalnessUnten: 0,
-    glasEnvMapIntensityUnten: 1,
-    polyOpacityUnten: 0.65,
-    polyRoughnessUnten: 0.3,
-    polyMetalnessUnten: 0,
-    polyEnvMapIntensityUnten: 1,
-    polyKammergroesseUnten: 0.05,
+    glasTypOben: { expression: "0" },
+    glasOpacityOben: { expression: "0.2" },
+    glasRoughnessOben: { expression: "0" },
+    glasMetalnessOben: { expression: "0" },
+    glasEnvMapIntensityOben: { expression: "1.0" },
+    polyOpacityOben: { expression: "0.65" },
+    polyRoughnessOben: { expression: "0.3" },
+    polyMetalnessOben: { expression: "0" },
+    polyEnvMapIntensityOben: { expression: "1.0" },
+    polyKammergroesseOben: { expression: "0.05" },
+    glasTypUnten: { expression: "0" },
+    glasOpacityUnten: { expression: "0.2" },
+    glasRoughnessUnten: { expression: "0" },
+    glasMetalnessUnten: { expression: "0" },
+    glasEnvMapIntensityUnten: { expression: "1.0" },
+    polyOpacityUnten: { expression: "0.65" },
+    polyRoughnessUnten: { expression: "0.3" },
+    polyMetalnessUnten: { expression: "0" },
+    polyEnvMapIntensityUnten: { expression: "1.0" },
+    polyKammergroesseUnten: { expression: "0.05" },
+    plankenHoehe: { expression: "0.15" },
+    plankenTiefe: { expression: "0.02" },
     mitMittelbalken: 0,
-    mittelbalkenHoehe: 0.5,
-    maxScheibenBreite: 1.2,
+    mittelbalkenHoehe: { expression: "0.5" },
+    maxScheibenBreite: { expression: "1.2" },
     aufDachneigung: 0
   },
   ["profil", "glasOben", "glasUnten"]
 );
 
 const schiebetuerDynamicModel = createWandModel(WAND_TYP.SCHIEBETUER, "Schiebetür", {
-  glasTyp: 0,
-  glasOpacity: 0.2,
-  glasRoughness: 0,
-  glasMetalness: 0,
-  glasEnvMapIntensity: 1,
-  polyOpacity: 0.65,
-  polyRoughness: 0.3,
-  polyMetalness: 0,
-  polyEnvMapIntensity: 1,
-  polyKammergroesse: 0.05,
+  glasTyp: { expression: "0" },
+  glasOpacity: { expression: "0.2" },
+  glasRoughness: { expression: "0" },
+  glasMetalness: { expression: "0" },
+  glasEnvMapIntensity: { expression: "1.0" },
+  polyOpacity: { expression: "0.65" },
+  polyRoughness: { expression: "0.3" },
+  polyMetalness: { expression: "0" },
+  polyEnvMapIntensity: { expression: "1.0" },
+  polyKammergroesse: { expression: "0.05" },
+  plankenHoehe: { expression: "0.15" },
+  plankenTiefe: { expression: "0.02" },
   mitRahmen: 0,
-  tuertypPanels: 0,
-  maxPanelBreite: 0.8,
-  festeElemente: 0,
-  oeffnung: 0,
+  tuertypPanels: { expression: "0" },
+  maxPanelBreite: { expression: "0.8" },
+  festeElemente: { expression: "0" },
+  oeffnung: { expression: "0" },
   laufrichtung: 0,
   schienenSeite: 0,
   buersten: 1,
@@ -6488,9 +6818,9 @@ const schiebetuerDynamicModel = createWandModel(WAND_TYP.SCHIEBETUER, "Schiebet�
   griffAnordnung: 0,
   griffPosition: 0,
   griffSeite: 2,
-  griffHoehe: 1,
-  glasDicke: 8e-3,
-  rahmenBreite: 0.04
+  griffHoehe: { expression: "1.0" },
+  glasDicke: { expression: "0.008" },
+  rahmenBreite: { expression: "0.04" }
 });
 
 const shuttersDynamicModel = createWandModel(WAND_TYP.SHUTTERS, "Shutters", {
