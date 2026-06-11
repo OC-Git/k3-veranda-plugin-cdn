@@ -6634,7 +6634,6 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     mitMittelbalken: [{ value: "0", label: "Standard" }, { value: "1", label: "Mit Mittelbalken" }],
     mitRahmen: [{ value: "0", label: "Ohne Rahmen" }, { value: "1", label: "Mit Rahmen" }],
     griffTyp: [{ value: "0", label: "Rund (Loch)" }, { value: "1", label: "Muschel" }, { value: "2", label: "Stahl" }, { value: "3", label: "Ohne" }],
-    griffTyp: [{ value: "0", label: "Rund (Loch)" }, { value: "1", label: "Muschel" }, { value: "2", label: "Stahl" }, { value: "3", label: "Ohne" }],
     griffAnordnung: [{ value: "0", label: "Erste Tür" }, { value: "1", label: "Anfang + Ende" }, { value: "2", label: "Alle Türen" }],
     griffPosition: [{ value: "0", label: "Links" }, { value: "1", label: "Rechts" }],
     griffSeite: [{ value: "0", label: "Innen" }, { value: "1", label: "Außen" }, { value: "2", label: "Beidseitig" }],
