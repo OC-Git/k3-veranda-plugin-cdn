@@ -2099,6 +2099,7 @@ const shadowLightingSceneComponent = {
 };
 
 function VerandaModel(props) {
+  console.log("[Veranda-Plugin] v0.1.1 (Build: " + (/* @__PURE__ */ new Date()).toISOString() + ")");
   const {
     // Position (skalare Props)
     posX = 0,
@@ -8785,7 +8786,7 @@ const kassettenmarkiseDynamicModel = createBeschattungUnterdachModel({
 
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "1.0.0",
+  version: "0.1.1",
   viewer: {
     sceneComponents: {
       "oc.veranda.shadowLighting": shadowLightingSceneComponent
