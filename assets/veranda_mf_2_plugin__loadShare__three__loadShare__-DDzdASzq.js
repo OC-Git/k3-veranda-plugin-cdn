@@ -27,7 +27,7 @@ function _mergeNamespaces(n, m) {
     customShareInfo: {shareConfig:{
       singleton: true,
       strictVersion: false,
-      requiredVersion: "^0.177.0"
+      requiredVersion: "*"
     }}}));
     const exportModule = await res.then(factory => factory());
     var veranda_mf_2_plugin__loadShare__three__loadShare__ = exportModule;

@@ -9,7 +9,7 @@ import { v as veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__, a as index_cjs } f
     customShareInfo: {shareConfig:{
       singleton: true,
       strictVersion: false,
-      requiredVersion: "^19.0.0"
+      requiredVersion: "*"
     }}}));
     const exportModule = await res.then(factory => factory());
     var veranda_mf_2_plugin__loadShare__react__loadShare__ = exportModule;

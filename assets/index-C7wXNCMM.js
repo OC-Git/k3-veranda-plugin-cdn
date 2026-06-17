@@ -1,5 +1,5 @@
 import { g as getDefaultExportFromCjs } from './_commonjsHelpers-B85MJLTf.js';
-import { v as veranda_mf_2_plugin__loadShare__react__loadShare__ } from './veranda_mf_2_plugin__loadShare__react__loadShare__-CVrN7QH5.js';
+import { v as veranda_mf_2_plugin__loadShare__react__loadShare__ } from './veranda_mf_2_plugin__loadShare__react__loadShare__-BxvQ6I45.js';
 
 var withSelector = {exports: {}};
 
@@ -625,4 +625,4 @@ var scheduler_production = {};
 var schedulerExports = scheduler.exports;
 const Tb = /*@__PURE__*/getDefaultExportFromCjs(schedulerExports);
 
-export { Tb as T, clear as a, schedulerExports as b, createStore as c, preload as p, suspend as s, useSyncExternalStoreExports as u };
+export { Tb as T, suspend as a, clear as b, createStore as c, preload as p, schedulerExports as s, useSyncExternalStoreExports as u };

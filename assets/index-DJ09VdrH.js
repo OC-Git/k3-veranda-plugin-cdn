@@ -1,5 +1,5 @@
 import { g as getDefaultExportFromCjs } from './_commonjsHelpers-B85MJLTf.js';
-import { v as veranda_mf_2_plugin__loadShare__react__loadShare__ } from './veranda_mf_2_plugin__loadShare__react__loadShare__-CVrN7QH5.js';
+import { v as veranda_mf_2_plugin__loadShare__react__loadShare__ } from './veranda_mf_2_plugin__loadShare__react__loadShare__-BxvQ6I45.js';
 
 function _mergeNamespaces(n, m) {
   for (var i = 0; i < m.length; i++) {
