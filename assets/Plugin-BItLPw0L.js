@@ -1838,7 +1838,8 @@ const Konstruktion = ({
 }) => {
   const effectiveQuertraegerHoeheHinten = quertraegerHoeheHinten ?? quertraegerHoehe;
   const steigung = gesamtTiefe > 0 ? (hoeheHinten - hoeheVorne) / gesamtTiefe : 0;
-  const hoeheAnPfosten = hoeheVorne + steigung * dachVorsprung;
+  const zMitteVorne = dachVorsprung + pfostenTiefe / 2;
+  const hoeheAnPfosten = hoeheVorne + steigung * zMitteVorne;
   const pfostenHoeheVorne = hoeheAnPfosten - quertraegerHoehe;
   const pfostenHoeheHinten = hoeheHinten - effectiveQuertraegerHoeheHinten;
   const positionenVorne = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
@@ -2153,6 +2154,7 @@ function KonstruktionModel(props) {
   const position = [posX, posY, posZ];
   const rotation = [rotX * DEG2RAD, rotY * DEG2RAD, rotZ * DEG2RAD];
   const profilMaterial = materials.profil;
+  if (profilMaterial) profilMaterial.name = "profil";
   const { hoeheHinten, hoeheVorne } = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     try {
       return calcVerandaGeometry(depth, dachneigung, height);
@@ -2319,13 +2321,19 @@ function KonstruktionModel(props) {
         }
       ),
       kTyp === "veranda" && (() => {
-        const schwelleY = auflageTyp === "innenliegend" ? hoeheVorne + steigung * schwelleBreite - schwelleHoehe / 2 : hoeheVorne + balkenAussenHoehe - schwelleHoehe / 2;
-        const staticTraegerY = auflageTyp === "innenliegend" ? hoeheVorne + steigung * (dachVorsprung + staticTraegerBreite) - staticTraegerHoehe / 2 : hoeheVorne + balkenAussenHoehe - staticTraegerHoehe / 2;
+        const postZMid = dachVorsprung + pfostenTiefeVal / 2;
+        const sZOff = schwelleBreite >= pfostenTiefeVal ? schwelleBreite / 2 : pfostenTiefeVal - schwelleBreite / 2;
+        const stZOff = postZMid;
+        const offsetSparren = auflageTyp === "innenliegend" ? sparrenHoehe : 0;
+        const sUK = hoeheVorne + steigung * sZOff;
+        const stUK = hoeheVorne + steigung * stZOff - offsetSparren;
+        const schwelleY = sUK - schwelleHoehe / 2;
+        const staticTraegerY = stUK - staticTraegerHoehe / 2;
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
           schwelle === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
             Box,
             {
-              position: [0, schwelleY || 0, schwelleBreite >= pfostenTiefeVal ? -depth / 2 + schwelleBreite / 2 : -depth / 2 + pfostenTiefeVal - schwelleBreite / 2],
+              position: [0, schwelleY || 0, -depth / 2 + sZOff],
               args: [width + pfostenBreiteVal, schwelleHoehe, Math.max(1e-3, schwelleBreite)],
               material: profilMaterial,
               children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial, fallbackColor: DEFAULT_FARBEN.holz })
@@ -2334,7 +2342,7 @@ function KonstruktionModel(props) {
           staticTraeger === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
             Box,
             {
-              position: [0, staticTraegerY || 0, staticTraegerBreite >= pfostenTiefeVal ? -depth / 2 + dachVorsprung + staticTraegerBreite / 2 : -depth / 2 + dachVorsprung + pfostenTiefeVal - staticTraegerBreite / 2],
+              position: [0, staticTraegerY || 0, -depth / 2 + stZOff],
               args: [width + pfostenBreiteVal, staticTraegerHoehe, Math.max(1e-3, staticTraegerBreite)],
               material: profilMaterial,
               children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial, fallbackColor: DEFAULT_FARBEN.holz })
@@ -2343,7 +2351,7 @@ function KonstruktionModel(props) {
           pfette === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
             Box,
             {
-              position: [0, (hoeheHinten || 0) - steigung * pfettenBreite - pfettenHoehe / 2, depth / 2 - pfettenBreite / 2],
+              position: [0, (hoeheHinten || 0) - steigung * (pfettenBreite / 2) - pfettenHoehe / 2, depth / 2 - pfettenBreite / 2],
               args: [width + pfostenBreiteVal, pfettenHoehe, Math.max(1e-3, pfettenBreite)],
               material: profilMaterial,
               children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial, fallbackColor: DEFAULT_FARBEN.holz })
@@ -2733,6 +2741,7 @@ function GlasEindeckungModel(props) {
   const pfettenBreite = parent.pfettenBreite;
   const schwelleBreite = parent.schwelleBreite;
   const profilMaterial = materials.profil;
+  if (profilMaterial) profilMaterial.name = "profil";
   const sparrenAnzahl = parent.sparrenAnzahl || Number(exprVal(sparrenAnzahlProp));
   const sparrenBreite = parent.sparrenBreite || Number(exprVal(sparrenBreiteProp));
   const sparrenHoehe = parent.sparrenHoehe || Number(exprVal(sparrenHoeheProp));
@@ -2742,7 +2751,17 @@ function GlasEindeckungModel(props) {
   const sparrenMaterial = useEinzel ? materials.sparren ?? profilMaterial : profilMaterial;
   const leistenMaterial = useEinzel ? materials.leisten ?? profilMaterial : profilMaterial;
   const wandanschlussMaterial = useEinzel ? materials.wandanschluss ?? profilMaterial : profilMaterial;
-  const platteMaterial = materials.glasPlatte;
+  if (useEinzel) {
+    if (materials.konstruktion) materials.konstruktion.name = "konstruktion";
+    if (materials.sparren) materials.sparren.name = "sparren";
+    if (materials.leisten) materials.leisten.name = "leisten";
+    if (materials.wandanschluss) materials.wandanschluss.name = "wandanschluss";
+  }
+  const eindeckung = GLAS_EINDECKUNG_MAP[Number(eindeckungTyp)] ?? "glas";
+  const platteMaterial = (eindeckung === "glas" ? materials.glas : materials.poly) ?? materials.glasPlatte;
+  if (platteMaterial) {
+    platteMaterial.name = eindeckung === "glas" ? "glas" : "poly";
+  }
   const _eindeckungDicke = Number(exprVal(eindeckungDicke));
   const _leistenHoehe = Number(exprVal(leistenHoehe));
   const _leistenBreite = Number(exprVal(leistenBreite));
@@ -2764,7 +2783,6 @@ function GlasEindeckungModel(props) {
   const hoeheVorne = baseHVorne - qubusOffset;
   const hoeheHinten = baseHHinten - qubusOffset;
   const auflageTyp = sparrenAuflage === 1 ? "innenliegend" : "aufliegend";
-  const eindeckung = GLAS_EINDECKUNG_MAP[Number(eindeckungTyp)] ?? "glas";
   const sparrenModus = Number(exprVal(sparrenAussen)) === 1 ? "alle" : "nurInnen";
   const { setEindeckungInfo } = useEindeckungInfo();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
@@ -2908,7 +2926,7 @@ const glasEindeckungDynamicModel = {
   },
   propsDialog: glasEindeckungPropsSchema,
   component: GlasEindeckungModel,
-  materials: ["profil", "konstruktion", "sparren", "leisten", "wandanschluss", "glasPlatte"],
+  materials: ["profil", "konstruktion", "sparren", "leisten", "wandanschluss", "glasPlatte", "glas", "poly"],
   disabledForAR: false
 };
 
@@ -2956,6 +2974,9 @@ function MetallEindeckungModel(props) {
   const profilMaterial = materials.profil;
   const metallMaterial = materials.metall;
   const anschlussMaterial = materials.anschluss ?? profilMaterial;
+  if (profilMaterial) profilMaterial.name = "profil";
+  if (metallMaterial) metallMaterial.name = "metall";
+  if (anschlussMaterial && anschlussMaterial !== profilMaterial) anschlussMaterial.name = "anschluss";
   const _balkenAnzahl = Number(exprVal(balkenAnzahl));
   const _balkenBreite = Number(exprVal(balkenBreite));
   const _balkenHoehe = Number(exprVal(balkenHoehe));
@@ -4033,6 +4054,8 @@ function SolarEindeckungModel(props) {
   }, [solarDicke, _leistenHoehe, wandanschluss, wandanschlussTiefe, _sparrenAnzahl, qubusOffset, setEindeckungInfo]);
   const profilMaterial = materials.profil;
   const glasMaterial = materials.glas;
+  if (profilMaterial) profilMaterial.name = "profil";
+  if (glasMaterial) glasMaterial.name = "glas";
   const useEinzel = Number(exprVal(einzelMaterialien)) === 1;
   const anschlussMaterial = useEinzel ? materials.anschluss ?? profilMaterial : profilMaterial;
   const leistenMaterial = useEinzel ? materials.leisten ?? profilMaterial : profilMaterial;
@@ -4306,6 +4329,8 @@ function RegenrinneModel(props) {
   const schwelleVorderkante = schwelleBreite >= pfostenTiefe ? -depth / 2 : -depth / 2 + pfostenTiefe - schwelleBreite;
   const rinneZ = schwelleVorderkante;
   const rinnePosition = [0, rinneY, rinneZ];
+  const profilMaterial = materials.profil;
+  if (profilMaterial) profilMaterial.name = "profil";
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     "group",
     {
@@ -4324,7 +4349,7 @@ function RegenrinneModel(props) {
           wandStaerke,
           dachneigung,
           farbeHex,
-          material: materials.profil
+          material: profilMaterial
         }
       ) })
     }
@@ -4411,26 +4436,25 @@ function PfostenModel(props) {
   const innenliegend = Number(sparrenAuflage) === 1;
   const steigungPfosten = depth > 0 ? (hoeheHinten - hoeheVorne) / depth : 0;
   const qtVorne = Number(schwelle) === 1 ? Math.max(schwelleBreite, pfostenTiefe) : 0;
-  const hoeheAnPfosten = hoeheVorne + steigungPfosten * dachVorsprung;
+  const postZOffset = dachVorsprung + pfostenTiefe / 2;
+  const hoeheAnPfosten = hoeheVorne + steigungPfosten * postZOffset;
   let quertraegerHoeheVorne;
   if (parent.isQubus) {
     quertraegerHoeheVorne = parent.qubusRahmenHoehe ?? 0.1;
+  } else if (Number(staticTraeger) === 1) {
+    quertraegerHoeheVorne = (innenliegend ? sparrenHoehe : 0) + staticTraegerHoehe;
   } else if (dachVorsprung < 1e-3) {
     const schwelleOK = innenliegend ? hoeheVorne + steigungPfosten * qtVorne : hoeheVorne + sparrenHoehe;
     const rinneUK = schwelleOK - rinnenHoehe;
-    if (Number(staticTraeger) === 1) {
-      quertraegerHoeheVorne = hoeheAnPfosten - (rinneUK - staticTraegerHoehe);
-    } else {
-      quertraegerHoeheVorne = hoeheAnPfosten - rinneUK;
-    }
-  } else if (Number(staticTraeger) === 1) {
-    quertraegerHoeheVorne = innenliegend ? sparrenHoehe + staticTraegerHoehe : staticTraegerHoehe;
+    quertraegerHoeheVorne = hoeheAnPfosten - rinneUK;
   } else if (innenliegend) {
     quertraegerHoeheVorne = sparrenHoehe;
   } else {
     quertraegerHoeheVorne = 0;
   }
   const quertraegerHoeheHinten = Number(pfette) === 1 ? pfettenHoehe : 0;
+  const profilMaterial = materials.profil;
+  if (profilMaterial) profilMaterial.name = "profil";
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     "group",
     {
@@ -4455,7 +4479,7 @@ function PfostenModel(props) {
           quertraegerHoeheHinten,
           quertraegerTiefe: 0,
           dachVorsprung,
-          material: materials.profil
+          material: profilMaterial
         }
       )
     }
@@ -5543,6 +5567,7 @@ function SchiebetuerWand({
   buersten,
   griffTyp,
   griffAnordnung,
+  griffPosition,
   griffSeite,
   griffHoehe,
   fuellungTyp,
@@ -5620,8 +5645,10 @@ function SchiebetuerWand({
   }
   const calcTrackZ = (index) => {
     if (allSliding) {
-      const dir = schienenSeite === 1 ? -1 : 1;
-      return (index - (panelCount - 1) / 2) * trackSpacing * dir;
+      const sortedByOpening = slideRight ? [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b)) : [...slidingIndices].sort((a, b) => calcPanelX(b) - calcPanelX(a));
+      const stackIdx = sortedByOpening.indexOf(index);
+      const centeredIdx = stackIdx - (panelCount - 1) / 2;
+      return -centeredIdx * trackSpacing;
     }
     const slidingZ = schienenSeite === 1 ? -FD / 2 : FD / 2;
     const fixedZ = schienenSeite === 1 ? FD / 2 : -FD / 2;
@@ -5630,8 +5657,7 @@ function SchiebetuerWand({
     const slidingIdx = slidingIndices.indexOf(index);
     const halfCount = Math.ceil(slidingIndices.length / 2);
     const groupRank = slidingIdx < halfCount ? slidingIdx : slidingIndices.length - 1 - slidingIdx;
-    const trackDir = schienenSeite === 1 ? -1 : 1;
-    return slidingZ + trackDir * groupRank * trackSpacing;
+    return slidingZ + groupRank * trackSpacing;
   };
   const maxGroupSize = isBiparting ? Math.ceil(slidingIndices.length / 2) : 1;
   const totalTrackDepth = allSliding ? trackSpacing * panelCount + FD : FD * 2 + (maxGroupSize - 1) * trackSpacing;
@@ -5663,13 +5689,37 @@ function SchiebetuerWand({
     const isRightEdge = hasFrame ? index === 0 : index === panelCount - 1;
     const glasW = hasFrame ? panelWidth - FW * 2 + (!isLeftEdge ? 0.018 : 0) + (!isRightEdge ? 0.018 : 0) : panelWidth + (!isLeftEdge ? 0.015 : 0) + (!isRightEdge ? 0.015 : 0);
     const gurtW = panelWidth + (!isLeftEdge ? 0.018 : 0) + (!isRightEdge ? 0.018 : 0);
-    const outerSlidingIdx = allSliding && slidingIndices.length > 0 ? schienenSeite === 0 ? slidingIndices[slidingIndices.length - 1] : slidingIndices[0] : slidingIndices[0];
-    const innerSlidingIdx = allSliding && slidingIndices.length > 0 ? schienenSeite === 0 ? slidingIndices[0] : slidingIndices[slidingIndices.length - 1] : slidingIndices[slidingIndices.length - 1];
-    const isFirstSliding = isSliding && slidingIndices.length > 0 && index === outerSlidingIdx;
-    const isLastSliding = isSliding && slidingIndices.length > 0 && index === innerSlidingIdx;
-    const showHandle = isSliding && griffTyp !== 3 && (griffAnordnung === 0 && isFirstSliding || griffAnordnung === 1 && (isFirstSliding || isLastSliding) || griffAnordnung === 2);
+    const sortedByX = [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b));
+    let leadingIndices = [];
+    let trailingIndices = [];
+    if (isBiparting) {
+      const half = Math.ceil(sortedByX.length / 2);
+      const leftGroup = sortedByX.slice(0, half);
+      const rightGroup = sortedByX.slice(half);
+      if (leftGroup.length > 0) {
+        leadingIndices.push(leftGroup[leftGroup.length - 1]);
+        trailingIndices.push(leftGroup[0]);
+      }
+      if (rightGroup.length > 0) {
+        leadingIndices.push(rightGroup[0]);
+        trailingIndices.push(rightGroup[rightGroup.length - 1]);
+      }
+    } else {
+      const leftmostIdx = sortedByX[0];
+      const rightmostIdx = sortedByX[sortedByX.length - 1];
+      if (slideRight) {
+        leadingIndices = [leftmostIdx];
+        trailingIndices = [rightmostIdx];
+      } else {
+        leadingIndices = [rightmostIdx];
+        trailingIndices = [leftmostIdx];
+      }
+    }
+    const isLeading = isSliding && leadingIndices.includes(index);
+    const isTrailing = isSliding && trailingIndices.includes(index);
+    const showHandle = isSliding && griffTyp !== 3 && (griffAnordnung === 0 && isLeading || griffAnordnung === 1 && (isLeading || isTrailing) || griffAnordnung === 2);
     const clampedGriffH = Math.min(griffHoehe, innerH - 0.3);
-    const griffYRelGlas = clampedGriffH - innerH / 2;
+    const griffYRelGlas = clampedGriffH - rahmenBreite - innerH / 2;
     const griffRandAbstand = GRIFF_LOCH_RADIUS + 0.015;
     const panelSlidingIdx = slidingIndices.indexOf(index);
     let griffXDir;
@@ -5677,9 +5727,12 @@ function SchiebetuerWand({
       const bipHalfCount = Math.ceil(slidingIndices.length / 2);
       griffXDir = panelSlidingIdx < bipHalfCount ? -1 : 1;
     } else {
-      griffXDir = slideRight ? 1 : -1;
+      griffXDir = slideRight ? -1 : 1;
     }
-    const griffXInPanel = griffXDir * (panelWidth / 2 - griffRandAbstand - (allSliding ? OVERLAP : 0));
+    if (griffAnordnung === 1 && isTrailing && !isLeading) {
+      griffXDir *= -1;
+    }
+    const griffXInPanel = griffPosition === 1 ? 0 : griffXDir * (panelWidth / 2 - griffRandAbstand - (allSliding ? OVERLAP : 0));
     return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [xPos, FW, zTrack], children: [
       hasFrame && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
         [-1, 1].map((side) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [side * (panelWidth / 2 - FW / 2 + 9e-3), innerH / 2, 0], castShadow: true, receiveShadow: true, children: [
@@ -6991,6 +7044,8 @@ function MarkiseModel(props) {
   const oeffnung = shadingMode ? 1 : Math.max(0, Math.min(1, oeffnungsgrad));
   const profilMaterial = materials.profil;
   const stoffMaterial = materials.stoff;
+  if (profilMaterial) profilMaterial.name = "profil";
+  if (stoffMaterial) stoffMaterial.name = "stoff";
   veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (profilMaterial) {
       profilMaterial.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
@@ -7626,6 +7681,8 @@ function AufdachmarkiseModel(props) {
   const oeffnung = shadingMode ? 1 : Math.max(0, Math.min(1, oeffnungsgrad));
   const profilMaterial = materials.profil;
   const stoffMaterial = materials.stoff;
+  if (profilMaterial) profilMaterial.name = "profil";
+  if (stoffMaterial) stoffMaterial.name = "stoff";
   veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (stoffMaterial) {
       stoffMaterial.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
@@ -7993,6 +8050,8 @@ function UnterdachmarkiseModel(props) {
   const oeffnung = shadingMode ? 1 : Math.max(0, Math.min(1, oeffnungsgrad));
   const profilMaterial = materials.profil;
   const stoffMaterial = materials.stoff;
+  if (profilMaterial) profilMaterial.name = "profil";
+  if (stoffMaterial) stoffMaterial.name = "stoff";
   veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (stoffMaterial) {
       stoffMaterial.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
@@ -8507,6 +8566,8 @@ function createBeschattungUnterdachModel(config) {
     const oeffnung = shadingMode ? 1 : Math.max(0, Math.min(1, oeffnungsgrad));
     const gestellMaterial = materials.profil;
     const stoffMaterial = materials.stoff;
+    if (gestellMaterial) gestellMaterial.name = "profil";
+    if (stoffMaterial) stoffMaterial.name = "stoff";
     veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
       if (stoffMaterial) {
         stoffMaterial.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
@@ -9476,7 +9537,7 @@ const kassettenmarkiseDynamicModel = createBeschattungUnterdachModel({
 
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "0.1.2",
+  version: "0.1.3",
   viewer: {
     sceneComponents: {
       "oc.veranda.shadowLighting": shadowLightingSceneComponent
