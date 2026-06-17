@@ -9476,7 +9476,7 @@ const kassettenmarkiseDynamicModel = createBeschattungUnterdachModel({
 
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "0.1.1",
+  version: "0.1.2",
   viewer: {
     sceneComponents: {
       "oc.veranda.shadowLighting": shadowLightingSceneComponent
