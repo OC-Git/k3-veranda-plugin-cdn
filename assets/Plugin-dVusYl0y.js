@@ -870,15 +870,11 @@ const Eindeckung = ({
   innenliegend = false,
   glasFarbe = "#e8f4f8",
   metallFarbe = "#808080",
-  glasOpacity = 0.2,
-  glasRoughness = 0,
-  glasMetalness = 0,
-  glasEnvMapIntensity = 1,
-  polyOpacity = 0.65,
-  polyRoughness = 0.3,
-  polyMetalness = 0,
-  polyEnvMapIntensity = 1,
-  polyKammergroesse = 0.05,
+  opacity = 0.2,
+  roughness = 0,
+  metalness = 0,
+  envMapIntensity = 1,
+  kammergroesse = 0.05,
   amplitude = 4,
   frequenz = 10,
   material
@@ -910,10 +906,10 @@ const Eindeckung = ({
           tiefe: effektiveTiefe,
           dicke,
           farbe: glasFarbe,
-          opacity: glasOpacity,
-          roughness: glasRoughness,
-          metalness: glasMetalness,
-          envMapIntensity: glasEnvMapIntensity,
+          opacity,
+          roughness,
+          metalness,
+          envMapIntensity,
           position,
           rotation,
           material
@@ -927,11 +923,11 @@ const Eindeckung = ({
           tiefe: effektiveTiefe,
           dicke,
           farbe: glasFarbe,
-          opacity: polyOpacity,
-          roughness: polyRoughness,
-          metalness: polyMetalness,
-          envMapIntensity: polyEnvMapIntensity,
-          kammerGroesse: polyKammergroesse,
+          opacity,
+          roughness,
+          metalness,
+          envMapIntensity,
+          kammerGroesse: kammergroesse,
           position,
           rotation,
           material
@@ -1545,15 +1541,11 @@ const Dachflaeche = ({
   eindeckungDicke = 0.016,
   glasFarbe = "#e8f4f8",
   metallFarbe = "#808080",
-  glasOpacity = 0.2,
-  glasRoughness = 0,
-  glasMetalness = 0,
-  glasEnvMapIntensity = 1,
-  polyOpacity = 0.65,
-  polyRoughness = 0.3,
-  polyMetalness = 0,
-  polyEnvMapIntensity = 1,
-  polyKammergroesse = 0.05,
+  opacity = 0.2,
+  roughness = 0,
+  metalness = 0,
+  envMapIntensity = 1,
+  kammergroesse = 0.05,
   amplitude = 38,
   frequenz = 76,
   leistenBreite = 0,
@@ -1613,15 +1605,11 @@ const Dachflaeche = ({
     hoeheHinten: geo.glasHoeheHinten,
     innenliegend: false,
     glasFarbe,
-    glasOpacity,
-    glasRoughness,
-    glasMetalness,
-    glasEnvMapIntensity,
-    polyOpacity,
-    polyRoughness,
-    polyMetalness,
-    polyEnvMapIntensity,
-    polyKammergroesse,
+    opacity,
+    roughness,
+    metalness,
+    envMapIntensity,
+    kammergroesse,
     material: platteMaterial
   };
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { name: "dachflaeche", children: [
@@ -2712,15 +2700,11 @@ function GlasEindeckungModel(props) {
     // Eindeckung (0=Glas, 1=Polycarbonat)
     eindeckungTyp = 0,
     eindeckungDicke = 0.016,
-    glasOpacity = 0.2,
-    glasRoughness = 0,
-    glasMetalness = 0,
-    glasEnvMapIntensity = 1,
-    polyOpacity = 0.65,
-    polyRoughness = 0.3,
-    polyMetalness = 0,
-    polyEnvMapIntensity = 1,
-    polyKammergroesse = 0.05,
+    opacity = 0.2,
+    roughness = 0,
+    metalness = 0,
+    envMapIntensity = 1,
+    kammergroesse = 0.05,
     // Glasleisten
     leistenBreite = 0,
     leistenHoehe = 0,
@@ -2763,15 +2747,11 @@ function GlasEindeckungModel(props) {
   const _leistenHoehe = Number(exprVal(leistenHoehe));
   const _leistenBreite = Number(exprVal(leistenBreite));
   const _leistenRundung = Number(exprVal(leistenRundung));
-  const _glasOpacity = Number(exprVal(glasOpacity));
-  const _glasRoughness = Number(exprVal(glasRoughness));
-  const _glasMetalness = Number(exprVal(glasMetalness));
-  const _glasEnvMapIntensity = Number(exprVal(glasEnvMapIntensity));
-  const _polyOpacity = Number(exprVal(polyOpacity));
-  const _polyRoughness = Number(exprVal(polyRoughness));
-  const _polyMetalness = Number(exprVal(polyMetalness));
-  const _polyEnvMapIntensity = Number(exprVal(polyEnvMapIntensity));
-  const _polyKammergroesse = Number(exprVal(polyKammergroesse));
+  const _opacity = Number(exprVal(opacity));
+  const _roughness = Number(exprVal(roughness));
+  const _metalness = Number(exprVal(metalness));
+  const _envMapIntensity = Number(exprVal(envMapIntensity));
+  const _kammergroesse = Number(exprVal(kammergroesse));
   const _wandanschlussHoehe = Number(exprVal(wandanschlussHoehe));
   const _wandanschlussTiefe = Number(exprVal(wandanschlussTiefe));
   Number(exprVal(vornAbschlussleiste));
@@ -2800,14 +2780,13 @@ function GlasEindeckungModel(props) {
   veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (!platteMaterial) return;
     const mat = platteMaterial;
-    const isPoly = eindeckung === "polycarbonat";
     mat.transparent = true;
-    mat.opacity = isPoly ? _polyOpacity : _glasOpacity;
-    mat.roughness = isPoly ? _polyRoughness : _glasRoughness;
+    mat.opacity = _opacity;
+    mat.roughness = _roughness;
     mat.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
     mat.depthWrite = true;
     mat.needsUpdate = true;
-  }, [platteMaterial, eindeckung, _glasOpacity, _polyOpacity, _glasRoughness, _polyRoughness]);
+  }, [platteMaterial, _opacity, _roughness]);
   const _quertraegerHoehe = Number(exprVal(quertraegerHoehe));
   const _quertraegerTiefe = Number(exprVal(quertraegerTiefe));
   const qtVorne = parent.isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal(parent.schwelle)) === 1 ? Math.max(schwelleBreite, pfostenTiefe) : 0 : _quertraegerTiefe;
@@ -2849,15 +2828,11 @@ function GlasEindeckungModel(props) {
             eindeckung,
             eindeckungDicke: _eindeckungDicke,
             glasFarbe: glasFarbeHex,
-            glasOpacity: _glasOpacity,
-            glasRoughness: _glasRoughness,
-            glasMetalness: _glasMetalness,
-            glasEnvMapIntensity: _glasEnvMapIntensity,
-            polyOpacity: _polyOpacity,
-            polyRoughness: _polyRoughness,
-            polyMetalness: _polyMetalness,
-            polyEnvMapIntensity: _polyEnvMapIntensity,
-            polyKammergroesse: _polyKammergroesse,
+            opacity: _opacity,
+            roughness: _roughness,
+            metalness: _metalness,
+            envMapIntensity: _envMapIntensity,
+            kammergroesse: _kammergroesse,
             leistenBreite: _leistenBreite,
             leistenHoehe: _leistenHoehe,
             leistenFarbe: leistenFarbeHex,
@@ -2875,19 +2850,14 @@ function GlasEindeckungModel(props) {
   );
 }
 const glasEindeckungPropsSchema = {
-  eindeckungTyp: { type: "radioGroup", label: "Material", options: [{ value: "0", label: "Glas" }, { value: "1", label: "Polycarbonat" }] },
+  eindeckungTyp: { type: "expression", label: "Material" },
   eindeckungDicke: { type: "expression", label: "Dicke (m)" },
-  // Glas
-  glasOpacity: { type: "expression", label: "Glas Transparenz (0–1)" },
-  glasRoughness: { type: "expression", label: "Glas Rauheit (0–1)" },
-  glasMetalness: { type: "expression", label: "Glas Metalness (0–1)" },
-  glasEnvMapIntensity: { type: "expression", label: "Glas EnvMap-Intensität" },
-  // Poly
-  polyKammergroesse: { type: "expression", label: "Poly Kammergröße (m)" },
-  polyOpacity: { type: "expression", label: "Poly Transparenz (0–1)" },
-  polyRoughness: { type: "expression", label: "Poly Rauheit (0–1)" },
-  polyMetalness: { type: "expression", label: "Poly Metalness (0–1)" },
-  polyEnvMapIntensity: { type: "expression", label: "Poly EnvMap-Intensität" },
+  // Material Properties
+  opacity: { type: "expression", label: "Transparenz (0–1)" },
+  roughness: { type: "expression", label: "Rauheit (0–1)" },
+  metalness: { type: "expression", label: "Metalness (0–1)" },
+  envMapIntensity: { type: "expression", label: "EnvMap-Intensität" },
+  kammergroesse: { type: "expression", label: "Poly Kammergröße (m)" },
   // Sparren
   sparrenAnzahl: { type: "expression", label: "Sparren Anzahl" },
   sparrenBreite: { type: "expression", label: "Sparren Breite (m)" },
@@ -2922,15 +2892,11 @@ const glasEindeckungDynamicModel = {
     quertraegerTiefe: { expression: "0.1" },
     eindeckungTyp: "0",
     eindeckungDicke: { expression: "0.016" },
-    glasOpacity: { expression: "0.2" },
-    glasRoughness: { expression: "0.0" },
-    glasMetalness: { expression: "0.0" },
-    glasEnvMapIntensity: { expression: "1.0" },
-    polyOpacity: { expression: "0.65" },
-    polyRoughness: { expression: "0.3" },
-    polyMetalness: { expression: "0.0" },
-    polyEnvMapIntensity: { expression: "1.0" },
-    polyKammergroesse: { expression: "0.05" },
+    opacity: { expression: "0.2" },
+    roughness: { expression: "0.0" },
+    metalness: { expression: "0.0" },
+    envMapIntensity: { expression: "1.0" },
+    kammergroesse: { expression: "0.05" },
     leistenBreite: { expression: "0.03" },
     leistenHoehe: { expression: "0.01" },
     leistenRundung: { expression: "0" },
@@ -3958,7 +3924,7 @@ function SolarPanelGitter({ breite, tiefe, rahmenFarbeHex, material }) {
     ] }, `h-${i}`))
   ] });
 }
-function SolarPanel({ panelBreite, panelTiefe, yPos, dachneigungRad, panelFarbeHex, rahmenFarbeHex, glasOpacity, glasRoughness, glasMetalness, glasMaterial, profilMaterial }) {
+function SolarPanel({ panelBreite, panelTiefe, yPos, dachneigungRad, panelFarbeHex, rahmenFarbeHex, opacity, roughness, metalness, glasMaterial, profilMaterial }) {
   const glasDicke = 6e-3;
   const zellenDicke = 4e-3;
   const rahmenBreite = 0.02;
@@ -3970,10 +3936,10 @@ function SolarPanel({ panelBreite, panelTiefe, yPos, dachneigungRad, panelFarbeH
         {
           material: glasMaterial,
           fallbackColor: "#a8c0d8",
-          transparent: glasOpacity < 1,
-          opacity: glasOpacity,
-          metalness: glasMetalness,
-          roughness: glasRoughness
+          transparent: opacity < 1,
+          opacity,
+          metalness,
+          roughness
         }
       )
     ] }),
@@ -4018,9 +3984,9 @@ function SolarPanel({ panelBreite, panelTiefe, yPos, dachneigungRad, panelFarbeH
 }
 function SolarEindeckungModel(props) {
   const {
-    glasOpacity = 0.9,
-    glasRoughness = 0.05,
-    glasMetalness = 0.1,
+    opacity = 0.9,
+    roughness = 0.05,
+    metalness = 0.1,
     wandanschluss = 1,
     wandanschlussHoehe = 0.12,
     wandanschlussTiefe = 0.06,
@@ -4076,9 +4042,9 @@ function SolarEindeckungModel(props) {
   const leistenFarbeHex = "#c0c0c0";
   const _leistenBreite = Number(exprVal(leistenBreite));
   const _leistenRundung = Number(exprVal(leistenRundung));
-  const _glasOpacity = Number(exprVal(glasOpacity));
-  const _glasRoughness = Number(exprVal(glasRoughness));
-  const _glasMetalness = Number(exprVal(glasMetalness));
+  const _opacity = Number(exprVal(opacity));
+  const _roughness = Number(exprVal(roughness));
+  const _metalness = Number(exprVal(metalness));
   const _sparrenAnzahl = Number(exprVal(sparrenAnzahl)) > 0 ? Number(exprVal(sparrenAnzahl)) : parent.sparrenAnzahl;
   const _sparrenBreite = Number(exprVal(sparrenBreite)) > 0 ? Number(exprVal(sparrenBreite)) : parent.sparrenBreite;
   const _sparrenHoehe = Number(exprVal(sparrenHoehe)) > 0 ? Number(exprVal(sparrenHoehe)) : parent.sparrenHoehe;
@@ -4180,9 +4146,9 @@ function SolarEindeckungModel(props) {
         dachneigungRad: neigung,
         panelFarbeHex,
         rahmenFarbeHex,
-        glasOpacity: _glasOpacity,
-        glasRoughness: _glasRoughness,
-        glasMetalness: _glasMetalness,
+        opacity: _opacity,
+        roughness: _roughness,
+        metalness: _metalness,
         glasMaterial,
         profilMaterial
       }
@@ -4254,9 +4220,9 @@ const solarEindeckungPropsSchema = {
   leistenBreite: { type: "expression", label: "Breite (m, 0=keine)" },
   leistenHoehe: { type: "expression", label: "Höhe (m)" },
   leistenRundung: { type: "expression", label: "Rundung (0–10)" },
-  glasOpacity: { type: "expression", label: "Vorderglas Transparenz (0–1)" },
-  glasRoughness: { type: "expression", label: "Vorderglas Rauheit (0–1)" },
-  glasMetalness: { type: "expression", label: "Vorderglas Metalness (0–1)" },
+  opacity: { type: "expression", label: "Vorderglas Transparenz (0–1)" },
+  roughness: { type: "expression", label: "Vorderglas Rauheit (0–1)" },
+  metalness: { type: "expression", label: "Vorderglas Metalness (0–1)" },
   wandanschluss: { type: "expression", label: "Wandanschluss (0/1)" },
   wandanschlussHoehe: { type: "expression", label: "Anschluss Höhe (m)" },
   wandanschlussTiefe: { type: "expression", label: "Anschluss Tiefe (m)" },
@@ -4273,9 +4239,9 @@ const solarEindeckungDynamicModel = {
   label: "Solareindeckung",
   description: "Solarpanel-Eindeckung für Veranda-Dachflächen",
   defaultProps: {
-    glasOpacity: { expression: "0.9" },
-    glasRoughness: { expression: "0.05" },
-    glasMetalness: { expression: "0.1" },
+    opacity: { expression: "0.9" },
+    roughness: { expression: "0.05" },
+    metalness: { expression: "0.1" },
     wandanschluss: { expression: "1" },
     wandanschlussHoehe: { expression: "0.12" },
     wandanschlussTiefe: { expression: "0.06" },
@@ -4654,20 +4620,16 @@ function KeilWand({
   keilAbschnitt,
   keilTeiler,
   dicke,
-  glasTyp,
+  fuellungTyp,
   material,
   glasMaterial,
   farbeHex,
   glasFarbeHex,
-  glasOpacity,
-  glasRoughness = 0,
-  glasMetalness = 0,
-  glasEnvMapIntensity = 1,
-  polyOpacity = 0.65,
-  polyRoughness = 0.3,
-  polyMetalness = 0,
-  polyEnvMapIntensity = 1,
-  polyKammergroesse = 0.05,
+  opacity,
+  roughness = 0,
+  metalness = 0,
+  envMapIntensity = 1,
+  kammergroesse = 0.05,
   plankenHoehe = 0.15,
   plankenTiefe = 0.02
 }) {
@@ -4785,11 +4747,10 @@ function KeilWand({
   const glasD = Math.min(dicke * 0.15, 0.016);
   const glsCfg = { depth: glasD, bevelEnabled: false, steps: 1 };
   const glasZ = (dicke - glasD) / 2;
-  const glsOp = glasTyp === 1 ? Math.max(glasOpacity, 0.65) : glasOpacity;
   const polyStegData = React.useMemo(() => {
-    if (glasTyp !== 1)
+    if (fuellungTyp !== 1)
       return [];
-    const kammer = Math.max(5e-3, polyKammergroesse);
+    const kammer = Math.max(5e-3, kammergroesse);
     return glasPanelBounds.map(({ gxS, gxE }) => {
       const stege = [];
       let sx = gxS + kammer;
@@ -4803,8 +4764,8 @@ function KeilWand({
       return stege;
     });
   }, [
-    glasTyp,
-    polyKammergroesse,
+    fuellungTyp,
+    kammergroesse,
     glasPanelBounds,
     xF,
     yFTop,
@@ -4817,19 +4778,12 @@ function KeilWand({
     if (!glasMaterial) return;
     const mat = glasMaterial;
     mat.transparent = true;
-    if (glasTyp === 1) {
-      mat.opacity = polyOpacity;
-      mat.roughness = polyRoughness;
-      mat.metalness = polyMetalness;
-      mat.envMapIntensity = polyEnvMapIntensity;
-    } else {
-      mat.opacity = glsOp;
-      mat.roughness = glasRoughness;
-      mat.metalness = glasMetalness;
-      mat.envMapIntensity = glasEnvMapIntensity;
-    }
+    mat.opacity = opacity;
+    mat.roughness = roughness;
+    mat.metalness = metalness;
+    mat.envMapIntensity = envMapIntensity;
     mat.needsUpdate = true;
-  }, [glasMaterial, glsOp, glasTyp, glasRoughness, glasMetalness, glasEnvMapIntensity, polyOpacity, polyRoughness, polyMetalness, polyEnvMapIntensity]);
+  }, [glasMaterial, opacity, roughness, metalness, envMapIntensity]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, 0, -dicke / 2], children: [
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [topShape, extCfg] }),
@@ -4851,7 +4805,7 @@ function KeilWand({
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, extCfg] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }, i)),
-    glasTyp === 1 ? (
+    fuellungTyp === 1 ? (
       // Polycarbonat: zwei dünne Deckplatten + opake Stege
       glasShapes.map((s, i) => {
         const DECK_DICKE = Math.max(1e-3, glasD * 0.15);
@@ -4866,11 +4820,11 @@ function KeilWand({
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glas", position: [0, 0, glasZ], material: glasMaterial, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, deckCfg] }),
-            !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacity, roughness: polyRoughness, metalness: polyMetalness, envMapIntensity: polyEnvMapIntensity })
+            !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity, roughness, metalness, envMapIntensity })
           ] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glas", position: [0, 0, glasZ + glasD - DECK_DICKE], material: glasMaterial, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, deckCfg] }),
-            !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacity, roughness: polyRoughness, metalness: polyMetalness, envMapIntensity: polyEnvMapIntensity })
+            !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity, roughness, metalness, envMapIntensity })
           ] }),
           stege.map((steg, si) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
             "mesh",
@@ -4891,7 +4845,7 @@ function KeilWand({
                   "meshPhysicalMaterial",
                   {
                     color: glasFarbeHex,
-                    roughness: polyRoughness
+                    roughness
                   }
                 )
               ]
@@ -4900,7 +4854,7 @@ function KeilWand({
           ))
         ] }, i);
       })
-    ) : glasTyp === 2 ? (() => {
+    ) : fuellungTyp === 2 ? (() => {
       const innerXS = xF + (yF > 1e-3 ? SW : 0);
       const innerXE = xB - SW;
       const totalW = innerXE - innerXS;
@@ -4928,7 +4882,7 @@ function KeilWand({
       // Glas: einfaches transparentes Extrusions-Panel
       glasShapes.map((s, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glas", position: [0, 0, dicke / 2], castShadow: true, receiveShadow: true, material: glasMaterial, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, glsCfg] }),
-        !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOp, roughness: glasRoughness, metalness: glasMetalness, envMapIntensity: glasEnvMapIntensity, clearcoat: 1, clearcoatRoughness: 0.05 })
+        !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity, roughness, metalness, envMapIntensity, clearcoat: 1, clearcoatRoughness: 0.05 })
       ] }, i))
     )
   ] });
@@ -4976,31 +4930,23 @@ function RahmenwandWand({
   mitMittelbalken,
   mittelbalkenHoehe,
   maxScheibenBreite,
-  glasTypOben,
-  glasTypUnten,
+  fuellungTypOben,
+  fuellungTypUnten,
   material,
   glasMaterialOben,
   glasMaterialUnten,
   farbeHex,
   glasFarbeHex,
-  glasOpacityOben,
-  glasRoughnessOben = 0,
-  glasMetalnessOben = 0,
-  glasEnvMapIntensityOben = 1,
-  polyOpacityOben = 0.65,
-  polyRoughnessOben = 0.3,
-  polyMetalnessOben = 0,
-  polyEnvMapIntensityOben = 1,
-  polyKammergroesseOben = 0.05,
-  glasOpacityUnten,
-  glasRoughnessUnten = 0,
-  glasMetalnessUnten = 0,
-  glasEnvMapIntensityUnten = 1,
-  polyOpacityUnten = 0.65,
-  polyRoughnessUnten = 0.3,
-  polyMetalnessUnten = 0,
-  polyEnvMapIntensityUnten = 1,
-  polyKammergroesseUnten = 0.05,
+  opacityOben,
+  roughnessOben = 0,
+  metalnessOben = 0,
+  envMapIntensityOben = 1,
+  kammergroesseOben = 0.05,
+  opacityUnten,
+  roughnessUnten = 0,
+  metalnessUnten = 0,
+  envMapIntensityUnten = 1,
+  kammergroesseUnten = 0.05,
   wandHoeheHinten,
   aufDachneigung = 0,
   plankenHoehe = 0.15,
@@ -5011,46 +4957,30 @@ function RahmenwandWand({
   const POLY_DECK_DICKE = Math.max(1e-3, glasD * 0.15);
   const POLY_STEG_DICKE = Math.max(8e-4, glasD * 0.1);
   const POLY_INNEN_D = Math.max(0, glasD - 2 * POLY_DECK_DICKE);
-  const POLY_KAMMER_OBEN = Math.max(5e-3, polyKammergroesseOben);
-  const POLY_KAMMER_UNTEN = Math.max(5e-3, polyKammergroesseUnten);
-  const glsOpOben = glasTypOben === 1 ? polyOpacityOben : glasOpacityOben;
-  const glsOpUnten = glasTypUnten === 1 ? polyOpacityUnten : glasOpacityUnten;
+  const POLY_KAMMER_OBEN = Math.max(5e-3, kammergroesseOben);
+  const POLY_KAMMER_UNTEN = Math.max(5e-3, kammergroesseUnten);
   React.useMemo(() => {
     if (glasMaterialOben) {
       const mat = glasMaterialOben;
       mat.transparent = true;
-      if (glasTypOben === 1) {
-        mat.opacity = polyOpacityOben;
-        mat.roughness = polyRoughnessOben;
-        mat.metalness = polyMetalnessOben;
-        mat.envMapIntensity = polyEnvMapIntensityOben;
-      } else {
-        mat.opacity = glsOpOben;
-        mat.roughness = glasRoughnessOben;
-        mat.metalness = glasMetalnessOben;
-        mat.envMapIntensity = glasEnvMapIntensityOben;
-      }
+      mat.opacity = opacityOben;
+      mat.roughness = roughnessOben;
+      mat.metalness = metalnessOben;
+      mat.envMapIntensity = envMapIntensityOben;
       mat.needsUpdate = true;
     }
-  }, [glasMaterialOben, glsOpOben, glasTypOben, glasRoughnessOben, glasMetalnessOben, glasEnvMapIntensityOben, polyOpacityOben, polyRoughnessOben, polyMetalnessOben, polyEnvMapIntensityOben]);
+  }, [glasMaterialOben, opacityOben, roughnessOben, metalnessOben, envMapIntensityOben]);
   React.useMemo(() => {
     if (glasMaterialUnten) {
       const mat = glasMaterialUnten;
       mat.transparent = true;
-      if (glasTypUnten === 1) {
-        mat.opacity = polyOpacityUnten;
-        mat.roughness = polyRoughnessUnten;
-        mat.metalness = polyMetalnessUnten;
-        mat.envMapIntensity = polyEnvMapIntensityUnten;
-      } else {
-        mat.opacity = glsOpUnten;
-        mat.roughness = glasRoughnessUnten;
-        mat.metalness = glasMetalnessUnten;
-        mat.envMapIntensity = glasEnvMapIntensityUnten;
-      }
+      mat.opacity = opacityUnten;
+      mat.roughness = roughnessUnten;
+      mat.metalness = metalnessUnten;
+      mat.envMapIntensity = envMapIntensityUnten;
       mat.needsUpdate = true;
     }
-  }, [glasMaterialUnten, glsOpUnten, glasTypUnten, glasRoughnessUnten, glasMetalnessUnten, glasEnvMapIntensityUnten, polyOpacityUnten, polyRoughnessUnten, polyMetalnessUnten, polyEnvMapIntensityUnten]);
+  }, [glasMaterialUnten, opacityUnten, roughnessUnten, metalnessUnten, envMapIntensityUnten]);
   const N = maxScheibenBreite > 0 ? Math.max(1, Math.ceil(wandBreite / maxScheibenBreite)) : 1;
   const divCount = N - 1;
   const innerW = Math.max(0.01, wandBreite - 2 * FT);
@@ -5061,7 +4991,8 @@ function RahmenwandWand({
   const isSlanted = (aufDachneigung ?? 0) > 0 && wandHoeheHinten !== void 0;
   const hH = wandHoeheHinten ?? wandHoeheVorne;
   const isTyp2 = mitMittelbalken === 1;
-  const barY = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
+  const maxAvailableY = Math.min(wandHoeheVorne, hH) - 3 * FT;
+  const barY = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, maxAvailableY)) : 0;
   const slantedShapes = React.useMemo(() => {
     if (!isSlanted) return null;
     const xE = wandBreite / 2;
@@ -5155,7 +5086,7 @@ function RahmenwandWand({
     };
   }, [isSlanted, wandBreite, wandHoeheVorne, hH, N, panelW, divCount, isTyp2, barY]);
   const polyFlatStegeXPosOben = React.useMemo(() => {
-    if (glasTypOben !== 1) return [];
+    if (fuellungTypOben !== 1) return [];
     const pos = [];
     let sx = -panelW / 2 + POLY_KAMMER_OBEN;
     while (sx < panelW / 2 - 3e-3) {
@@ -5163,9 +5094,9 @@ function RahmenwandWand({
       sx += POLY_KAMMER_OBEN;
     }
     return pos;
-  }, [glasTypOben, panelW, POLY_KAMMER_OBEN]);
+  }, [fuellungTypOben, panelW, POLY_KAMMER_OBEN]);
   const polyFlatStegeXPosUnten = React.useMemo(() => {
-    if (glasTypUnten !== 1) return [];
+    if (fuellungTypUnten !== 1) return [];
     const pos = [];
     let sx = -panelW / 2 + POLY_KAMMER_UNTEN;
     while (sx < panelW / 2 - 3e-3) {
@@ -5173,13 +5104,14 @@ function RahmenwandWand({
       sx += POLY_KAMMER_UNTEN;
     }
     return pos;
-  }, [glasTypUnten, panelW, POLY_KAMMER_UNTEN]);
+  }, [fuellungTypUnten, panelW, POLY_KAMMER_UNTEN]);
   const polySlantedStegeDataOben = React.useMemo(() => {
-    if (!isSlanted || glasTypOben !== 1) return [];
+    if (!isSlanted || fuellungTypOben !== 1) return [];
     const xS2 = -wandBreite / 2;
     const topAtX = (x) => wandHoeheVorne + (x - xS2) / wandBreite * (hH - wandHoeheVorne);
     const innerXS2 = xS2 + FT;
-    const barY2 = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
+    const maxAvailableY2 = Math.min(wandHoeheVorne, hH) - 3 * FT;
+    const barY2 = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, maxAvailableY2)) : 0;
     const stegeYBot = isTyp2 ? barY2 + FT : FT;
     return Array.from({ length: N }, (_, i) => {
       const pxS = innerXS2 + i * (panelW + FT);
@@ -5193,10 +5125,11 @@ function RahmenwandWand({
       }
       return stege;
     });
-  }, [isSlanted, glasTypOben, wandBreite, wandHoeheVorne, hH, N, panelW, isTyp2, mittelbalkenHoehe, POLY_KAMMER_OBEN]);
+  }, [isSlanted, fuellungTypOben, wandBreite, wandHoeheVorne, hH, N, panelW, isTyp2, mittelbalkenHoehe, POLY_KAMMER_OBEN]);
   const polySlantedStegeDataUnten = React.useMemo(() => {
-    if (!isSlanted || glasTypUnten !== 1 || !isTyp2) return [];
-    const barY2 = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, wandHoeheVorne - 3 * FT)) : 0;
+    if (!isSlanted || fuellungTypUnten !== 1 || !isTyp2) return [];
+    const maxAvailableY2 = Math.min(wandHoeheVorne, hH) - 3 * FT;
+    const barY2 = isTyp2 ? FT + Math.max(0, Math.min(mittelbalkenHoehe, maxAvailableY2)) : 0;
     const innerXS2 = -wandBreite / 2 + FT;
     return Array.from({ length: N }, (_, i) => {
       const pxS = innerXS2 + i * (panelW + FT);
@@ -5209,9 +5142,10 @@ function RahmenwandWand({
       }
       return stege;
     });
-  }, [isSlanted, glasTypUnten, wandBreite, wandHoeheVorne, N, panelW, isTyp2, mittelbalkenHoehe, POLY_KAMMER_UNTEN]);
+  }, [isSlanted, fuellungTypUnten, wandBreite, wandHoeheVorne, N, panelW, isTyp2, mittelbalkenHoehe, POLY_KAMMER_UNTEN]);
   const yInnerBot = -wandHoeheVorne / 2 + FT;
-  const barH = isTyp2 ? Math.max(0, Math.min(mittelbalkenHoehe, innerH - FT - 1e-3)) : 0;
+  const maxAvailableH = Math.min(wandHoeheVorne, hH) - 3 * FT;
+  const barH = isTyp2 ? Math.max(0, Math.min(mittelbalkenHoehe, maxAvailableH)) : 0;
   const botGlassH = barH;
   const topGlassH = innerH - barH - (isTyp2 ? FT : 0);
   const barCenterY = yInnerBot + barH + FT / 2;
@@ -5253,25 +5187,25 @@ function RahmenwandWand({
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
       topPanelShapes.map((s, i) => {
-        if (glasTypOben === 1) {
+        if (fuellungTypOben === 1) {
           const deckCfg = { depth: POLY_DECK_DICKE, bevelEnabled: false, steps: 1 };
           const stege = polySlantedStegeDataOben[i] ?? [];
           return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, glasZ], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
               /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, deckCfg] }),
-              !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityOben, roughness: polyRoughnessOben, metalness: polyMetalnessOben, envMapIntensity: polyEnvMapIntensityOben })
+              !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben })
             ] }),
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, glasZ + glasD - POLY_DECK_DICKE], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
               /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, deckCfg] }),
-              !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityOben, roughness: polyRoughnessOben, metalness: polyMetalnessOben, envMapIntensity: polyEnvMapIntensityOben })
+              !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben })
             ] }),
             stege.map((steg, si) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [steg.x, (steg.yBot + steg.yTop) / 2, glasZ + POLY_DECK_DICKE + POLY_INNEN_D / 2], children: [
               /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, steg.yTop - steg.yBot, POLY_INNEN_D] }),
-              /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessOben })
+              /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: roughnessOben })
             ] }, si))
           ] }, `top-${i}`);
         }
-        if (glasTypOben === 2) {
+        if (fuellungTypOben === 2) {
           const pxS = innerXS + i * (panelW + FT);
           const yBot = isTyp2 ? barY + FT : FT;
           return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
@@ -5283,7 +5217,7 @@ function RahmenwandWand({
               plankenTiefe,
               farbeHex,
               material,
-              position: [pxS, yBot, 0],
+              position: [pxS, yBot, FT / 2],
               clippingPlanes: (() => {
                 if (!slantedShapes) return [];
                 const dy = slantedShapes.topAtX(pxS + panelW) - slantedShapes.topAtX(pxS);
@@ -5297,29 +5231,29 @@ function RahmenwandWand({
         }
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, glasZ], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, glasExtCfg] }),
-          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpOben, roughness: glasRoughnessOben, metalness: glasMetalnessOben, envMapIntensity: glasEnvMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
+          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
         ] }, `top-${i}`);
       }),
       botPanelShapes.map((s, i) => {
-        if (glasTypUnten === 1) {
+        if (fuellungTypUnten === 1) {
           const deckCfg = { depth: POLY_DECK_DICKE, bevelEnabled: false, steps: 1 };
           const stege = polySlantedStegeDataUnten[i] ?? [];
           return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [0, 0, glasZ], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
               /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, deckCfg] }),
-              !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityUnten, roughness: polyRoughnessUnten, metalness: polyMetalnessUnten, envMapIntensity: polyEnvMapIntensityUnten })
+              !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityUnten, roughness: roughnessUnten, metalness: metalnessUnten, envMapIntensity: envMapIntensityUnten })
             ] }),
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [0, 0, glasZ + glasD - POLY_DECK_DICKE], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
               /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, deckCfg] }),
-              !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityUnten, roughness: polyRoughnessUnten, metalness: polyMetalnessUnten, envMapIntensity: polyEnvMapIntensityUnten })
+              !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityUnten, roughness: roughnessUnten, metalness: metalnessUnten, envMapIntensity: envMapIntensityUnten })
             ] }),
             stege.map((steg, si) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [steg.x, (steg.yBot + steg.yTop) / 2, glasZ + POLY_DECK_DICKE + POLY_INNEN_D / 2], children: [
               /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, steg.yTop - steg.yBot, POLY_INNEN_D] }),
-              /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessUnten })
+              /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: roughnessUnten })
             ] }, si))
           ] }, `bot-${i}`);
         }
-        if (glasTypUnten === 2) {
+        if (fuellungTypUnten === 2) {
           const pxS = innerXS + i * (panelW + FT);
           return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
             PlankenFilling,
@@ -5330,13 +5264,13 @@ function RahmenwandWand({
               plankenTiefe,
               farbeHex,
               material,
-              position: [pxS, FT, 0]
+              position: [pxS, FT, FT / 2]
             }
           ) }, `bot-${i}`);
         }
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [0, 0, glasZ], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [s, glasExtCfg] }),
-          !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpUnten, roughness: glasRoughnessUnten, metalness: glasMetalnessUnten, envMapIntensity: glasEnvMapIntensityUnten, clearcoat: 1, clearcoatRoughness: 0.05 })
+          !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityUnten, roughness: roughnessUnten, metalness: metalnessUnten, envMapIntensity: envMapIntensityUnten, clearcoat: 1, clearcoatRoughness: 0.05 })
         ] }, `bot-${i}`);
       }),
       dividerShapes.map((s, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
@@ -5393,20 +5327,20 @@ function RahmenwandWand({
     Array.from({ length: N }, (_, i) => {
       const panelCenterX = -innerW / 2 + i * (panelW + FT) + panelW / 2;
       return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(React.Fragment, { children: isTyp2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-        botGlassH > 1e-3 && (glasTypUnten === 1 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [panelCenterX, botGlassCenterY, 0], children: [
+        botGlassH > 1e-3 && (fuellungTypUnten === 1 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [panelCenterX, botGlassCenterY, 0], children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [0, 0, -glasD / 2 + POLY_DECK_DICKE / 2], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, botGlassH, POLY_DECK_DICKE] }),
-            !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityUnten, roughness: polyRoughnessUnten, metalness: polyMetalnessUnten, envMapIntensity: polyEnvMapIntensityUnten })
+            !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityUnten, roughness: roughnessUnten, metalness: metalnessUnten, envMapIntensity: envMapIntensityUnten })
           ] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [0, 0, glasD / 2 - POLY_DECK_DICKE / 2], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, botGlassH, POLY_DECK_DICKE] }),
-            !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityUnten, roughness: polyRoughnessUnten, metalness: polyMetalnessUnten, envMapIntensity: polyEnvMapIntensityUnten })
+            !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityUnten, roughness: roughnessUnten, metalness: metalnessUnten, envMapIntensity: envMapIntensityUnten })
           ] }),
           polyFlatStegeXPosUnten.map((sx, si) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [sx, 0, 0], children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, botGlassH, POLY_INNEN_D] }),
-            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessUnten })
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: roughnessUnten })
           ] }, si))
-        ] }) : glasTypUnten === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        ] }) : fuellungTypUnten === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           PlankenFilling,
           {
             areaWidth: panelW,
@@ -5419,22 +5353,22 @@ function RahmenwandWand({
           }
         ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasUnten", position: [panelCenterX, botGlassCenterY, 0], castShadow: true, receiveShadow: true, material: glasMaterialUnten, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, botGlassH, glasD] }),
-          !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpUnten, roughness: glasRoughnessUnten, metalness: glasMetalnessUnten, envMapIntensity: glasEnvMapIntensityUnten, clearcoat: 1, clearcoatRoughness: 0.05 })
+          !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityUnten, roughness: roughnessUnten, metalness: metalnessUnten, envMapIntensity: envMapIntensityUnten, clearcoat: 1, clearcoatRoughness: 0.05 })
         ] })),
-        topGlassH > 1e-3 && (glasTypOben === 1 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [panelCenterX, topGlassCenterY, 0], children: [
+        topGlassH > 1e-3 && (fuellungTypOben === 1 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [panelCenterX, topGlassCenterY, 0], children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, -glasD / 2 + POLY_DECK_DICKE / 2], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, topGlassH, POLY_DECK_DICKE] }),
-            !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityOben, roughness: polyRoughnessOben, metalness: polyMetalnessOben, envMapIntensity: polyEnvMapIntensityOben })
+            !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben })
           ] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, glasD / 2 - POLY_DECK_DICKE / 2], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, topGlassH, POLY_DECK_DICKE] }),
-            !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityOben, roughness: polyRoughnessOben, metalness: polyMetalnessOben, envMapIntensity: polyEnvMapIntensityOben })
+            !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben })
           ] }),
           polyFlatStegeXPosOben.map((sx, si) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [sx, 0, 0], children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, topGlassH, POLY_INNEN_D] }),
-            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessOben })
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: roughnessOben })
           ] }, si))
-        ] }) : glasTypOben === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        ] }) : fuellungTypOben === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           PlankenFilling,
           {
             areaWidth: panelW,
@@ -5447,22 +5381,22 @@ function RahmenwandWand({
           }
         ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [panelCenterX, topGlassCenterY, 0], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, topGlassH, glasD] }),
-          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpOben, roughness: glasRoughnessOben, metalness: glasMetalnessOben, envMapIntensity: glasEnvMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
+          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
         ] }))
-      ] }) : glasTypOben === 1 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [panelCenterX, 0, 0], children: [
+      ] }) : fuellungTypOben === 1 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [panelCenterX, 0, 0], children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, -glasD / 2 + POLY_DECK_DICKE / 2], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, innerH, POLY_DECK_DICKE] }),
-          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityOben, roughness: polyRoughnessOben, metalness: polyMetalnessOben, envMapIntensity: polyEnvMapIntensityOben })
+          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben })
         ] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [0, 0, glasD / 2 - POLY_DECK_DICKE / 2], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, innerH, POLY_DECK_DICKE] }),
-          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: polyOpacityOben, roughness: polyRoughnessOben, metalness: polyMetalnessOben, envMapIntensity: polyEnvMapIntensityOben })
+          !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben })
         ] }),
         polyFlatStegeXPosOben.map((sx, si) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [sx, 0, 0], children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [POLY_STEG_DICKE, innerH, POLY_INNEN_D] }),
-          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughnessOben })
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: roughnessOben })
         ] }, si))
-      ] }) : glasTypOben === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      ] }) : fuellungTypOben === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
         PlankenFilling,
         {
           areaWidth: panelW,
@@ -5475,7 +5409,7 @@ function RahmenwandWand({
         }
       ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glasOben", position: [panelCenterX, 0, 0], castShadow: true, receiveShadow: true, material: glasMaterialOben, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [panelW, innerH, glasD] }),
-        !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: glsOpOben, roughness: glasRoughnessOben, metalness: glasMetalnessOben, envMapIntensity: glasEnvMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
+        !glasMaterialOben && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityOben, roughness: roughnessOben, metalness: metalnessOben, envMapIntensity: envMapIntensityOben, clearcoat: 1, clearcoatRoughness: 0.05 })
       ] }) }, i);
     }),
     Array.from({ length: divCount }, (_, i) => {
@@ -5565,7 +5499,22 @@ function SchiebetuerGriff({ griffSeite, panelTiefe, xPos, yPos }) {
     (griffSeite === 1 || griffSeite === 2) && renderHandle("aussen")
   ] });
 }
-function GlasPanel({ glasW, glasH, glasD, innerH, showHandle, griffTyp, griffXRelGlas, griffYRelGlas, glasMaterial, glasFarbeHex, effectiveOpacity, glasRoughness = 0, glasMetalness = 0, glasEnvMapIntensity = 1 }) {
+function GlasPanel({
+  glasW,
+  glasH,
+  glasD,
+  innerH,
+  showHandle,
+  griffTyp,
+  griffXRelGlas,
+  griffYRelGlas,
+  glasMaterial,
+  glasFarbeHex,
+  effectiveOpacity,
+  roughness = 0,
+  metalness = 0,
+  envMapIntensity = 1
+}) {
   const needsHole = showHandle && (griffTyp === 0 || griffTyp === 1);
   const holes = React.useMemo(() => needsHole ? [{ x: griffXRelGlas, y: griffYRelGlas }] : [], [needsHole, griffXRelGlas, griffYRelGlas]);
   const glasShape = useGlasShapeWithHoles(glasW, glasH, holes);
@@ -5573,12 +5522,12 @@ function GlasPanel({ glasW, glasH, glasD, innerH, showHandle, griffTyp, griffXRe
   if (needsHole) {
     return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glas", position: [0, innerH / 2, -glasD / 2], castShadow: true, receiveShadow: true, material: glasMaterial, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [glasShape, extCfg] }),
-      !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness: glasRoughness, metalness: glasMetalness, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: glasEnvMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
+      !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness, metalness, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
     ] });
   }
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "glas", position: [0, innerH / 2, 0], castShadow: true, receiveShadow: true, material: glasMaterial, children: [
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [glasW, glasH, glasD] }),
-    !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness: glasRoughness, metalness: glasMetalness, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: glasEnvMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
+    !glasMaterial && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness, metalness, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
   ] });
 }
 function SchiebetuerWand({
@@ -5596,22 +5545,18 @@ function SchiebetuerWand({
   griffAnordnung,
   griffSeite,
   griffHoehe,
-  glasTyp,
+  fuellungTyp,
   glasDicke,
   rahmenBreite,
   material,
   farbeHex,
   glasMaterial,
   glasFarbeHex,
-  glasOpacity,
-  glasRoughness = 0,
-  glasMetalness = 0,
-  glasEnvMapIntensity = 1,
-  polyOpacity = 0.65,
-  polyRoughness = 0.3,
-  polyMetalness = 0,
-  polyEnvMapIntensity = 1,
-  polyKammergroesse = 0.05,
+  opacity,
+  roughness = 0,
+  metalness = 0,
+  envMapIntensity = 1,
+  kammergroesse = 0.05,
   plankenHoehe = 0.15,
   plankenTiefe = 0.02,
   zShiftDir = 1
@@ -5620,7 +5565,7 @@ function SchiebetuerWand({
   const FW = rahmenBreite;
   const FD = glasD + 5e-3;
   const hasFrame = mitRahmen === 1;
-  const effectiveOpacity = glasTyp === 1 ? polyOpacity : glasOpacity;
+  const effectiveOpacity = opacity;
   React.useMemo(() => {
     if (!glasMaterial) return;
     const mat = glasMaterial;
@@ -5628,21 +5573,21 @@ function SchiebetuerWand({
     mat.opacity = effectiveOpacity;
     mat.depthWrite = false;
     mat.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
-    if (glasTyp === 1) {
-      mat.roughness = polyRoughness;
-      mat.metalness = polyMetalness;
-      mat.envMapIntensity = polyEnvMapIntensity;
+    if (fuellungTyp === 1) {
+      mat.roughness = roughness;
+      mat.metalness = metalness;
+      mat.envMapIntensity = envMapIntensity;
       mat.clearcoat = 0.4;
       mat.clearcoatRoughness = 0.1;
     } else {
-      mat.roughness = glasRoughness;
-      mat.metalness = glasMetalness;
-      mat.envMapIntensity = glasEnvMapIntensity;
+      mat.roughness = roughness;
+      mat.metalness = metalness;
+      mat.envMapIntensity = envMapIntensity;
       mat.clearcoat = 1;
       mat.clearcoatRoughness = 0.05;
     }
     mat.needsUpdate = true;
-  }, [glasMaterial, effectiveOpacity, glasTyp, glasRoughness, glasMetalness, glasEnvMapIntensity, polyRoughness, polyMetalness, polyEnvMapIntensity]);
+  }, [glasMaterial, effectiveOpacity, fuellungTyp, roughness, metalness, envMapIntensity]);
   React.useLayoutEffect(() => {
     if (!material) return;
     material.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
@@ -5760,11 +5705,11 @@ function SchiebetuerWand({
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] })
       ] }),
-      glasTyp === 1 ? (() => {
+      fuellungTyp === 1 ? (() => {
         const DECK_DICKE = Math.max(1e-3, glasD * 0.15);
         const STEG_DICKE = Math.max(8e-4, glasD * 0.1);
         const innenD = Math.max(0, glasD - 2 * DECK_DICKE);
-        const kammerGroesse = Math.max(5e-3, polyKammergroesse);
+        const kammerGroesse = Math.max(5e-3, kammergroesse);
         const stege = [];
         let sx = -glasW / 2 + kammerGroesse;
         while (sx < glasW / 2 - 3e-3) {
@@ -5774,18 +5719,18 @@ function SchiebetuerWand({
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, innerH / 2 + glasYOffset, 0], children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, 0, -glasD / 2 + DECK_DICKE / 2], castShadow: true, receiveShadow: true, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [glasW, glasH, DECK_DICKE] }),
-            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness: polyRoughness, metalness: polyMetalness, clearcoat: 0.4, clearcoatRoughness: 0.1, envMapIntensity: polyEnvMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness, metalness, clearcoat: 0.4, clearcoatRoughness: 0.1, envMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
           ] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, 0, glasD / 2 - DECK_DICKE / 2], castShadow: true, receiveShadow: true, children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [glasW, glasH, DECK_DICKE] }),
-            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness: polyRoughness, metalness: polyMetalness, clearcoat: 0.4, clearcoatRoughness: 0.1, envMapIntensity: polyEnvMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: effectiveOpacity, roughness, metalness, clearcoat: 0.4, clearcoatRoughness: 0.1, envMapIntensity, side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide, depthWrite: false })
           ] }),
           stege.map((stegX, si) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [stegX, 0, 0], children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [STEG_DICKE, glasH, innenD] }),
-            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness: polyRoughness, metalness: polyMetalness, envMapIntensity: polyEnvMapIntensity })
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, roughness, metalness, envMapIntensity })
           ] }, si))
         ] });
-      })() : glasTyp === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      })() : fuellungTyp === 2 ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
         PlankenFilling,
         {
           areaWidth: glasW,
@@ -5796,8 +5741,26 @@ function SchiebetuerWand({
           farbeHex,
           position: [-glasW / 2, GLAS_LOG_H, 0]
         }
-      ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, glasYOffset, 0], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasPanel, { glasW, glasH, glasD, innerH, showHandle, griffTyp, griffXRelGlas: griffXInPanel, griffYRelGlas, glasMaterial, glasFarbeHex, effectiveOpacity, glasRoughness, glasMetalness, glasEnvMapIntensity }) }),
-      showHandle && griffTyp === 1 && glasTyp === 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MuschelEinsatz, { position: [griffXInPanel, innerH / 2 + griffYRelGlas + glasYOffset, -glasD / 2], glasDicke: glasD }),
+      ) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, glasYOffset, 0], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        GlasPanel,
+        {
+          glasW,
+          glasH,
+          glasD,
+          innerH,
+          showHandle,
+          griffTyp,
+          griffXRelGlas: griffXInPanel,
+          griffYRelGlas,
+          glasMaterial,
+          glasFarbeHex,
+          effectiveOpacity,
+          roughness,
+          metalness,
+          envMapIntensity
+        }
+      ) }),
+      showHandle && griffTyp === 1 && fuellungTyp === 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MuschelEinsatz, { position: [griffXInPanel, innerH / 2 + griffYRelGlas + glasYOffset, -glasD / 2], glasDicke: glasD }),
       buersten === 1 && index < panelCount - 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [panelWidth / 2, innerH / 2, -trackSpacing / 2], children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [3e-3, innerH - GLAS_LOG_H * 2, trackSpacing] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshStandardMaterial", { color: "#333333", roughness: 1 })
@@ -6128,7 +6091,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     const {
       breite = 0,
       hoehe = 0,
-      glasOpacity = 0.3,
+      opacity = 0.3,
       aufDachneigung = 0,
       materials = {}
     } = props;
@@ -6181,6 +6144,39 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     const keilReductionAuto = keilAbschnittFromCtx > 0 && isSideWall ? keilAbschnittFromCtx + KEIL_FRAME_SW$1 : 0;
     const reduction = keilReductionAuto;
     const fullMaxHoehe = zoneHoeheVorne - reduction;
+    const hasRearPosts = ctx.pfostenAnzahlHinten > 0;
+    let frameThickness = 0.05;
+    switch (wandTyp) {
+      case WAND_TYP.KEIL:
+        frameThickness = Number(exprVal(props.dicke) ?? 0.07);
+        break;
+      case WAND_TYP.RAHMENWAND:
+        frameThickness = 0.05;
+        break;
+      case WAND_TYP.SCHIEBETUER: {
+        const sp = props;
+        const spGlasDicke = Number(exprVal(sp.glasDicke) ?? 8e-3);
+        const anzahlPanels = Number(exprVal(sp.tuertypPanels) ?? 4);
+        const nTracks = Math.min(anzahlPanels || 4, 5);
+        frameThickness = nTracks * (spGlasDicke + 5e-3);
+        break;
+      }
+      case WAND_TYP.SHUTTERS: {
+        const ssp2 = props;
+        const isSchiebend = Number(exprVal(ssp2.schiebend) ?? 0) === 1;
+        const rTiefe = Number(exprVal(ssp2.rahmenTiefe) ?? 0.04);
+        const anzahlFrames = Number(exprVal(ssp2.anzahlRahmen) ?? 1);
+        const trackSpacing = rTiefe + 0.01;
+        frameThickness = isSchiebend ? trackSpacing * anzahlFrames : rTiefe;
+        break;
+      }
+      case WAND_TYP.SICHTSCHUTZWAND: {
+        const ssp2 = props;
+        const plankenTiefe = Number(exprVal(ssp2.plankenTiefe) ?? 0.02);
+        frameThickness = Math.max(0.04, plankenTiefe + 0.02);
+        break;
+      }
+    }
     const userHoeheVal = effectiveHoehe;
     const sichtschutzBasisHoehe = userHoeheVal > 0 ? userHoeheVal : fullMaxHoehe;
     const realSichtschutzHoehe = vHoehe === 1 ? fullMaxHoehe : Math.min(sichtschutzBasisHoehe, fullMaxHoehe);
@@ -6204,35 +6200,36 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     const isAufbauWand = !isSichtschutz && ssHoeheFromCtx > 0.05;
     const ssReduction = isAufbauWand ? ssHoeheFromCtx : 0;
     const hasPfette = Number(ctx.pfette) === 1;
-    const BEAM_DEPTH = 0.05;
     const beamX = (effectiveSide === 0 ? 1 : -1) * (wandBreite / 2 + ctx.pfettenBreite / 2);
-    const beamZ = (ctx.pfostenBreite - BEAM_DEPTH) / 2;
+    const beamZ = (ctx.pfostenBreite - frameThickness) / 2;
     let beamHeight = 0;
     let beamBottomY = 0;
-    if (isSideWall && hasPfette) {
+    if (isSideWall && hasPfette && !hasRearPosts) {
+      ctx.pfettenHoehe;
       switch (wandTyp) {
         case WAND_TYP.KEIL: {
           const kAbschnitt = Number(
             exprVal(props.keilAbschnitt) ?? exprVal(props.abschnittVorne) ?? 0
           );
           const hD = zoneHoeheHinten - zoneHoeheVorne;
-          beamHeight = kAbschnitt + hD + KEIL_FRAME_SW$1;
+          beamHeight = Math.max(0, kAbschnitt + hD + KEIL_FRAME_SW$1);
           beamBottomY = keilInnerY - kAbschnitt - KEIL_FRAME_SW$1;
           break;
         }
         case WAND_TYP.RAHMENWAND: {
           const rBeamKeilReduction = aufDachneigungVal > 0 ? 0 : keilReductionAuto;
-          beamHeight = (aufDachneigungVal > 0 ? zoneHoeheHinten : zoneHoeheVorne) - rBeamKeilReduction - ssReduction;
+          const topY = (aufDachneigungVal > 0 ? zoneHoeheHinten : zoneHoeheVorne) - rBeamKeilReduction;
+          beamHeight = Math.max(0, topY - ssReduction);
           beamBottomY = ssReduction;
           break;
         }
         case WAND_TYP.SICHTSCHUTZWAND: {
-          beamHeight = fullMaxHoehe;
+          beamHeight = Math.max(0, fullMaxHoehe);
           beamBottomY = 0;
           break;
         }
         default:
-          beamHeight = zoneHoeheVorne - keilReductionAuto - ssReduction;
+          beamHeight = Math.max(0, zoneHoeheVorne - keilReductionAuto - ssReduction);
           beamBottomY = ssReduction;
           break;
       }
@@ -6265,20 +6262,16 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
                   keilAbschnitt: keilAbschnittVal,
                   keilTeiler: Number(exprVal(kp.keilTeiler) ?? 0),
                   dicke: Number(exprVal(kp.dicke) ?? 0.07),
-                  glasTyp: Number(exprVal(kp.glasTyp) ?? 0),
+                  fuellungTyp: Number(exprVal(kp.fuellungTyp) ?? exprVal(kp.glasTyp) ?? 0),
                   material,
                   glasMaterial,
                   farbeHex,
                   glasFarbeHex: "#ccddee",
-                  glasOpacity: Number(exprVal(glasOpacity) || 0.2),
-                  glasRoughness: Number(exprVal(kp.glasRoughness) ?? 0),
-                  glasMetalness: Number(exprVal(kp.glasMetalness) ?? 0),
-                  glasEnvMapIntensity: Number(exprVal(kp.glasEnvMapIntensity) ?? 1),
-                  polyOpacity: Number(exprVal(kp.polyOpacity) ?? 0.65),
-                  polyRoughness: Number(exprVal(kp.polyRoughness) ?? 0.3),
-                  polyMetalness: Number(exprVal(kp.polyMetalness) ?? 0),
-                  polyEnvMapIntensity: Number(exprVal(kp.polyEnvMapIntensity) ?? 1),
-                  polyKammergroesse: Number(exprVal(kp.polyKammergroesse) || 0.05),
+                  opacity: Number(exprVal(kp.opacity) ?? 0.2),
+                  roughness: Number(exprVal(kp.roughness) ?? 0),
+                  metalness: Number(exprVal(kp.metalness) ?? 0),
+                  envMapIntensity: Number(exprVal(kp.envMapIntensity) ?? 1),
+                  kammergroesse: Number(exprVal(kp.kammergroesse) || 0.05),
                   plankenHoehe: Number(exprVal(kp.plankenHoehe) ?? 0.15),
                   plankenTiefe: Number(exprVal(kp.plankenTiefe) ?? 0.02)
                 }
@@ -6290,7 +6283,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
           const rp = props;
           const isSide = effectiveSide === 0 || effectiveSide === 1;
           const isRightSide = effectiveSide === 1;
-          const frameThickness = 0.05;
+          const frameThickness2 = 0.05;
           const rwKeilReduction = keilReductionAuto;
           const isSlantedWand = aufDachneigungVal > 0 && isSide;
           const effectiveKeilReduction = isSlantedWand ? 0 : rwKeilReduction;
@@ -6298,7 +6291,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
           const rwY = isSlantedWand ? 0 : rwHoehe / 2 + ssReduction;
           const sHoeheVorne = (isRightSide ? zoneHoeheHinten : zoneHoeheVorne) - effectiveKeilReduction - ssReduction;
           const sHoeheHinten = (isRightSide ? zoneHoeheVorne : zoneHoeheHinten) - effectiveKeilReduction - ssReduction;
-          const rwZ = isSide ? (ctx.pfostenBreite - frameThickness) / 2 : -(ctx.pfostenTiefe - frameThickness) / 2;
+          const rwZ = isSide ? (ctx.pfostenBreite - frameThickness2) / 2 : -(ctx.pfostenTiefe - frameThickness2) / 2;
           return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, rwY, rwZ], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
             RahmenwandWand,
             {
@@ -6307,31 +6300,23 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
               mitMittelbalken: Number(exprVal(rp.mitMittelbalken) ?? 0),
               mittelbalkenHoehe: Number(exprVal(rp.mittelbalkenHoehe) ?? 0.5),
               maxScheibenBreite: Number(exprVal(rp.maxScheibenBreite) ?? 0),
-              glasTypOben: Number(exprVal(rp.glasTypOben) ?? 0),
-              glasTypUnten: Number(exprVal(rp.glasTypUnten) ?? 0),
+              fuellungTypOben: Number(exprVal(rp.fuellungTypOben) ?? exprVal(rp.glasTypOben) ?? 0),
+              fuellungTypUnten: Number(exprVal(rp.fuellungTypUnten) ?? exprVal(rp.glasTypUnten) ?? 0),
               material,
               glasMaterialOben: materials.glasOben,
               glasMaterialUnten: materials.glasUnten,
               farbeHex,
               glasFarbeHex,
-              glasOpacityOben: Number(exprVal(rp.glasOpacityOben) ?? 0.2),
-              glasRoughnessOben: Number(exprVal(rp.glasRoughnessOben) ?? 0),
-              glasMetalnessOben: Number(exprVal(rp.glasMetalnessOben) ?? 0),
-              glasEnvMapIntensityOben: Number(exprVal(rp.glasEnvMapIntensityOben) ?? 1),
-              polyOpacityOben: Number(exprVal(rp.polyOpacityOben) ?? 0.65),
-              polyRoughnessOben: Number(exprVal(rp.polyRoughnessOben) ?? 0.3),
-              polyMetalnessOben: Number(exprVal(rp.polyMetalnessOben) ?? 0),
-              polyEnvMapIntensityOben: Number(exprVal(rp.polyEnvMapIntensityOben) ?? 1),
-              polyKammergroesseOben: Number(exprVal(rp.polyKammergroesseOben) || 0.05),
-              glasOpacityUnten: Number(exprVal(rp.glasOpacityUnten) ?? 0.2),
-              glasRoughnessUnten: Number(exprVal(rp.glasRoughnessUnten) ?? 0),
-              glasMetalnessUnten: Number(exprVal(rp.glasMetalnessUnten) ?? 0),
-              glasEnvMapIntensityUnten: Number(exprVal(rp.glasEnvMapIntensityUnten) ?? 1),
-              polyOpacityUnten: Number(exprVal(rp.polyOpacityUnten) ?? 0.65),
-              polyRoughnessUnten: Number(exprVal(rp.polyRoughnessUnten) ?? 0.3),
-              polyMetalnessUnten: Number(exprVal(rp.polyMetalnessUnten) ?? 0),
-              polyEnvMapIntensityUnten: Number(exprVal(rp.polyEnvMapIntensityUnten) ?? 1),
-              polyKammergroesseUnten: Number(exprVal(rp.polyKammergroesseUnten) || 0.05),
+              opacityOben: Number(exprVal(rp.opacityOben) ?? 0.2),
+              roughnessOben: Number(exprVal(rp.roughnessOben) ?? 0),
+              metalnessOben: Number(exprVal(rp.metalnessOben) ?? 0),
+              envMapIntensityOben: Number(exprVal(rp.envMapIntensityOben) ?? 1),
+              kammergroesseOben: Number(exprVal(rp.kammergroesseOben) || 0.05),
+              opacityUnten: Number(exprVal(rp.opacityUnten) ?? 0.2),
+              roughnessUnten: Number(exprVal(rp.roughnessUnten) ?? 0),
+              metalnessUnten: Number(exprVal(rp.metalnessUnten) ?? 0),
+              envMapIntensityUnten: Number(exprVal(rp.envMapIntensityUnten) ?? 1),
+              kammergroesseUnten: Number(exprVal(rp.kammergroesseUnten) || 0.05),
               wandHoeheHinten: isSlantedWand ? sHoeheHinten : void 0,
               aufDachneigung: isSlantedWand ? 1 : 0,
               plankenHoehe: Number(exprVal(rp.plankenHoehe) ?? 0.15),
@@ -6365,22 +6350,18 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
               griffPosition: Number(exprVal(sp.griffPosition) ?? 0),
               griffSeite: Number(exprVal(sp.griffSeite) ?? 2),
               griffHoehe: Number(exprVal(sp.griffHoehe) ?? 1),
-              glasTyp: Number(exprVal(sp.glasTyp) ?? 0),
+              fuellungTyp: Number(exprVal(sp.fuellungTyp) ?? exprVal(sp.glasTyp) ?? 0),
               glasDicke: spGlasDicke,
               rahmenBreite: Number(exprVal(sp.rahmenBreite) ?? 0.04),
               material,
               glasMaterial,
               farbeHex,
               glasFarbeHex,
-              glasOpacity: Number(exprVal(glasOpacity) || 0.2),
-              glasRoughness: Number(exprVal(sp.glasRoughness) ?? 0),
-              glasMetalness: Number(exprVal(sp.glasMetalness) ?? 0),
-              glasEnvMapIntensity: Number(exprVal(sp.glasEnvMapIntensity) ?? 1),
-              polyOpacity: Number(exprVal(sp.polyOpacity) ?? 0.65),
-              polyRoughness: Number(exprVal(sp.polyRoughness) ?? 0.3),
-              polyMetalness: Number(exprVal(sp.polyMetalness) ?? 0),
-              polyEnvMapIntensity: Number(exprVal(sp.polyEnvMapIntensity) ?? 1),
-              polyKammergroesse: Number(exprVal(sp.polyKammergroesse) || 0.05),
+              opacity: Number(exprVal(sp.opacity) ?? 0.2),
+              roughness: Number(exprVal(sp.roughness) ?? 0),
+              metalness: Number(exprVal(sp.metalness) ?? 0),
+              envMapIntensity: Number(exprVal(sp.envMapIntensity) ?? 1),
+              kammergroesse: Number(exprVal(sp.kammergroesse) || 0.05),
               zShiftDir: isSide ? 1 : -1,
               plankenHoehe: Number(exprVal(sp.plankenHoehe) ?? 0.15),
               plankenTiefe: Number(exprVal(sp.plankenTiefe) ?? 0.02)
@@ -6464,14 +6445,14 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
         name: props.name,
         children: [
           renderContent(),
-          isSideWall && hasPfette && beamHeight > 0.01 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+          isSideWall && hasPfette && beamHeight > 0.01 && !hasRearPosts && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
             "mesh",
             {
               position: [beamX, beamBottomY + beamHeight / 2, beamZ],
               castShadow: true,
               receiveShadow: true,
               children: [
-                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [ctx.pfettenBreite, beamHeight, BEAM_DEPTH] }),
+                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [ctx.pfettenBreite, beamHeight, frameThickness] }),
                 /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
               ]
             }
@@ -6490,19 +6471,20 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     segmentIndex: { expression: "-1" }
   };
   if (wandTyp === WAND_TYP.KEIL || wandTyp === WAND_TYP.SCHIEBETUER) {
+    baseDefaultProps.fuellungTyp = { expression: "0" };
     baseDefaultProps.glasTyp = { expression: "0" };
-    baseDefaultProps.glasOpacity = { expression: "0.2" };
+    baseDefaultProps.opacity = { expression: "0.2" };
+    baseDefaultProps.roughness = { expression: "0" };
   } else if (wandTyp === WAND_TYP.RAHMENWAND) {
-    baseDefaultProps.glasTypOben = { expression: "0" };
-    baseDefaultProps.glasOpacityOben = { expression: "0.2" };
-    baseDefaultProps.glasTypUnten = { expression: "0" };
-    baseDefaultProps.glasOpacityUnten = { expression: "0.2" };
+    baseDefaultProps.fuellungTypOben = { expression: "0" };
+    baseDefaultProps.opacityOben = { expression: "0.2" };
+    baseDefaultProps.roughnessOben = { expression: "0" };
+    baseDefaultProps.fuellungTypUnten = { expression: "0" };
+    baseDefaultProps.opacityUnten = { expression: "0.2" };
+    baseDefaultProps.roughnessUnten = { expression: "0" };
   }
   const RADIO_OPTIONS = {
-    mitMittelbalken: [{ value: "0", label: "Standard" }, { value: "1", label: "Mit Mittelbalken" }],
     mitRahmen: [{ value: "0", label: "Ohne Rahmen" }, { value: "1", label: "Mit Rahmen" }],
-    griffTyp: [{ value: "0", label: "Rund (Loch)" }, { value: "1", label: "Muschel" }, { value: "2", label: "Stahl" }, { value: "3", label: "Ohne" }],
-    griffAnordnung: [{ value: "0", label: "Erste Tür" }, { value: "1", label: "Anfang + Ende" }, { value: "2", label: "Alle Türen" }],
     griffPosition: [{ value: "0", label: "Links" }, { value: "1", label: "Rechts" }],
     griffSeite: [{ value: "0", label: "Innen" }, { value: "1", label: "Außen" }, { value: "2", label: "Beidseitig" }],
     laufrichtung: [{ value: "0", label: "Rechts" }, { value: "1", label: "Links" }],
@@ -6520,21 +6502,18 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     hoehe: "Höhe (0=auto aus Veranda) (m)",
     segmentIndex: "Feld-Index (0=1. Feld, 1=2. Feld, … | -1=volle Breite)",
     glasTyp: "Füllungstyp (0=Glas,1=Poly,2=Planken)",
-    glasTypOben: "Füllung oben (0=Glas,1=Poly,2=Planken)",
-    glasTypUnten: "Füllung unten (0=Glas,1=Poly,2=Planken)",
-    glasOpacity: "Glas Transparenz (0–1)",
-    glasRoughness: "Glas Rauheit (0–1)",
-    glasMetalness: "Glas Metalness (0–1)",
-    glasEnvMapIntensity: "Glas EnvMap-Intensität",
-    polyOpacity: "Poly Transparenz (0–1)",
-    polyRoughness: "Poly Rauheit (0–1)",
-    polyMetalness: "Poly Metalness (0–1)",
-    polyEnvMapIntensity: "Poly EnvMap-Intensität",
-    polyKammergroesse: "Poly Kammergröße (m)",
+    fuellungTypOben: "Füllung oben (0=Glas, 1=Poly, 2=Planken)",
+    fuellungTypUnten: "Füllung unten (0=Glas, 1=Poly, 2=Planken)",
+    fuellungTyp: "Füllung (0=Glas, 1=Poly, 2=Planken)",
+    opacity: "Transparenz (0–1)",
+    roughness: "Rauheit (0–1)",
+    metalness: "Metalness (0–1)",
+    envMapIntensity: "EnvMap-Intensität",
+    kammergroesse: "Kammergröße (m)",
     keilAbschnitt: "Keilabschnitt vorne (0=Spitze) (m)",
     keilTeiler: "Zwischenpfosten Anzahl",
     dicke: "Profiltiefe (m)",
-    mitMittelbalken: "Variante",
+    mitMittelbalken: "Mittelbalken (0=Nein, 1=Ja)",
     aufDachneigung: "Oberkante (0=Standard, 1=Volle Höhe)",
     mittelbalkenHoehe: "Mittelbalken-Höhe ab Boden (m)",
     maxScheibenBreite: "Max. Scheibenbreite (0=ohne Limit) (m)",
@@ -6544,8 +6523,8 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     oeffnung: "Öffnung (0-1)",
     laufrichtung: "Laufrichtung",
     schienenSeite: "Schienen-Seite",
-    griffTyp: "Grifftyp",
-    griffAnordnung: "Griff-Anordnung",
+    griffTyp: "Grifftyp (0=Rund, 1=Muschel, 2=Stahl, 3=Ohne)",
+    griffAnordnung: "Griff-Anordnung (0=Erste Tür, 1=Anf.+Ende, 2=Alle)",
     griffPosition: "Griffposition",
     griffSeite: "Griffseite",
     griffHoehe: "Griffhöhe (m)",
@@ -6559,23 +6538,32 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     wandHoehe: "Wandhöhe (m)",
     plankenHoehe: "Planken-Höhe (m)",
     plankenTiefe: "Planken-Stärke (m)",
-    glasOpacityOben: "Glas Transparenz oben (0–1)",
-    glasOpacityUnten: "Glas Transparenz unten (0–1)",
+    opacityOben: "Transparenz oben (0–1)",
+    opacityUnten: "Transparenz unten (0–1)",
+    roughnessOben: "Rauheit oben (0–1)",
+    roughnessUnten: "Rauheit unten (0–1)",
+    kammergroesseOben: "Kammergröße oben (m)",
+    kammergroesseUnten: "Kammergröße unten (m)",
     querbalken: "Abschlussbalken oben",
     volleHoehe: "Volle Höhe (1=Ja, 0=Nein)"
   };
   let baseDialogKeys = ["breite", "hoehe", "segmentIndex"];
   if (wandTyp === WAND_TYP.KEIL || wandTyp === WAND_TYP.SCHIEBETUER) {
-    baseDialogKeys = ["breite", "hoehe", "segmentIndex", "glasTyp", "glasOpacity", "plankenHoehe", "plankenTiefe"];
+    baseDialogKeys = ["breite", "hoehe", "segmentIndex", "fuellungTyp", "opacity", "roughness", "plankenHoehe", "plankenTiefe"];
+    if (wandTyp === WAND_TYP.KEIL) {
+      baseDialogKeys.push("glasTyp");
+    }
   } else if (wandTyp === WAND_TYP.RAHMENWAND) {
     baseDialogKeys = [
       "breite",
       "hoehe",
       "segmentIndex",
-      "glasTypOben",
-      "glasOpacityOben",
-      "glasTypUnten",
-      "glasOpacityUnten",
+      "fuellungTypOben",
+      "opacityOben",
+      "roughnessOben",
+      "fuellungTypUnten",
+      "opacityUnten",
+      "roughnessUnten",
       "plankenHoehe",
       "plankenTiefe"
     ];
@@ -6587,7 +6575,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
   ];
   const wandPropsSchema = {};
   for (const key of allDialogKeys) {
-    const opts = key === "glasTyp" || key === "glasTypOben" || key === "glasTypUnten" ? void 0 : RADIO_OPTIONS[key];
+    const opts = RADIO_OPTIONS[key];
     const label2 = DIALOG_LABELS[key] ?? key;
     if (opts) {
       wandPropsSchema[key] = { type: "radioGroup", label: label2, options: opts };
@@ -6611,21 +6599,13 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
 }
 
 const keilDynamicModel = createWandModel(WAND_TYP.KEIL, "Keil", {
-  glasTyp: { expression: "0" },
-  glasOpacity: { expression: "0.2" },
-  glasRoughness: { expression: "0" },
-  glasMetalness: { expression: "0" },
-  glasEnvMapIntensity: { expression: "1.0" },
-  polyOpacity: { expression: "0.65" },
-  polyRoughness: { expression: "0.3" },
-  polyMetalness: { expression: "0" },
-  polyEnvMapIntensity: { expression: "1.0" },
-  polyKammergroesse: { expression: "0.05" },
+  metalness: { expression: "0" },
+  envMapIntensity: { expression: "1.0" },
+  kammergroesse: { expression: "0.05" },
   plankenHoehe: { expression: "0.15" },
   plankenTiefe: { expression: "0.02" },
   keilAbschnitt: { expression: "0" },
   keilTeiler: { expression: "0" },
-  segmentIndex: { expression: "-1" },
   dicke: { expression: "0.07" }
 });
 
@@ -6633,48 +6613,26 @@ const rahmenwandDynamicModel = createWandModel(
   WAND_TYP.RAHMENWAND,
   "Rahmenwand",
   {
-    glasTypOben: { expression: "0" },
-    glasOpacityOben: { expression: "0.2" },
-    glasRoughnessOben: { expression: "0" },
-    glasMetalnessOben: { expression: "0" },
-    glasEnvMapIntensityOben: { expression: "1.0" },
-    polyOpacityOben: { expression: "0.65" },
-    polyRoughnessOben: { expression: "0.3" },
-    polyMetalnessOben: { expression: "0" },
-    polyEnvMapIntensityOben: { expression: "1.0" },
-    polyKammergroesseOben: { expression: "0.05" },
-    glasTypUnten: { expression: "0" },
-    glasOpacityUnten: { expression: "0.2" },
-    glasRoughnessUnten: { expression: "0" },
-    glasMetalnessUnten: { expression: "0" },
-    glasEnvMapIntensityUnten: { expression: "1.0" },
-    polyOpacityUnten: { expression: "0.65" },
-    polyRoughnessUnten: { expression: "0.3" },
-    polyMetalnessUnten: { expression: "0" },
-    polyEnvMapIntensityUnten: { expression: "1.0" },
-    polyKammergroesseUnten: { expression: "0.05" },
+    metalnessOben: { expression: "0" },
+    envMapIntensityOben: { expression: "1.0" },
+    kammergroesseOben: { expression: "0.05" },
+    metalnessUnten: { expression: "0" },
+    envMapIntensityUnten: { expression: "1.0" },
+    kammergroesseUnten: { expression: "0.05" },
     plankenHoehe: { expression: "0.15" },
     plankenTiefe: { expression: "0.02" },
-    mitMittelbalken: 0,
-    mittelbalkenHoehe: { expression: "0.5" },
+    mitMittelbalken: { expression: "1" },
+    mittelbalkenHoehe: { expression: "1.0" },
     maxScheibenBreite: { expression: "1.2" },
-    segmentIndex: { expression: "-1" },
     aufDachneigung: 0
   },
   ["profil", "glasOben", "glasUnten"]
 );
 
 const schiebetuerDynamicModel = createWandModel(WAND_TYP.SCHIEBETUER, "Schiebetür", {
-  glasTyp: { expression: "0" },
-  glasOpacity: { expression: "0.2" },
-  glasRoughness: { expression: "0" },
-  glasMetalness: { expression: "0" },
-  glasEnvMapIntensity: { expression: "1.0" },
-  polyOpacity: { expression: "0.65" },
-  polyRoughness: { expression: "0.3" },
-  polyMetalness: { expression: "0" },
-  polyEnvMapIntensity: { expression: "1.0" },
-  polyKammergroesse: { expression: "0.05" },
+  metalness: { expression: "0" },
+  envMapIntensity: { expression: "1.0" },
+  kammergroesse: { expression: "0.05" },
   plankenHoehe: { expression: "0.15" },
   plankenTiefe: { expression: "0.02" },
   mitRahmen: 0,
@@ -6685,12 +6643,11 @@ const schiebetuerDynamicModel = createWandModel(WAND_TYP.SCHIEBETUER, "Schiebet�
   laufrichtung: 0,
   schienenSeite: 0,
   buersten: 1,
-  griffTyp: 0,
-  griffAnordnung: 0,
+  griffTyp: { expression: "0" },
+  griffAnordnung: { expression: "0" },
   griffPosition: 0,
   griffSeite: 2,
   griffHoehe: { expression: "1.0" },
-  segmentIndex: { expression: "-1" },
   glasDicke: { expression: "0.008" },
   rahmenBreite: { expression: "0.04" }
 });
@@ -7653,7 +7610,6 @@ function AufdachmarkiseModel(props) {
     oeffnungsgrad = 1,
     kastenArt = 0,
     schienenAbstand = 0,
-    stoffDicke: _stoffDicke = 0,
     halterungen = 1,
     kassettenDurchmesser = 0,
     kastenBreite = 0,
@@ -7977,17 +7933,13 @@ const aufdachmarkisePropsSchema = {
   maxBreite: { type: "expression", label: "Max. Breite (m, 0=kein Limit)" },
   oeffnungsgrad: { type: "expression", label: "Öffnungsgrad (0–1)" },
   halterungen: { type: "radioGroup", label: "Halterungen", options: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }] },
-  schienenAbstand: { type: "expression", label: "Schienenabstand (m, 0=Standard)" },
-  stoffDicke: { type: "expression", label: "Stoffdicke (m, 0=Standard)" }
+  schienenAbstand: { type: "expression", label: "Schienenabstand (m, 0=Standard)" }
 };
 const aufdachmarkiseDynamicModel = {
   type: "veranda-aufdachmarkise",
   label: "Aufdachmarkise",
   description: "Ausfahrbare Beschattungsmarkise auf der Dachoberseite",
   defaultProps: {
-    width: { expression: "1" },
-    height: { expression: "1" },
-    depth: { expression: "1" },
     tiefe: { expression: "0" },
     maxBreite: { expression: "0" },
     oeffnungsgrad: { expression: "1" },
@@ -7996,7 +7948,6 @@ const aufdachmarkiseDynamicModel = {
     kastenBreite: { expression: "0" },
     kastenHoehe: { expression: "0" },
     schienenAbstand: { expression: "0" },
-    stoffDicke: { expression: "0" },
     halterungen: "1"
   },
   propsDialog: aufdachmarkisePropsSchema,
@@ -8028,7 +7979,6 @@ function UnterdachmarkiseModel(props) {
     oeffnungsgrad = 1,
     kastenArt = 0,
     schienenAbstand = 0,
-    stoffDicke: _stoffDicke = 0,
     halterungen = 1,
     // K3 Materials
     materials = {},
@@ -8517,23 +8467,18 @@ const unterdachmarkisePropsSchema = {
   maxBreite: { type: "expression", label: "Max. Breite (m, 0=kein Limit)" },
   oeffnungsgrad: { type: "expression", label: "Öffnungsgrad (0–1)" },
   halterungen: { type: "radioGroup", label: "Halterungen", options: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }] },
-  schienenAbstand: { type: "expression", label: "Schienenabstand (m, 0=Std)" },
-  stoffDicke: { type: "expression", label: "Stoffdicke (m, 0=Std)" }
+  schienenAbstand: { type: "expression", label: "Schienenabstand (m, 0=Std)" }
 };
 const unterdachmarkiseDynamicModel = {
   type: "veranda-unterdachmarkise",
   label: "Unterdachmarkise",
   description: "Ausfahrbare Beschattungsmarkise für die Unterseite der Dachkonstruktion",
   defaultProps: {
-    width: { expression: "1" },
-    height: { expression: "1" },
-    depth: { expression: "1" },
     tiefe: { expression: "0" },
     maxBreite: { expression: "0" },
     oeffnungsgrad: { expression: "1" },
     kastenArt: "0",
     schienenAbstand: { expression: "0" },
-    stoffDicke: { expression: "0" },
     halterungen: "1"
   },
   propsDialog: unterdachmarkisePropsSchema,
@@ -8647,9 +8592,6 @@ function createBeschattungUnterdachModel(config) {
     label: config.label,
     description: config.description,
     defaultProps: {
-      width: { expression: "1" },
-      height: { expression: "1" },
-      depth: { expression: "1" },
       ...config.defaultProps
     },
     propsDialog: { _base: { type: "basic" }, ...config.propsDialog },
