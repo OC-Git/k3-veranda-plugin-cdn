@@ -1955,7 +1955,6 @@ const DEFAULT_GEOMETRY = {
   pfostenAnzahlHinten: 2,
   pfostenBreite: 0.1,
   pfostenTiefe: 0.1,
-  sparrenAnzahl: 6,
   sparrenBreite: 0.06,
   sparrenHoehe: 0.12,
   sparrenAuflage: 0,
@@ -2435,7 +2434,6 @@ const konstruktionPropsSchema = {
     ],
     group: "Dach-Struktur"
   },
-  sparrenAnzahl: { type: "expression", label: "Anzahl Sparren", group: "Dach-Struktur" },
   sparrenBreite: { type: "expression", label: "Sparren Breite (m)", group: "Dach-Struktur" },
   sparrenHoehe: { type: "expression", label: "Sparren Höhe (m)", group: "Dach-Struktur" },
   // Rahmen / Balken
@@ -2798,7 +2796,7 @@ function GlasEindeckungModel(props) {
   const schwelleBreite = parent.schwelleBreite;
   const profilMaterial = materials.profil;
   if (profilMaterial) profilMaterial.name = "profil";
-  const sparrenAnzahl = parent.sparrenAnzahl || Number(exprVal(sparrenAnzahlProp));
+  const sparrenAnzahl = Number(exprVal(sparrenAnzahlProp));
   const sparrenBreite = parent.sparrenBreite || Number(exprVal(sparrenBreiteProp));
   const sparrenHoehe = parent.sparrenHoehe || Number(exprVal(sparrenHoeheProp));
   const sparrenAuflage = Number(exprVal(parent.sparrenAuflage));
@@ -3086,10 +3084,10 @@ function MetallEindeckungModel(props) {
       0,
       Number(wandanschluss) === 1,
       _wandanschlussTiefe,
-      0,
+      hatAussenSparren ? 2 : 0,
       qubusOffset
     );
-  }, [_eindeckungDicke, wandanschluss, _wandanschlussTiefe, qubusOffset, setEindeckungInfo]);
+  }, [_eindeckungDicke, wandanschluss, _wandanschlussTiefe, hatAussenSparren, qubusOffset, setEindeckungInfo]);
   const metallFarbeHex = "#808080";
   const anschlussFarbeHex = "#c0c0c0";
   const dachVS_m = 0;
@@ -4116,20 +4114,21 @@ function SolarEindeckungModel(props) {
   const qubusOffset = parent.isQubus ? solarDicke + _leistenHoehe + (_sparrenAuflage_v === 0 ? Number(exprVal(sparrenHoehe || parent.sparrenHoehe)) : 0) : 0;
   const hoeheVorne = baseHVorne - qubusOffset;
   const hoeheHinten = baseHHinten - qubusOffset;
-  const _sparrenAnzahl = Number(exprVal(sparrenAnzahl)) > 0 ? Number(exprVal(sparrenAnzahl)) : parent.sparrenAnzahl;
+  const _sparrenAnzahl = Number(exprVal(sparrenAnzahl));
   const _sparrenBreite = Number(exprVal(sparrenBreite)) > 0 ? Number(exprVal(sparrenBreite)) : parent.sparrenBreite;
   const _sparrenHoehe = Number(exprVal(sparrenHoehe)) > 0 ? Number(exprVal(sparrenHoehe)) : parent.sparrenHoehe;
   const { setEindeckungInfo } = useEindeckungInfo();
+  const effectiveSparrenAnzahl = Math.max(2, _sparrenAnzahl);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     setEindeckungInfo(
       solarDicke,
       _leistenHoehe,
       Number(wandanschluss) === 1,
       Number(exprVal(wandanschlussTiefe)),
-      _sparrenAnzahl,
+      effectiveSparrenAnzahl,
       qubusOffset
     );
-  }, [solarDicke, _leistenHoehe, wandanschluss, wandanschlussTiefe, _sparrenAnzahl, qubusOffset, setEindeckungInfo]);
+  }, [solarDicke, _leistenHoehe, wandanschluss, wandanschlussTiefe, effectiveSparrenAnzahl, qubusOffset, setEindeckungInfo]);
   const profilMaterial = materials.profil;
   const glasMaterial = materials.glas;
   if (profilMaterial) profilMaterial.name = "profil";
@@ -6984,7 +6983,7 @@ function useBeschattungGeometry(props) {
   const height = ctx.height ?? props?.height;
   const dachneigung = ctx.eindeckungDachneigung ?? ctx.dachneigung ?? props?.dachneigung;
   const dachVorsprung = ctx.dachVorsprung ?? props?.dachVorsprung;
-  const sparrenAnzahl = eindeckungInfo.sparrenAnzahl > 0 ? eindeckungInfo.sparrenAnzahl : ctx.sparrenAnzahl;
+  const sparrenAnzahl = eindeckungInfo.sparrenAnzahl > 0 ? eindeckungInfo.sparrenAnzahl : ctx.sparrenAnzahl ?? 6;
   const sparrenBreite = ctx.sparrenBreite;
   const sparrenHoehe = ctx.sparrenHoehe;
   const pfostenBreite = ctx.pfostenBreite;
