@@ -1,6 +1,6 @@
 import { R as React, v as veranda_mf_2_plugin__loadShare__react__loadShare__ } from './veranda_mf_2_plugin__loadShare__react__loadShare__-BxvQ6I45.js';
 import { v as veranda_mf_2_plugin__loadShare__three__loadShare__, T as THREE } from './veranda_mf_2_plugin__loadShare__three__loadShare__-DDzdASzq.js';
-import { c as createStore$1, u as useSyncExternalStoreExports, a as suspend, p as preload, b as clear, T as Tb, s as schedulerExports } from './index-C7wXNCMM.js';
+import { c as createStore$1, u as useSyncExternalStoreExports, s as suspend, p as preload, a as clear, T as Tb, b as schedulerExports } from './index-BPeYlvuY.js';
 import { v as veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__ } from './veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__-YXVZxRVS.js';
 import './_commonjsHelpers-B85MJLTf.js';
 import './veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__-YRia8a0_.js';

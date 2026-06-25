@@ -14,18 +14,18 @@ const importMap = {
           return pkg
         }
       ,
+        "@react-three/fiber": async () => {
+          let pkg = await __vitePreload(() => import('./assets/react-three-fiber.esm-BrTeP3Is.js'),true              ?[]:void 0);
+          return pkg
+        }
+      ,
         "three": async () => {
           let pkg = await __vitePreload(() => import('./assets/three.module-wdyv8Ec4.js'),true              ?[]:void 0);
           return pkg
         }
       ,
         "@react-three/drei": async () => {
-          let pkg = await __vitePreload(() => import('./assets/index-DcYNiBRB.js'),true              ?[]:void 0);
-          return pkg
-        }
-      ,
-        "@react-three/fiber": async () => {
-          let pkg = await __vitePreload(() => import('./assets/react-three-fiber.esm-BeejKyCG.js'),true              ?[]:void 0);
+          let pkg = await __vitePreload(() => import('./assets/index-C5MYM6i2.js'),true              ?[]:void 0);
           return pkg
         }
       ,
@@ -89,6 +89,32 @@ const importMap = {
             }
           }
         ,
+          "@react-three/fiber": {
+            name: "@react-three/fiber",
+            version: "9.5.0",
+            scope: ["default"],
+            loaded: false,
+            from: "veranda-plugin",
+            async get () {
+              usedShared["@react-three/fiber"].loaded = true;
+              const {"@react-three/fiber": pkgDynamicImport} = importMap; 
+              const res = await pkgDynamicImport();
+              const exportModule = {...res};
+              // All npm packages pre-built by vite will be converted to esm
+              Object.defineProperty(exportModule, "__esModule", {
+                value: true,
+                enumerable: false
+              });
+              return function () {
+                return exportModule
+              }
+            },
+            shareConfig: {
+              singleton: true,
+              requiredVersion: "*"
+            }
+          }
+        ,
           "three": {
             name: "three",
             version: "0.177.0",
@@ -124,32 +150,6 @@ const importMap = {
             async get () {
               usedShared["@react-three/drei"].loaded = true;
               const {"@react-three/drei": pkgDynamicImport} = importMap; 
-              const res = await pkgDynamicImport();
-              const exportModule = {...res};
-              // All npm packages pre-built by vite will be converted to esm
-              Object.defineProperty(exportModule, "__esModule", {
-                value: true,
-                enumerable: false
-              });
-              return function () {
-                return exportModule
-              }
-            },
-            shareConfig: {
-              singleton: true,
-              requiredVersion: "*"
-            }
-          }
-        ,
-          "@react-three/fiber": {
-            name: "@react-three/fiber",
-            version: "9.5.0",
-            scope: ["default"],
-            loaded: false,
-            from: "veranda-plugin",
-            async get () {
-              usedShared["@react-three/fiber"].loaded = true;
-              const {"@react-three/fiber": pkgDynamicImport} = importMap; 
               const res = await pkgDynamicImport();
               const exportModule = {...res};
               // All npm packages pre-built by vite will be converted to esm
