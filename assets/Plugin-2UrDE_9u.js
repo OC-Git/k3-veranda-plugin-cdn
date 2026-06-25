@@ -55,6 +55,10 @@ const VERANDA_SLOTS = {
     id: "veranda-slot-wand-hinten",
     name: "Wand Hinten",
     defaultModelId: "veranda-wand-rahmenwand"
+  },
+  led: {
+    id: "veranda-slot-led",
+    name: "LED Beleuchtung"
   }
 };
 const QUBUS_SLOTS = {
@@ -71,7 +75,9 @@ const QUBUS_SLOTS = {
   wandVorne: {
     id: "qubus-slot-wand-vorne"},
   wandHinten: {
-    id: "qubus-slot-wand-hinten"}
+    id: "qubus-slot-wand-hinten"},
+  led: {
+    id: "qubus-slot-led"}
 };
 const MATERIAL_DEFAULTS = {
   /**
@@ -1955,6 +1961,7 @@ const DEFAULT_GEOMETRY = {
   pfostenAnzahlHinten: 2,
   pfostenBreite: 0.1,
   pfostenTiefe: 0.1,
+  sparrenAnzahl: 6,
   sparrenBreite: 0.06,
   sparrenHoehe: 0.12,
   sparrenAuflage: 0,
@@ -2022,8 +2029,10 @@ function useWandInfo() {
 
 const DEFAULT_ENVIRONMENT = {
   intensity: 2,
+  lightColor: "#ffffff",
+  envIntensity: 0.4,
   lightPosition: [5, 30, -10],
-  hdrUrl: "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloppenheim_06_1k.hdr",
+  hdrUrl: "https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/city.hdr",
   ambientIntensity: 0.5,
   ambientColor: "#ffffff",
   shadowBias: -1e-3,
@@ -2042,46 +2051,49 @@ const SceneEnvironmentProvider = ({ value, children }) => {
 const LIGHT_USER_DATA_KEY = "oc.veranda.shadowLight.v1";
 function SceneShadowLight() {
   const { gl, scene, invalidate } = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useThree();
-  const { intensity, lightPosition, shadowBias, ambientIntensity, ambientColor } = useSceneEnvironment();
+  const { intensity, lightColor, lightPosition, shadowBias, ambientIntensity, ambientColor } = useSceneEnvironment();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     gl.shadowMap.enabled = true;
     gl.localClippingEnabled = true;
     gl.shadowMap.type = veranda_mf_2_plugin__loadShare__three__loadShare__.PCFSoftShadowMap;
+    gl.shadowMap.needsUpdate = true;
     let light = scene.children.find((c) => c.userData[LIGHT_USER_DATA_KEY]);
     let ambient = scene.children.find((c) => c.userData[LIGHT_USER_DATA_KEY + ".ambient"]);
     if (!light) {
-      light = new veranda_mf_2_plugin__loadShare__three__loadShare__.DirectionalLight(16777215, intensity);
+      light = new veranda_mf_2_plugin__loadShare__three__loadShare__.DirectionalLight(lightColor, intensity);
       light.castShadow = true;
-      light.shadow.mapSize.width = 2048;
-      light.shadow.mapSize.height = 2048;
-      light.shadow.camera.near = 0.5;
-      light.shadow.camera.far = 80;
-      light.shadow.camera.left = -20;
-      light.shadow.camera.right = 20;
-      light.shadow.camera.top = 20;
-      light.shadow.camera.bottom = -20;
       light.userData[LIGHT_USER_DATA_KEY] = true;
       scene.add(light);
       scene.add(light.target);
     }
+    const MAP_SIZE = 4096;
+    if (light.shadow.mapSize.width !== MAP_SIZE) {
+      light.shadow.mapSize.set(MAP_SIZE, MAP_SIZE);
+      if (light.shadow.map) {
+        light.shadow.map.dispose();
+        light.shadow.map = null;
+      }
+    }
+    light.shadow.camera.near = 1;
+    light.shadow.camera.far = 60;
+    light.shadow.camera.left = -20;
+    light.shadow.camera.right = 20;
+    light.shadow.camera.top = 20;
+    light.shadow.camera.bottom = -20;
+    light.shadow.camera.updateProjectionMatrix();
+    light.intensity = intensity;
+    light.color.set(new veranda_mf_2_plugin__loadShare__three__loadShare__.Color(lightColor));
+    light.position.set(...lightPosition);
+    light.shadow.bias = shadowBias;
     if (!ambient) {
       ambient = new veranda_mf_2_plugin__loadShare__three__loadShare__.AmbientLight(ambientColor, ambientIntensity);
       ambient.userData[LIGHT_USER_DATA_KEY + ".ambient"] = true;
       scene.add(ambient);
     }
-    if (light) {
-      light.intensity = intensity;
-      light.position.set(...lightPosition);
-      light.shadow.bias = shadowBias;
-    }
-    if (ambient) {
-      ambient.intensity = ambientIntensity;
-      ambient.color.set(new veranda_mf_2_plugin__loadShare__three__loadShare__.Color(ambientColor));
-    }
+    ambient.intensity = ambientIntensity;
+    ambient.color.set(new veranda_mf_2_plugin__loadShare__three__loadShare__.Color(ambientColor));
     invalidate();
-    return () => {
-    };
-  }, [gl, scene, invalidate, intensity, lightPosition, shadowBias, ambientIntensity, ambientColor]);
+  }, [gl, scene, invalidate, intensity, lightColor, lightPosition, shadowBias, ambientIntensity, ambientColor]);
   return null;
 }
 const shadowLightingSceneComponent = {
@@ -2199,6 +2211,7 @@ function KonstruktionModel(props) {
   const eindeckungSlot = slots?.[VERANDA_SLOTS.eindeckung.id] || slots?.[QUBUS_SLOTS.ueberdachung.id];
   const rinneSlot = slots?.[VERANDA_SLOTS.rinne.id];
   const someBeschattungSlot = slots?.[VERANDA_SLOTS.beschattung.id] || slots?.[QUBUS_SLOTS.beschattung.id];
+  const ledSlot = slots?.[VERANDA_SLOTS.led.id] || slots?.[QUBUS_SLOTS.led.id];
   const wandLinksSlot = slots?.[VERANDA_SLOTS.wandLinks.id] || slots?.[QUBUS_SLOTS.wandLinks.id];
   const wandRechtsSlot = slots?.[VERANDA_SLOTS.wandRechts.id] || slots?.[QUBUS_SLOTS.wandRechts.id];
   const wandVorneSlot = slots?.[VERANDA_SLOTS.wandVorne.id] || slots?.[QUBUS_SLOTS.wandVorne.id];
@@ -2399,6 +2412,7 @@ function KonstruktionModel(props) {
         ] });
       })(),
       eindeckungSlot?.map((inst, i) => renderSlotInstance(inst, `eindeckung-${i}`)),
+      ledSlot?.map((inst, i) => renderSlotInstance(inst, `led-${i}-sa${sparrenAnzahl}-esa${eindeckungSparrenAnzahl}`)),
       rinneSlot?.map((inst, i) => renderSlotInstance(inst, `rinne-${i}`)),
       someBeschattungSlot?.map((inst, i) => renderSlotInstance(inst, `beschattung-${i}`, i)),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 1, children: wandLinksSlot?.map((inst, i) => renderSlotInstance(inst, `wand-l-${i}`, i)) }),
@@ -2502,131 +2516,445 @@ const konstruktionDynamicModel = {
   disabledForAR: false
 };
 
-function LedStripeModel(props) {
+const STRIPE_H = 8e-3;
+const STRAHLER_ASPECT = 0.35;
+function DownLight({ position, ...rest }) {
+  const lightRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
+    if (!lightRef.current) return;
+    const [x, y, z] = position;
+    lightRef.current.target.position.set(x, y - 2, z);
+    lightRef.current.target.updateMatrixWorld();
+  });
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("spotLight", { ref: lightRef, position, ...rest });
+}
+function LedBeleuchtungModel(props) {
+  const { materials = {}, scale } = props;
+  const parent = useVerandaGeometry();
+  const {
+    width,
+    depth,
+    height,
+    sparrenBreite,
+    sparrenHoehe,
+    sparrenAuflage,
+    dachneigung,
+    eindeckungDachneigung,
+    schwelleBreite,
+    pfettenBreite,
+    pfostenTiefe,
+    pfostenBreite,
+    schwelle,
+    pfette,
+    isQubus,
+    innerWidth,
+    qubusRahmenBreite,
+    qubusRahmenHoehe
+  } = parent;
+  const { sparrenAnzahl: eindeckungSparrenAnzahl, qubusOffset } = useEindeckungInfo();
+  const sparrenAnzahl = eindeckungSparrenAnzahl > 0 ? eindeckungSparrenAnzahl : parent.sparrenAnzahl || 6;
   const getVal = (v, fallback) => {
     const val = Number(exprVal(v));
     return isNaN(val) ? fallback : val;
   };
-  const breite = getVal(props.breite, 1);
-  const tiefe = getVal(props.tiefe, 0.02);
-  const hoehe = getVal(props.hoehe, 0.01);
-  const farbe = String(exprVal(props.farbe) || "#ffffff");
-  const intensitaet = getVal(props.intensitaet, 1);
-  const { scale } = props;
-  const posX = getVal(props.posX, 0);
-  const posY = getVal(props.posY, 0);
-  const posZ = getVal(props.posZ, 0);
-  const rotX = getVal(props.rotX, 0);
-  const rotY = getVal(props.rotY, 0);
-  const rotZ = getVal(props.rotZ, 0);
-  const DEG2RAD = Math.PI / 180;
-  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
-    "group",
+  const ledTyp = String(exprVal(props.ledTyp) || "stripes");
+  const ledFarbe = String(exprVal(props.ledFarbe) || "#ffffff");
+  const intensitaet = getVal(props.intensitaet, 1.5);
+  const strahlerJedenNten = Math.max(1, Math.round(getVal(props.strahlerJedenNten, 1)));
+  const anzahlProSparren = Math.max(1, Math.round(getVal(props.anzahlProSparren, 3)));
+  const strahlerForm = String(exprVal(props.strahlerForm) || "rund");
+  const strahlerDurchmesser = Math.max(0.02, getVal(props.strahlerDurchmesser, 0.08));
+  const stripeJedenNten = Math.max(1, Math.round(getVal(props.stripeJedenNten, 1)));
+  const stripeLaenge = Math.max(0, getVal(props.stripeLaenge, 0));
+  const stripeBreite = Math.max(5e-3, getVal(props.stripeBreite, 0.04));
+  const qubusRahmenAn = String(exprVal(props.qubusRahmen) || "nein") === "ja";
+  const qubusSeiten = String(exprVal(props.qubusSeiten) || "alle");
+  const montageTyp = String(exprVal(props.montageTyp) || "aufgebaut");
+  const eingebaut = montageTyp === "eingebaut";
+  const ledMat = materials?.led;
+  const effDachneigung = eindeckungDachneigung ?? dachneigung;
+  const effWidth = isQubus ? innerWidth || width : width;
+  const gesamtBreite = isQubus ? effWidth : effWidth + (pfostenBreite || 0);
+  const effDepth = isQubus ? parent.innerDepth || depth : depth;
+  const { hoeheVorne: baseHV, hoeheHinten: baseHH } = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
+    () => calcVerandaGeometry(effDepth, effDachneigung, height),
+    [effDepth, effDachneigung, height]
+  );
+  const hoeheVorne = baseHV - qubusOffset;
+  const hoeheHinten = baseHH - qubusOffset;
+  const auflageTyp = sparrenAuflage === 1 ? "innenliegend" : "aufliegend";
+  const qtVorne = isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal(schwelle)) === 1 ? Math.max(schwelleBreite || 0, pfostenTiefe || 0) : 0 : 0;
+  const qtHinten = isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal(pfette)) === 1 ? pfettenBreite || 0 : 0 : 0;
+  const { sparrenY, sparrenZ, sparrenTiefe, hoeheDiff } = useDachGeometrie({
+    gesamtTiefe: effDepth,
+    hoeheVorne,
+    hoeheHinten,
+    sparrenHoehe: sparrenHoehe || 0.12,
+    quertraegerTiefe: qtVorne,
+    quertraegerTiefeHinten: qtHinten,
+    auflage: auflageTyp,
+    dachVorsprung: 0,
+    eindeckungDicke: 0
+  });
+  const neigung = Math.atan2(hoeheDiff, Math.max(1e-3, sparrenTiefe));
+  const { alle: sparrenXPos } = useSparrenPositionen(
+    gesamtBreite,
+    sparrenBreite || 0.06,
+    sparrenAnzahl,
+    "alle"
+  );
+  const sH = strahlerDurchmesser * STRAHLER_ASPECT;
+  const actualStripeLen = stripeLaenge > 0 ? stripeLaenge : sparrenTiefe / Math.max(1e-3, Math.cos(neigung));
+  const stripeRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  const stripeGlowRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  const strahlerRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  const strahlerGlowRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  const dummy = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => new veranda_mf_2_plugin__loadShare__three__loadShare__.Object3D(), []);
+  const glowTexture = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const size = 64;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.4, "rgba(255,255,255,0.6)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+    return new veranda_mf_2_plugin__loadShare__three__loadShare__.CanvasTexture(canvas);
+  }, []);
+  const stripeGlowGeo = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const geo = new veranda_mf_2_plugin__loadShare__three__loadShare__.PlaneGeometry(stripeBreite * 12, actualStripeLen);
+    geo.rotateX(Math.PI / 2);
+    return geo;
+  }, [stripeBreite, actualStripeLen]);
+  const strahlerGlowGeo = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const geo = new veranda_mf_2_plugin__loadShare__three__loadShare__.CircleGeometry(strahlerDurchmesser * 4, 16);
+    geo.rotateX(-Math.PI / 2);
+    return geo;
+  }, [strahlerDurchmesser]);
+  const filteredStripeX = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => sparrenXPos.filter((_, i) => i % stripeJedenNten === 0), [sparrenXPos, stripeJedenNten]);
+  const filteredStrahlerX = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => sparrenXPos.filter((_, i) => i % strahlerJedenNten === 0), [sparrenXPos, strahlerJedenNten]);
+  const totalStrahlerCount = filteredStrahlerX.length * anzahlProSparren;
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
+    const refs = [stripeRef, stripeGlowRef].filter((r) => r.current);
+    if (refs.length === 0) return;
+    const sy = sparrenY + hoeheDiff / 2 + (eingebaut ? STRIPE_H / 2 : -STRIPE_H / 2);
+    const sz = sparrenZ + sparrenTiefe / 2;
+    filteredStripeX.forEach((xPos, i) => {
+      dummy.position.set(xPos, sy, sz);
+      dummy.rotation.set(-neigung, 0, 0);
+      dummy.updateMatrix();
+      refs.forEach((r) => {
+        r.current.instanceMatrix.setUsage(veranda_mf_2_plugin__loadShare__three__loadShare__.DynamicDrawUsage);
+        r.current.setMatrixAt(i, dummy.matrix);
+      });
+    });
+    refs.forEach((r) => {
+      r.current.instanceMatrix.needsUpdate = true;
+      r.current.computeBoundingSphere();
+    });
+  }, [filteredStripeX, sparrenY, hoeheDiff, eingebaut, sparrenZ, sparrenTiefe, neigung, dummy]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
+    const refs = [strahlerRef, strahlerGlowRef].filter((r) => r.current);
+    if (refs.length === 0) return;
+    let idx = 0;
+    filteredStrahlerX.forEach((xPos) => {
+      for (let j = 0; j < anzahlProSparren; j++) {
+        const t = (j + 0.5) / anzahlProSparren;
+        const zW = sparrenZ + t * sparrenTiefe;
+        const yBot = sparrenY + t * hoeheDiff;
+        const yCenter = eingebaut ? yBot + sH / 2 : yBot - sH / 2;
+        dummy.position.set(xPos, yCenter, zW);
+        dummy.rotation.set(0, 0, 0);
+        dummy.updateMatrix();
+        refs.forEach((r) => {
+          r.current.instanceMatrix.setUsage(veranda_mf_2_plugin__loadShare__three__loadShare__.DynamicDrawUsage);
+          r.current.setMatrixAt(idx, dummy.matrix);
+        });
+        idx++;
+      }
+    });
+    refs.forEach((r) => {
+      r.current.instanceMatrix.needsUpdate = true;
+      r.current.computeBoundingSphere();
+    });
+  }, [filteredStrahlerX, anzahlProSparren, sparrenZ, sparrenTiefe, sparrenY, hoeheDiff, eingebaut, sH, dummy]);
+  const stripeGroupY = sparrenY + hoeheDiff / 2 + (eingebaut ? STRIPE_H / 2 : -STRIPE_H / 2);
+  const renderMat = () => ledMat ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: ledMat, attach: "material" }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+    "meshBasicMaterial",
     {
-      position: [posX, posY, posZ],
-      rotation: [rotX * DEG2RAD, rotY * DEG2RAD, rotZ * DEG2RAD],
-      scale,
-      children: [
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Box, { args: [breite, hoehe, tiefe], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-          "meshStandardMaterial",
-          {
-            color: farbe,
-            emissive: farbe,
-            emissiveIntensity: intensitaet
-          }
-        ) }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-          "pointLight",
-          {
-            color: farbe,
-            intensity: intensitaet * 0.5,
-            distance: 5,
-            decay: 2,
-            position: [0, 0, 0]
-          }
-        )
-      ]
+      color: ledFarbe,
+      toneMapped: false
     }
   );
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { scale, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      "group",
+      {
+        position: [0, stripeGroupY - STRIPE_H, sparrenZ + sparrenTiefe / 2],
+        rotation: [-neigung, 0, 0],
+        children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          "rectAreaLight",
+          {
+            color: ledFarbe,
+            intensity: intensitaet * 3,
+            width: gesamtBreite,
+            height: actualStripeLen,
+            rotation: [-Math.PI / 2, 0, 0]
+          }
+        )
+      }
+    ),
+    ledTyp === "stripes" && filteredStripeX.length > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+        "instancedMesh",
+        {
+          ref: stripeRef,
+          args: [null, null, filteredStripeX.length],
+          count: filteredStripeX.length,
+          castShadow: true,
+          children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [stripeBreite, STRIPE_H, actualStripeLen] }),
+            renderMat()
+          ]
+        },
+        filteredStripeX.length
+      ),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+        "instancedMesh",
+        {
+          ref: stripeGlowRef,
+          args: [null, null, filteredStripeX.length],
+          count: filteredStripeX.length,
+          children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: stripeGlowGeo, attach: "geometry" }),
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+              "meshBasicMaterial",
+              {
+                color: ledFarbe,
+                map: glowTexture,
+                transparent: true,
+                opacity: Math.min(0.55, 0.22 * intensitaet),
+                blending: veranda_mf_2_plugin__loadShare__three__loadShare__.AdditiveBlending,
+                depthWrite: false,
+                toneMapped: false,
+                side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide
+              }
+            )
+          ]
+        },
+        `${filteredStripeX.length}-glow`
+      )
+    ] }),
+    ledTyp === "strahler" && totalStrahlerCount > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+        "instancedMesh",
+        {
+          ref: strahlerRef,
+          args: [null, null, totalStrahlerCount],
+          count: totalStrahlerCount,
+          castShadow: true,
+          children: [
+            strahlerForm === "rund" ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("cylinderGeometry", { args: [strahlerDurchmesser / 2, strahlerDurchmesser / 2, sH, 16] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [strahlerDurchmesser, sH, strahlerDurchmesser] }),
+            renderMat()
+          ]
+        },
+        `${strahlerForm}-${totalStrahlerCount}`
+      ),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+        "instancedMesh",
+        {
+          ref: strahlerGlowRef,
+          args: [null, null, totalStrahlerCount],
+          count: totalStrahlerCount,
+          children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: strahlerGlowGeo, attach: "geometry" }),
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+              "meshBasicMaterial",
+              {
+                color: ledFarbe,
+                map: glowTexture,
+                transparent: true,
+                opacity: Math.min(0.5, 0.2 * intensitaet),
+                blending: veranda_mf_2_plugin__loadShare__three__loadShare__.AdditiveBlending,
+                depthWrite: false,
+                toneMapped: false,
+                side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide
+              }
+            )
+          ]
+        },
+        `${strahlerForm}-${totalStrahlerCount}-glow`
+      )
+    ] }),
+    ledTyp === "stripes" && qubusRahmenAn && isQubus && (() => {
+      const rB = qubusRahmenBreite || 0.1;
+      const rH = qubusRahmenHoehe || 0.1;
+      const yPos = height - rH - STRIPE_H / 2;
+      const innerD = Math.max(0.01, depth - 2 * rB);
+      const vnActive = qubusSeiten === "alle" || qubusSeiten === "vornHinten";
+      const lrActive = qubusSeiten === "alle" || qubusSeiten === "linksRechts";
+      return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+        vnActive && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, yPos, -depth / 2 + rB / 2], children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [width, STRIPE_H, rB] }),
+            renderMat()
+          ] }),
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, yPos, depth / 2 - rB / 2], children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [width, STRIPE_H, rB] }),
+            renderMat()
+          ] })
+        ] }),
+        lrActive && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-width / 2 + rB / 2, yPos, 0], children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [rB, STRIPE_H, innerD] }),
+            renderMat()
+          ] }),
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [width / 2 - rB / 2, yPos, 0], children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [rB, STRIPE_H, innerD] }),
+            renderMat()
+          ] })
+        ] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          DownLight,
+          {
+            color: ledFarbe,
+            intensity: intensitaet * 0.5,
+            distance: Math.max(width, depth) + 1,
+            decay: 2,
+            angle: -0.75,
+            penumbra: 0.5,
+            position: [0, yPos - 0.1, -depth / 2 + rB / 2],
+            rotation: [0, Math.PI / 2, 0]
+          }
+        )
+      ] });
+    })()
+  ] });
 }
-const ledStripePropsSchema = {
-  posX: {
-    type: "expression",
-    label: "Position X",
-    description: "(Horizontale Position im Raum) (m)"
+const ledBeleuchtungPropsSchema = {
+  // ── Typ ──
+  ledTyp: {
+    type: "radioGroup",
+    label: "LED Typ",
+    options: [
+      { value: "stripes", label: "LED Stripes" },
+      { value: "strahler", label: "LED Strahler" }
+    ]
   },
-  posY: {
-    type: "expression",
-    label: "Position Y",
-    description: "(Vertikale Höhe im Raum) (m)"
+  montageTyp: {
+    type: "radioGroup",
+    label: "Montage",
+    options: [
+      { value: "aufgebaut", label: "Aufgebaut (unter Sparren)" },
+      { value: "eingebaut", label: "Eingebaut (in Sparren)" }
+    ]
   },
-  posZ: {
+  // ── Strahler ──
+  strahlerJedenNten: {
     type: "expression",
-    label: "Position Z",
-    description: "(Tiefenposition im Raum) (m)"
+    label: "Jeden n-ten Sparren",
+    description: "(1 = jeden Sparren, 2 = jeden 2., ...)",
+    group: "LED Strahler"
   },
-  rotX: {
+  anzahlProSparren: {
     type: "expression",
-    label: "Rotation X",
-    description: "(Drehung um die Längsachse) (°)"
+    label: "Anzahl pro Sparren",
+    description: "(Strahler je Sparren gleichmäßig verteilt)",
+    group: "LED Strahler"
   },
-  rotY: {
+  strahlerForm: {
+    type: "radioGroup",
+    label: "Strahler Form",
+    options: [
+      { value: "rund", label: "Rund" },
+      { value: "eckig", label: "Eckig" }
+    ],
+    group: "LED Strahler"
+  },
+  strahlerDurchmesser: {
     type: "expression",
-    label: "Rotation Y",
-    description: "(Drehung um die Hochachse) (°)"
+    label: "Strahler Durchmesser (m)",
+    description: "(Gehäusegröße des Strahlers)",
+    group: "LED Strahler"
   },
-  rotZ: {
+  // ── Stripes ──
+  stripeJedenNten: {
     type: "expression",
-    label: "Rotation Z",
-    description: "(Drehung um die Querachse) (°)"
+    label: "Jeden n-ten Sparren",
+    description: "(1 = jeden Sparren, 2 = jeden 2., ...)",
+    group: "LED Stripes"
   },
-  breite: {
+  stripeLaenge: {
     type: "expression",
-    label: "Länge",
-    description: "(Gesamtlänge des LED-Streifens) (m)"
+    label: "Stripe Länge (m)",
+    description: "(0 = volle Sparrenlänge)",
+    group: "LED Stripes"
   },
-  tiefe: {
+  stripeBreite: {
     type: "expression",
-    label: "Breite",
-    description: "(Breite des Streifens/Profils) (m)"
+    label: "Stripe Breite (m)",
+    description: "(Breite des LED-Profils)",
+    group: "LED Stripes"
   },
-  hoehe: {
-    type: "expression",
-    label: "Dicke",
-    description: "(Höhe/Stärke des LED-Profils) (m)"
+  // ── Qubus Rahmen ──
+  qubusRahmen: {
+    type: "radioGroup",
+    label: "Qubus Rahmen",
+    options: [
+      { value: "nein", label: "Nein" },
+      { value: "ja", label: "Ja" }
+    ],
+    group: "Qubus Rahmen"
   },
-  farbe: {
+  qubusSeiten: {
+    type: "radioGroup",
+    label: "Rahmen Seiten",
+    options: [
+      { value: "alle", label: "Alle Seiten" },
+      { value: "linksRechts", label: "Links & Rechts" },
+      { value: "vornHinten", label: "Vorne & Hinten" }
+    ],
+    group: "Qubus Rahmen"
+  },
+  // ── Leuchteinstellungen ──
+  ledFarbe: {
     type: "basic",
-    label: "Farbe",
-    description: "(Leuchtfarbe der LEDs als Hex-Wert, z.B. #ff6600)"
+    label: "LED Farbe",
+    description: "(Leuchtfarbe als Hex-Wert, z.B. #ffffff)",
+    group: "Leuchteinstellungen"
   },
   intensitaet: {
     type: "expression",
-    label: "Intensität",
-    description: "(Leuchtkraft/Helligkeit der LEDs)"
+    label: "Helligkeit",
+    description: "(Leuchtkraft 0 – 5)",
+    group: "Leuchteinstellungen"
   }
 };
 const ledStripeDynamicModel = {
-  type: "ledStripe",
-  label: "LED Stripe",
-  description: "Eigenständiger LED Stripe",
-  materials: [],
+  type: "ledBeleuchtung",
+  label: "LED Beleuchtung",
+  description: "LED Strahler oder Stripes, automatisch an den Sparren montiert",
+  materials: ["led"],
   disabledForAR: false,
   defaultProps: {
-    posX: { expression: "0" },
-    posY: { expression: "0" },
-    posZ: { expression: "0" },
-    rotX: { expression: "0" },
-    rotY: { expression: "0" },
-    rotZ: { expression: "0" },
-    breite: { expression: "1" },
-    tiefe: { expression: "0.02" },
-    hoehe: { expression: "0.01" },
-    farbe: "#ffffff",
-    intensitaet: { expression: "1" }
+    ledTyp: "stripes",
+    montageTyp: "aufgebaut",
+    ledFarbe: "#ffffff",
+    intensitaet: { expression: "1.5" },
+    strahlerJedenNten: { expression: "1" },
+    anzahlProSparren: { expression: "3" },
+    strahlerForm: "rund",
+    strahlerDurchmesser: { expression: "0.08" },
+    stripeJedenNten: { expression: "1" },
+    stripeLaenge: { expression: "0" },
+    stripeBreite: { expression: "0.04" },
+    qubusRahmen: "nein",
+    qubusSeiten: "alle"
   },
-  propsDialog: ledStripePropsSchema,
-  component: LedStripeModel
+  propsDialog: ledBeleuchtungPropsSchema,
+  component: LedBeleuchtungModel
 };
 
 // dev uses dynamic import to separate chunks
@@ -2642,63 +2970,132 @@ const ledStripeDynamicModel = {
     const exportModule = await res.then(factory => factory());
     var veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__ = exportModule;
 
-function GlasEnvMap() {
+function GlasEnvMapLoader({ hdrUrl, envIntensity }) {
   const { scene } = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useThree();
-  const { hdrUrl } = useSceneEnvironment();
   const envMap = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.useEnvironment({ files: hdrUrl });
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
     if (!envMap) return;
     scene.environment = envMap;
-  }, [envMap, scene]);
+    scene.environmentIntensity = envIntensity;
+  }, [envMap, scene, envIntensity]);
   return null;
 }
+function GlasEnvMap() {
+  const { hdrUrl, envIntensity } = useSceneEnvironment();
+  if (!hdrUrl || !/\.(hdr|exr)(\?.*)?$/i.test(hdrUrl)) return null;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasEnvMapLoader, { hdrUrl, envIntensity });
+}
 
+function SceneSkyBackground() {
+  const { isNight, lightPosition, intensity, lightColor } = useSceneEnvironment();
+  if (isNight) {
+    const [lx, ly, lz] = lightPosition;
+    const len = Math.sqrt(lx * lx + ly * ly + lz * lz) || 1;
+    const md = 60;
+    const moonPos = [lx / len * md, ly / len * md, lz / len * md];
+    return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { renderOrder: -1, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("sphereGeometry", { args: [75, 16, 16] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshBasicMaterial", { color: 329743, side: 2, depthWrite: false })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.Stars, { radius: 60, depth: 20, count: 5e3, factor: 4, saturation: 0, fade: true }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: moonPos, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("sphereGeometry", { args: [3, 16, 16] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          "meshStandardMaterial",
+          {
+            color: 0,
+            emissive: lightColor,
+            emissiveIntensity: intensity
+          }
+        )
+      ] })
+    ] });
+  }
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+    veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.Sky,
+    {
+      sunPosition: lightPosition,
+      turbidity: 4,
+      rayleigh: 3,
+      mieCoefficient: 5e-3,
+      mieDirectionalG: 0.8,
+      distance: 80
+    }
+  );
+}
+
+const DEFAULT_HDR_URL = "https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/city.hdr";
 const PRESETS = {
   1: {
     // Tag
-    intensity: 2,
-    lightPosition: [5, 30, -10],
-    hdrUrl: "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloppenheim_06_1k.hdr",
+    intensityScale: 1,
     ambientIntensity: 0.5,
     ambientColor: "#ffffff",
     isNight: false
   },
   2: {
     // Nacht
-    intensity: 0.2,
-    lightPosition: [-10, 20, 10],
-    hdrUrl: "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/moonless_golf_1k.hdr",
-    ambientIntensity: 0.1,
-    ambientColor: "#223344",
+    intensityScale: 0.08,
+    hdrUrl: "https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/night.hdr",
+    ambientIntensity: 0.03,
+    ambientColor: "#112233",
     isNight: true
   }
 };
 function SceneEnvironmentModel(props) {
   const preset = Number(exprVal(props.preset)) || 0;
+  const mats = props.materials ?? {};
   const envValues = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
-    const base = PRESETS[preset] || {};
     const getNum = (val, fallback) => {
       const v = exprVal(val);
       return v === void 0 || v === null || v === "" ? fallback : Number(v);
     };
-    const result = {
-      intensity: getNum(props.intensity, base.intensity ?? 2),
-      lightPosition: [
-        getNum(props.lightPosX, base.lightPosition?.[0] ?? 5),
-        getNum(props.lightPosY, base.lightPosition?.[1] ?? 30),
-        getNum(props.lightPosZ, base.lightPosition?.[2] ?? -10)
-      ],
-      hdrUrl: String(exprVal(props.hdrUrl) || base.hdrUrl || "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloppenheim_06_1k.hdr"),
-      ambientIntensity: getNum(props.ambientIntensity, base.ambientIntensity ?? 0.5),
-      ambientColor: String(exprVal(props.ambientColor) || base.ambientColor || "#ffffff"),
-      shadowBias: getNum(props.shadowBias, base.shadowBias ?? -1e-3),
-      isNight: base.isNight ?? false
+    const intensityScale = preset !== 0 && PRESETS[preset] ? PRESETS[preset].intensityScale : 1;
+    const intensity = getNum(props.intensity, 2) * intensityScale;
+    const lightPosition = [
+      getNum(props.lightPosX, 5),
+      getNum(props.lightPosY, 30),
+      getNum(props.lightPosZ, -10)
+    ];
+    const shadowBias = getNum(props.shadowBias, -1e-3);
+    const isNight = preset === 2;
+    const mat = isNight ? mats.mond : mats.sonne;
+    const lightColor = mat?.color ? "#" + mat.color.getHexString() : isNight ? "#aabbcc" : "#fff5e0";
+    const rawUrl = String(exprVal(props.hdrUrl) ?? "").trim();
+    const presetHdr = preset !== 0 && PRESETS[preset]?.hdrUrl ? PRESETS[preset].hdrUrl : DEFAULT_HDR_URL;
+    const hdrUrl = rawUrl.startsWith("http") ? rawUrl : presetHdr;
+    const envIntensity = getNum(props.envIntensity, 0.4);
+    if (preset !== 0 && PRESETS[preset]) {
+      const p = PRESETS[preset];
+      return {
+        intensity,
+        lightColor,
+        lightPosition,
+        hdrUrl,
+        envIntensity,
+        ambientIntensity: p.ambientIntensity ?? 0.5,
+        ambientColor: p.ambientColor ?? "#ffffff",
+        shadowBias,
+        isNight: p.isNight ?? false
+      };
+    }
+    return {
+      intensity,
+      lightColor,
+      lightPosition,
+      hdrUrl,
+      envIntensity,
+      ambientIntensity: getNum(props.ambientIntensity, 0.5),
+      ambientColor: String(exprVal(props.ambientColor) || "#ffffff"),
+      shadowBias,
+      isNight: false
     };
-    return result;
-  }, [props, preset]);
+  }, [props, preset, mats]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(SceneEnvironmentProvider, { value: envValues, children: [
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneShadowLight, {}),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasEnvMap, {})
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasEnvMap, {}),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneSkyBackground, {})
   ] });
 }
 const sceneEnvironmentDynamicModel = {
@@ -2712,9 +3109,9 @@ const sceneEnvironmentDynamicModel = {
     lightPosX: { expression: "5" },
     lightPosY: { expression: "30" },
     lightPosZ: { expression: "-10" },
-    hdrUrl: { expression: "" },
+    hdrUrl: { expression: `"https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/city.hdr"` },
+    envIntensity: { expression: "0.4" },
     ambientIntensity: { expression: "0.5" },
-    ambientColor: { expression: "#ffffff" },
     shadowBias: { expression: "-0.001" }
   },
   propsDialog: {
@@ -2732,11 +3129,11 @@ const sceneEnvironmentDynamicModel = {
     lightPosY: { label: "Licht Pos Y", type: "expression" },
     lightPosZ: { label: "Licht Pos Z", type: "expression" },
     hdrUrl: { label: "HDR URL", type: "expression" },
+    envIntensity: { label: "Umgebungs-Helligkeit", type: "expression" },
     ambientIntensity: { label: "Umgebungslicht-Intensität", type: "expression" },
-    ambientColor: { label: "Umgebungslicht-Farbe", type: "expression" },
     shadowBias: { label: "Schatten-Bias", type: "expression" }
   },
-  materials: [],
+  materials: ["sonne", "mond"],
   disabledForAR: false
 };
 
@@ -6346,7 +6743,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots) {
     const sichtschutzLimit = fullMaxHoehe;
     const realSichtschutzHoehe = vHoehe === 1 ? fullMaxHoehe : Math.min(sichtschutzBasisHoehe, sichtschutzLimit);
     const isUnmountingRef = React.useRef(false);
-    React.useLayoutEffect(() => {
+    React.useEffect(() => {
       return () => {
         isUnmountingRef.current = true;
       };
