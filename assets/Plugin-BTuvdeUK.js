@@ -6897,6 +6897,33 @@ function calcWandGeometry(wandSeite, breite, hoehe, parentWidth, parentDepth, pa
     rotY
   };
 }
+function useWandGeometry(wandSeite, breite, _tiefe, hoehe, segmentIndex = -1, segmentAnzahl) {
+  const p = useVerandaGeometry();
+  return calcWandGeometry(
+    wandSeite,
+    breite,
+    hoehe,
+    p.width,
+    p.depth,
+    p.height,
+    p.dachneigung,
+    p.pfostenBreite,
+    p.pfostenTiefe,
+    p.sparrenHoehe,
+    p.pfette,
+    p.pfettenBreite,
+    p.dachVorsprung,
+    p.sparrenAuflage,
+    p.schwelle,
+    p.schwelleBreite,
+    p.schwelleHoehe,
+    segmentIndex,
+    p.pfostenAnzahlVorne,
+    p.pfostenAnzahlHinten,
+    p.isQubus,
+    segmentAnzahl
+  );
+}
 function BasicWandRenderer({
   wandBreite,
   wandHoehe,
@@ -9228,6 +9255,84 @@ const stoffDynamicModel = createBeschattungUnterdachModel({
   propsDialog: stoffPropsSchema
 });
 
+function HighlightPlane(props) {
+  const breite = Number(exprVal$1(props.breite)) || 0;
+  const hoehe = Number(exprVal$1(props.hoehe)) || 0;
+  const iconSize = Number(exprVal$1(props.iconSize)) || 0.15;
+  const showIcon = Number(exprVal$1(props.showIcon) ?? "1") !== 0;
+  const wandSeite = useWandSeite();
+  const geo = useWandGeometry(wandSeite, breite, 0, hoehe);
+  const width = geo.wandBreite;
+  const height = geo.zoneHoeheVorne;
+  const planGeo = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => new veranda_mf_2_plugin__loadShare__three__loadShare__.PlaneGeometry(width, height), [width, height]);
+  const iconGeo = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => new veranda_mf_2_plugin__loadShare__three__loadShare__.PlaneGeometry(iconSize, iconSize), [iconSize]);
+  const iconTex = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillRect(12, 28, 40, 8);
+    ctx.fillRect(28, 12, 8, 40);
+    return new veranda_mf_2_plugin__loadShare__three__loadShare__.CanvasTexture(c);
+  }, []);
+  const iconMat = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
+    () => new veranda_mf_2_plugin__loadShare__three__loadShare__.MeshBasicMaterial({
+      map: iconTex,
+      transparent: true,
+      opacity: 0.6,
+      depthWrite: false,
+      toneMapped: false,
+      side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide
+    }),
+    [iconTex]
+  );
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
+    planGeo.dispose();
+  }, [planGeo]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
+    iconGeo.dispose();
+  }, [iconGeo]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
+    iconTex.dispose();
+  }, [iconTex]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
+    iconMat.dispose();
+  }, [iconMat]);
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+    "group",
+    {
+      position: [geo.posX, geo.zoneGroupY, geo.posZ],
+      rotation: [0, geo.rotY, 0],
+      userData: { modelId: props.id },
+      name: props.name,
+      children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, height / 2, 0], children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("mesh", { geometry: planGeo, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshBasicMaterial", { transparent: true, opacity: 0, depthWrite: false }) }),
+        showIcon && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("mesh", { geometry: iconGeo, material: iconMat, position: [0, 0, 1e-3] })
+      ] })
+    }
+  );
+}
+const highlightPlaneDynamicModel = {
+  type: "veranda-highlight-plane",
+  label: "Highlight Plane",
+  description: "Dynamische Highlight-Fläche mit zentriertem + Icon (Wand-Slot)",
+  materials: [],
+  disabledForAR: true,
+  component: HighlightPlane,
+  propsDialog: {
+    breite: { type: "expression", label: "Breite (0=auto) (m)" },
+    hoehe: { type: "expression", label: "Höhe (0=auto) (m)" },
+    iconSize: { type: "expression", label: "Icon-Größe (m)" },
+    showIcon: { type: "expression", label: "Icon anzeigen (1=Ja, 0=Nein)" }
+  },
+  defaultProps: {
+    breite: { expression: "0" },
+    hoehe: { expression: "0" },
+    iconSize: { expression: "0.15" },
+    showIcon: { expression: "1" }
+  }
+};
+
 const Plugin = {
   id: "oc.veranda.plugin",
   version: "0.1.4",
@@ -9258,7 +9363,9 @@ const Plugin = {
       // Beschattung
       markiseDynamicModel,
       plisseeDynamicModel,
-      stoffDynamicModel
+      stoffDynamicModel,
+      // Highlight
+      highlightPlaneDynamicModel
     ]
   }
 };
