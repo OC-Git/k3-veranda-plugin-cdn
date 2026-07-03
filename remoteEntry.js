@@ -1,5 +1,5 @@
 import { i as init_1, v as veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__ } from './assets/veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__-YRia8a0_.js';
-import exposesMap from './assets/virtualExposes-B98-k3rN.js';
+import exposesMap from './assets/virtualExposes-BEAVs8b-.js';
 import { _ as __vitePreload } from './assets/preload-helper-CqoC6PUU.js';
 
 const importMap = {
@@ -26,6 +26,11 @@ const importMap = {
       ,
         "@react-three/drei": async () => {
           let pkg = await __vitePreload(() => import('./assets/index-C5MYM6i2.js'),true              ?[]:void 0);
+          return pkg
+        }
+      ,
+        "k3-plugin-api": async () => {
+          let pkg = await __vitePreload(() => import('./assets/index-D4qpzhxu.js'),true              ?[]:void 0);
           return pkg
         }
       ,
@@ -150,6 +155,32 @@ const importMap = {
             async get () {
               usedShared["@react-three/drei"].loaded = true;
               const {"@react-three/drei": pkgDynamicImport} = importMap; 
+              const res = await pkgDynamicImport();
+              const exportModule = {...res};
+              // All npm packages pre-built by vite will be converted to esm
+              Object.defineProperty(exportModule, "__esModule", {
+                value: true,
+                enumerable: false
+              });
+              return function () {
+                return exportModule
+              }
+            },
+            shareConfig: {
+              singleton: true,
+              requiredVersion: "*"
+            }
+          }
+        ,
+          "k3-plugin-api": {
+            name: "k3-plugin-api",
+            version: "2.1.0",
+            scope: ["default"],
+            loaded: false,
+            from: "veranda-plugin",
+            async get () {
+              usedShared["k3-plugin-api"].loaded = true;
+              const {"k3-plugin-api": pkgDynamicImport} = importMap; 
               const res = await pkgDynamicImport();
               const exportModule = {...res};
               // All npm packages pre-built by vite will be converted to esm
@@ -364,84 +395,6 @@ const initTokens = {};
 
     } catch(_e) {
         console.warn('[VERANDA-PLUGIN] Host React import fehlgeschlagen:', _e);
-    }
-
-    // ============================================================
-    // [inject-host-k3core] @k3/core vom K3-Host laden
-    // ============================================================
-    try {
-        var _k3CoreMod = null;
-        var _k3CoreSource = 'none';
-
-        // 1. SharedScope (falls K3 doch @k3/core übergibt)
-        try {
-            var _k3SharedEntry = shared && (shared["@k3/core"] || shared['@k3/core']);
-            if (_k3SharedEntry) {
-                var _k3ver = Object.keys(_k3SharedEntry)[0];
-                var _k3info = _k3SharedEntry[_k3ver];
-                var _getRes = await _k3info.get();
-                _k3CoreMod = typeof _getRes === 'function' ? _getRes() : _getRes;
-                _k3CoreSource = 'SharedScope v' + _k3ver;
-            }
-        } catch(_k3ssErr) { }
-
-        // 2. Global window.__k3core (falls bereits gesetzt)
-        if (!_k3CoreMod && typeof window !== 'undefined' && window.__k3core) {
-            _k3CoreMod = window.__k3core;
-            _k3CoreSource = 'window.__k3core';
-        }
-
-        // 3. K3's Source-Barrel direkt vom Vite-Dev-Server
-        if (!_k3CoreMod && isLocal) {
-            try {
-                // Nur versuchen wenn Host ein lokaler Dev-Server oder explizit erlaubt (Vermeidung von 404-Spam in Prod)
-                _k3CoreMod = await import(/* @vite-ignore */ hostOrigin + '/src/index.ts');
-                _k3CoreSource = 'K3 Source (/src/index.ts)';
-            } catch(_srcErr) { }
-        }
-
-        // 4. Fallback: Vite optimized deps
-        if (!_k3CoreMod && isLocal) {
-            try {
-                _k3CoreMod = await import(/* @vite-ignore */ _depsUrl('@k3_core.js'));
-                _k3CoreSource = 'Vite deps (@k3_core.js)';
-            } catch(_) {}
-        }
-
-        // Verarbeiten und window.__k3core setzen
-        var _k3SafeExports = (typeof window !== 'undefined' && window.__k3core) || {};
-        if (_k3CoreMod) {
-            var _k3Exports = _k3CoreMod;
-            if (_k3CoreMod.default && typeof _k3CoreMod.default === 'object' && !_k3CoreMod.SlotModelRenderer) {
-                _k3Exports = _k3CoreMod.default;
-            }
-            _k3SafeExports = Object.assign(_k3SafeExports, _k3Exports);
-            
-            // BasicDynamicModelEditor overwrite (immer unsere Version nutzen)
-            _k3SafeExports['BasicDynamicModelEditor'] = function BasicDynamicModelEditor(props) {
-                return (props && props.extraFields != null) ? props.extraFields : null;
-            };
-
-            // SlotModelRenderer wrap
-            var _nativeSlotModelRenderer = _k3Exports['SlotModelRenderer'];
-            if (typeof _nativeSlotModelRenderer === 'function') {
-                _k3SafeExports['SlotModelRenderer'] = function SlotModelRenderer(props) {
-                    return _React.createElement(_nativeSlotModelRenderer, props);
-                };
-            }
-            
-            window.__k3core = _k3SafeExports;
-        }
-
-        // usedShared patchen
-        if (usedShared["@k3/core"]) {
-            usedShared["@k3/core"].get = async function() {
-                usedShared["@k3/core"].loaded = true;
-                return function() { return window.__k3core || _k3SafeExports; };
-            };
-        }
-        
-    } catch(_e2) {
     }
 
     // @react-three/fiber vom Host laden
