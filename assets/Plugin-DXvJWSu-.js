@@ -81,8 +81,7 @@ function SceneShadowLight() {
     light.color.set(new veranda_mf_2_plugin__loadShare__three__loadShare__.Color(lightColor));
     light.position.set(...lightPosition);
     light.shadow.bias = shadowBias;
-    light.shadow.normalBias = 0.02;
-    light.shadow.radius = isNight ? 12 : 6;
+    light.shadow.normalBias = 0.035;
     ambient.intensity = isNight ? ambientIntensity * 0.6 : ambientIntensity;
     ambient.color.set(new veranda_mf_2_plugin__loadShare__three__loadShare__.Color(ambientColor));
     let hemi = scene.children.find((c) => c.userData[HEMI_KEY]);
@@ -211,12 +210,12 @@ function calcWandGeometry(wandSeite, breite, hoehe, parentWidth, parentDepth, pa
       segmentPosZ = (z0 + z1) / 2;
     }
   }
-  let freeWidth = parentWidth - (isQubus ? 2 * pfostenBreite : pfostenBreite);
+  let freeWidth = parentWidth - 2 * pfostenBreite;
   let segmentPosX = 0;
   if ((isFront || isBack) && segmentIndex >= 0) {
     const anzahl = isFront ? pfostenAnzahlVorne : pfostenAnzahlHinten;
     if (anzahl > 1) {
-      const positions = berechnePositionen(isQubus ? parentWidth - pfostenBreite : parentWidth, anzahl);
+      const positions = berechnePositionen(parentWidth - pfostenBreite, anzahl);
       if (segmentIndex < positions.length - 1) {
         const x0 = positions[segmentIndex];
         const x1 = positions[segmentIndex + 1];
@@ -227,7 +226,7 @@ function calcWandGeometry(wandSeite, breite, hoehe, parentWidth, parentDepth, pa
   }
   const defaultWandBreite = isSide ? freeDepth : freeWidth;
   const wandBreite = breite > 0 ? breite : Math.max(0.01, defaultWandBreite);
-  const gWidth = isQubus ? parentWidth - pfostenBreite : parentWidth;
+  const gWidth = parentWidth - pfostenBreite;
   const posX = isSide ? wandSeite === 0 ? -gWidth / 2 : gWidth / 2 : segmentPosX;
   const rotY = isSide ? wandSeite === 0 ? -Math.PI / 2 : Math.PI / 2 : isBack ? Math.PI : 0;
   const posZ = isSide ? segmentPosZ : isFront ? -parentDepth / 2 + dachVorsprung + pfostenTiefe / 2 : parentDepth / 2 - backObstruction / 2;
@@ -303,6 +302,14 @@ function calcWandSlotAnchor(geo, wandSeite, segmentIndex = -1, segmentAnzahl) {
     }
   };
 }
+function calcSubSlotSegmentIndex(pos, pfostenAnzahl, wandSeite = 2) {
+  const segs = Math.max(1, pfostenAnzahl - 1);
+  const leftIdx = pos === "links" ? 0 : pos === "mitteL" ? Math.min(1, segs - 1) : pos === "mitte" ? Math.floor((segs - 1) / 2) : pos === "mitteR" ? Math.max(segs - 2, 0) : (
+    /* rechts */
+    segs - 1
+  );
+  return wandSeite === 2 ? segs - 1 - leftIdx : leftIdx;
+}
 function calcSlotAnchors(geo) {
   const {
     width,
@@ -331,7 +338,7 @@ function calcSlotAnchors(geo) {
   const rinneY = schwelleOK - rinnenHoehe;
   const schwelleVorderkante = schwelleBreite >= pfostenTiefe ? -depth / 2 : -depth / 2 + pfostenTiefe - schwelleBreite;
   const rinneZ = innenliegend ? schwelleVorderkante : -depth / 2;
-  const rinnenLaenge = width + pfostenBreite;
+  const rinnenLaenge = isQubus ? width + pfostenBreite : width;
   const rinne = {
     position: isQubus ? [0, height - rinnenHoehe, -depth / 2] : [0, rinneY, rinneZ],
     rotation: [0, Math.PI, 0],
@@ -364,8 +371,18 @@ function calcSlotAnchors(geo) {
   };
   const wandLinks = calcWandSlotAnchor(geo, 1);
   const wandRechts = calcWandSlotAnchor(geo, 0);
-  const wandVorne = calcWandSlotAnchor(geo, 2);
-  const wandHinten = calcWandSlotAnchor(geo, 3);
+  const pv = geo.pfostenAnzahlVorne ?? 2;
+  const ph = geo.pfostenAnzahlHinten ?? 0;
+  const wandVorneLinks = calcWandSlotAnchor(geo, 2, calcSubSlotSegmentIndex("links", pv, 2));
+  const wandVorneMitteL = calcWandSlotAnchor(geo, 2, calcSubSlotSegmentIndex("mitteL", pv, 2));
+  const wandVorneMitte = calcWandSlotAnchor(geo, 2, calcSubSlotSegmentIndex("mitte", pv, 2));
+  const wandVorneMitteR = calcWandSlotAnchor(geo, 2, calcSubSlotSegmentIndex("mitteR", pv, 2));
+  const wandVorneRechts = calcWandSlotAnchor(geo, 2, calcSubSlotSegmentIndex("rechts", pv, 2));
+  const wandHintenLinks = calcWandSlotAnchor(geo, 3, calcSubSlotSegmentIndex("links", ph, 3));
+  const wandHintenMitteL = calcWandSlotAnchor(geo, 3, calcSubSlotSegmentIndex("mitteL", ph, 3));
+  const wandHintenMitte = calcWandSlotAnchor(geo, 3, calcSubSlotSegmentIndex("mitte", ph, 3));
+  const wandHintenMitteR = calcWandSlotAnchor(geo, 3, calcSubSlotSegmentIndex("mitteR", ph, 3));
+  const wandHintenRechts = calcWandSlotAnchor(geo, 3, calcSubSlotSegmentIndex("rechts", ph, 3));
   const pfosten = {
     position: [0, 0, 0],
     rotation: [0, 0, 0],
@@ -380,12 +397,16 @@ function calcSlotAnchors(geo) {
     pfosten,
     wandLinks,
     wandRechts,
-    wandVorne,
-    wandHinten,
-    aufbauLinks: wandLinks,
-    aufbauRechts: wandRechts,
-    aufbauVorne: wandVorne,
-    aufbauHinten: wandHinten
+    wandVorneLinks,
+    wandVorneMitteL,
+    wandVorneMitte,
+    wandVorneMitteR,
+    wandVorneRechts,
+    wandHintenLinks,
+    wandHintenMitteL,
+    wandHintenMitte,
+    wandHintenMitteR,
+    wandHintenRechts
   };
 }
 
@@ -399,112 +420,90 @@ const DEFAULT_FARBEN = {
   profil: "#A0A0A0",
   holz: "#8B7355"
 };
-const VERANDA_SLOTS = {
+const KONSTRUKTION_SLOTS = {
   pfosten: {
-    id: "veranda-slot-pfosten",
+    id: "konstruktion-slot-pfosten",
     name: "Stützstruktur",
     defaultModelId: "veranda-pfosten-eckig"
   },
   eindeckung: {
-    id: "veranda-slot-eindeckung",
+    id: "konstruktion-slot-eindeckung",
     name: "Überdachung",
     defaultModelId: "veranda-glas-eindeckung"
   },
   rinne: {
-    id: "veranda-slot-rinne",
+    id: "konstruktion-slot-rinne",
     name: "Regenrinne",
     defaultModelId: "veranda-regenrinne-kasten"
   },
   beschattung: {
-    id: "veranda-slot-beschattung",
+    id: "konstruktion-slot-beschattung",
     name: "Beschattung",
     defaultModelId: "veranda-markise"
   },
   wandLinks: {
-    id: "veranda-slot-wand-links",
+    id: "konstruktion-slot-wand-links",
     name: "Wand Links",
     defaultModelId: "veranda-wand-keil"
   },
   wandRechts: {
-    id: "veranda-slot-wand-rechts",
+    id: "konstruktion-slot-wand-rechts",
     name: "Wand Rechts",
     defaultModelId: "veranda-wand-keil"
   },
-  wandVorne: {
-    id: "veranda-slot-wand-vorne",
-    name: "Wand Vorne",
+  wandVorneLinks: {
+    id: "konstruktion-slot-wand-vorne-links",
+    name: "Wand Vorne Links",
     defaultModelId: "veranda-wand-rahmenwand"
   },
-  wandHinten: {
-    id: "veranda-slot-wand-hinten",
-    name: "Wand Hinten",
+  wandVorneMitteL: {
+    id: "konstruktion-slot-wand-vorne-mitte-l",
+    name: "Wand Vorne Mitte L",
     defaultModelId: "veranda-wand-rahmenwand"
   },
-  led: {
-    id: "veranda-slot-led",
-    name: "LED Beleuchtung"
-  },
-  aufbauLinks: {
-    id: "veranda-slot-aufbau-links",
-    name: "Aufbau Links"
-  },
-  aufbauRechts: {
-    id: "veranda-slot-aufbau-rechts",
-    name: "Aufbau Rechts"
-  },
-  aufbauVorne: {
-    id: "veranda-slot-aufbau-vorne",
-    name: "Aufbau Vorne"
-  },
-  aufbauHinten: {
-    id: "veranda-slot-aufbau-hinten",
-    name: "Aufbau Hinten"
-  }
-};
-const QUBUS_SLOTS = {
-  stuetzstruktur: {
-    id: "qubus-slot-stuetzstruktur",
-    name: "Stützstruktur",
-    defaultModelId: "veranda-pfosten-eckig"
-  },
-  ueberdachung: {
-    id: "qubus-slot-ueberdachung",
-    name: "Überdachung",
-    defaultModelId: "veranda-glas-eindeckung"
-  },
-  beschattung: {
-    id: "qubus-slot-beschattung",
-    name: "Beschattung",
-    defaultModelId: "veranda-plissee"
-  },
-  wandLinks: {
-    id: "qubus-slot-wand-links",
-    name: "Wand Links",
-    defaultModelId: "veranda-wand-keil"
-  },
-  wandRechts: {
-    id: "qubus-slot-wand-rechts",
-    name: "Wand Rechts",
-    defaultModelId: "veranda-wand-keil"
-  },
-  wandVorne: {
-    id: "qubus-slot-wand-vorne",
-    name: "Wand Vorne",
+  wandVorneMitte: {
+    id: "konstruktion-slot-wand-vorne-mitte",
+    name: "Wand Vorne Mitte",
     defaultModelId: "veranda-wand-rahmenwand"
   },
-  wandHinten: {
-    id: "qubus-slot-wand-hinten",
-    name: "Wand Hinten",
+  wandVorneMitteR: {
+    id: "konstruktion-slot-wand-vorne-mitte-r",
+    name: "Wand Vorne Mitte R",
+    defaultModelId: "veranda-wand-rahmenwand"
+  },
+  wandVorneRechts: {
+    id: "konstruktion-slot-wand-vorne-rechts",
+    name: "Wand Vorne Rechts",
+    defaultModelId: "veranda-wand-rahmenwand"
+  },
+  wandHintenLinks: {
+    id: "konstruktion-slot-wand-hinten-links",
+    name: "Wand Hinten Links",
+    defaultModelId: "veranda-wand-rahmenwand"
+  },
+  wandHintenMitteL: {
+    id: "konstruktion-slot-wand-hinten-mitte-l",
+    name: "Wand Hinten Mitte L",
+    defaultModelId: "veranda-wand-rahmenwand"
+  },
+  wandHintenMitte: {
+    id: "konstruktion-slot-wand-hinten-mitte",
+    name: "Wand Hinten Mitte",
+    defaultModelId: "veranda-wand-rahmenwand"
+  },
+  wandHintenMitteR: {
+    id: "konstruktion-slot-wand-hinten-mitte-r",
+    name: "Wand Hinten Mitte R",
+    defaultModelId: "veranda-wand-rahmenwand"
+  },
+  wandHintenRechts: {
+    id: "konstruktion-slot-wand-hinten-rechts",
+    name: "Wand Hinten Rechts",
     defaultModelId: "veranda-wand-rahmenwand"
   },
   led: {
-    id: "qubus-slot-led",
+    id: "konstruktion-slot-led",
     name: "LED Beleuchtung"
-  },
-  rinne: {
-    id: "qubus-slot-rinne",
-    name: "Regenrinne",
-    defaultModelId: "veranda-regenrinne-kasten"
   }
 };
 const MATERIAL_DEFAULTS = {
@@ -618,6 +617,23 @@ const MaterialFallback = ({
   }
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: activeMat, attach: "material" }, activeMat.uuid);
 };
+
+class SceneErrorBoundary extends veranda_mf_2_plugin__loadShare__react__loadShare__.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("[oc.veranda] Szenen-Fehler:", error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback ?? null;
+    return this.props.children;
+  }
+}
 
 const DEFAULT_GEOMETRY = {
   width: 4,
@@ -815,7 +831,7 @@ function KonstruktionModel(props) {
       return { hoeheHinten: height, hoeheVorne: height };
     }
   }, [depth, dachneigung, height]);
-  const pfostenSlot = slots?.[VERANDA_SLOTS.pfosten.id] || slots?.[QUBUS_SLOTS.stuetzstruktur.id];
+  const pfostenSlot = slots?.[KONSTRUKTION_SLOTS.pfosten.id];
   const pfostenSlotProps = pfostenSlot?.[0]?.props;
   const pfostenBreiteVal = Math.max(1e-3, getVal(pfostenSlotProps?.pfostenBreite, 0.1));
   const pfostenTiefeVal = Math.max(1e-3, getVal(pfostenSlotProps?.pfostenTiefe, 0.1));
@@ -831,18 +847,22 @@ function KonstruktionModel(props) {
   }, [pfostenAnzahlHintenVal]);
   const setPfostenAnzahlVorne = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback((val) => setPfostenAnzahlVorneCtxState((v) => Math.abs(v - val) < 1e-3 ? v : val), []);
   const setPfostenAnzahlHinten = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback((val) => setPfostenAnzahlHintenCtxState((v) => Math.abs(v - val) < 1e-3 ? v : val), []);
-  const eindeckungSlot = slots?.[VERANDA_SLOTS.eindeckung.id] || slots?.[QUBUS_SLOTS.ueberdachung.id];
-  const rinneSlot = slots?.[VERANDA_SLOTS.rinne.id] || slots?.[QUBUS_SLOTS.rinne.id];
-  const someBeschattungSlot = slots?.[VERANDA_SLOTS.beschattung.id] || slots?.[QUBUS_SLOTS.beschattung.id];
-  const ledSlot = slots?.[VERANDA_SLOTS.led.id] || slots?.[QUBUS_SLOTS.led.id];
-  const wandLinksSlot = slots?.[VERANDA_SLOTS.wandLinks.id] || slots?.[QUBUS_SLOTS.wandLinks.id];
-  const wandRechtsSlot = slots?.[VERANDA_SLOTS.wandRechts.id] || slots?.[QUBUS_SLOTS.wandRechts.id];
-  const wandVorneSlot = slots?.[VERANDA_SLOTS.wandVorne.id] || slots?.[QUBUS_SLOTS.wandVorne.id];
-  const wandHintenSlot = slots?.[VERANDA_SLOTS.wandHinten.id] || slots?.[QUBUS_SLOTS.wandHinten.id];
-  const aufbauLinksSlot = slots?.[VERANDA_SLOTS.aufbauLinks.id];
-  const aufbauRechtsSlot = slots?.[VERANDA_SLOTS.aufbauRechts.id];
-  const aufbauVorneSlot = slots?.[VERANDA_SLOTS.aufbauVorne.id];
-  const aufbauHintenSlot = slots?.[VERANDA_SLOTS.aufbauHinten.id];
+  const eindeckungSlot = slots?.[KONSTRUKTION_SLOTS.eindeckung.id];
+  const rinneSlot = slots?.[KONSTRUKTION_SLOTS.rinne.id];
+  const someBeschattungSlot = slots?.[KONSTRUKTION_SLOTS.beschattung.id];
+  const ledSlot = slots?.[KONSTRUKTION_SLOTS.led.id];
+  const wandLinksSlot = slots?.[KONSTRUKTION_SLOTS.wandLinks.id];
+  const wandRechtsSlot = slots?.[KONSTRUKTION_SLOTS.wandRechts.id];
+  const wandVorneLinksSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneLinks.id];
+  const wandVorneMitteLSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneMitteL.id];
+  const wandVorneMitteSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneMitte.id];
+  const wandVorneMitteRSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneMitteR.id];
+  const wandVorneRechtsSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneRechts.id];
+  const wandHintenLinksSlot = slots?.[KONSTRUKTION_SLOTS.wandHintenLinks.id];
+  const wandHintenMitteLSlot = slots?.[KONSTRUKTION_SLOTS.wandHintenMitteL.id];
+  const wandHintenMitteSlot = slots?.[KONSTRUKTION_SLOTS.wandHintenMitte.id];
+  const wandHintenMitteRSlot = slots?.[KONSTRUKTION_SLOTS.wandHintenMitteR.id];
+  const wandHintenRechtsSlot = slots?.[KONSTRUKTION_SLOTS.wandHintenRechts.id];
   const [keilAbschnitt, setKeilAbschnittState] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState([-1, -1, -1, -1]);
   const setKeilAbschnitt = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback((seite, value) => {
     setKeilAbschnittState((prev) => {
@@ -932,13 +952,19 @@ function KonstruktionModel(props) {
   const WAND_SEITE_BY_SLOT = {
     wandLinks: 1,
     wandRechts: 0,
-    wandVorne: 2,
-    wandHinten: 3,
-    aufbauLinks: 1,
-    aufbauRechts: 0,
-    aufbauVorne: 2,
-    aufbauHinten: 3
+    wandVorneLinks: 2,
+    wandVorneMitteL: 2,
+    wandVorneMitte: 2,
+    wandVorneMitteR: 2,
+    wandVorneRechts: 2,
+    wandHintenLinks: 3,
+    wandHintenMitteL: 3,
+    wandHintenMitte: 3,
+    wandHintenMitteR: 3,
+    wandHintenRechts: 3
   };
+  const ssv = (pos) => calcSubSlotSegmentIndex(pos, pfostenAnzahlVorneCtx, 2);
+  const ssh = (pos) => calcSubSlotSegmentIndex(pos, pfostenAnzahlHintenCtx, 3);
   const renderSlotInstance = (inst, fallbackKey, forcedSegmentIndex, slotKey) => {
     const Comp = inst.component;
     if (!Comp) return null;
@@ -992,7 +1018,7 @@ function KonstruktionModel(props) {
   };
   const auflageTyp = sparrenAuflage === 1 ? "innenliegend" : "aufliegend";
   const steigung = depth > 0 ? (hoeheHinten - hoeheVorne) / depth : 0;
-  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneModeContext.Provider, { value: { nightMode, shadingMode, alignment }, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandInfoContext.Provider, { value: {
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneErrorBoundary, { children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneModeContext.Provider, { value: { nightMode, shadingMode, alignment }, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandInfoContext.Provider, { value: {
     keilAbschnitt,
     setKeilAbschnitt,
     sichtschutzHoehe,
@@ -1033,7 +1059,7 @@ function KonstruktionModel(props) {
             Box,
             {
               position: [0, schwelleY || 0, -depth / 2 + sZOff],
-              args: [width + pfostenBreiteVal, schwelleHoehe, Math.max(1e-3, schwelleBreite)],
+              args: [width, schwelleHoehe, Math.max(1e-3, schwelleBreite)],
               material: profilMaterial,
               children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial, fallbackColor: DEFAULT_FARBEN.holz })
             }
@@ -1042,7 +1068,7 @@ function KonstruktionModel(props) {
             Box,
             {
               position: [0, staticTraegerY || 0, -depth / 2 + stZOff],
-              args: [width + pfostenBreiteVal, staticTraegerHoehe, Math.max(1e-3, staticTraegerBreite)],
+              args: [width, staticTraegerHoehe, Math.max(1e-3, staticTraegerBreite)],
               material: profilMaterial,
               children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial, fallbackColor: DEFAULT_FARBEN.holz })
             }
@@ -1051,7 +1077,7 @@ function KonstruktionModel(props) {
             Box,
             {
               position: [0, (hoeheHinten || 0) - steigung * (pfettenBreite / 2) - pfettenHoehe / 2, depth / 2 - pfettenBreite / 2],
-              args: [width + pfostenBreiteVal, pfettenHoehe, Math.max(1e-3, pfettenBreite)],
+              args: [width, pfettenHoehe, Math.max(1e-3, pfettenBreite)],
               material: profilMaterial,
               children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial, fallbackColor: DEFAULT_FARBEN.holz })
             }
@@ -1064,14 +1090,22 @@ function KonstruktionModel(props) {
       someBeschattungSlot?.map((inst, i) => renderSlotInstance(inst, `beschattung-${i}`, i, "beschattung")),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 1, children: wandLinksSlot?.map((inst, i) => renderSlotInstance(inst, `wand-l-${i}`, i, "wandLinks")) }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 0, children: wandRechtsSlot?.map((inst, i) => renderSlotInstance(inst, `wand-r-${i}`, i, "wandRechts")) }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 2, children: wandVorneSlot?.map((inst, i) => renderSlotInstance(inst, `wand-v-${i}`, i, "wandVorne")) }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 3, children: wandHintenSlot?.map((inst, i) => renderSlotInstance(inst, `wand-h-${i}`, i, "wandHinten")) }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 1, children: aufbauLinksSlot?.map((inst, i) => renderSlotInstance(inst, `aufbau-l-${i}`, i, "aufbauLinks")) }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 0, children: aufbauRechtsSlot?.map((inst, i) => renderSlotInstance(inst, `aufbau-r-${i}`, i, "aufbauRechts")) }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 2, children: aufbauVorneSlot?.map((inst, i) => renderSlotInstance(inst, `aufbau-v-${i}`, i, "aufbauVorne")) }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 3, children: aufbauHintenSlot?.map((inst, i) => renderSlotInstance(inst, `aufbau-h-${i}`, i, "aufbauHinten")) })
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 2, children: [
+        wandVorneLinksSlot?.map((inst, i) => renderSlotInstance(inst, `wand-vl-${i}`, ssv("links"), "wandVorneLinks")),
+        wandVorneMitteLSlot?.map((inst, i) => renderSlotInstance(inst, `wand-vml-${i}`, ssv("mitteL"), "wandVorneMitteL")),
+        wandVorneMitteSlot?.map((inst, i) => renderSlotInstance(inst, `wand-vm-${i}`, ssv("mitte"), "wandVorneMitte")),
+        wandVorneMitteRSlot?.map((inst, i) => renderSlotInstance(inst, `wand-vmr-${i}`, ssv("mitteR"), "wandVorneMitteR")),
+        wandVorneRechtsSlot?.map((inst, i) => renderSlotInstance(inst, `wand-vr-${i}`, ssv("rechts"), "wandVorneRechts"))
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 3, children: [
+        wandHintenLinksSlot?.map((inst, i) => renderSlotInstance(inst, `wand-hl-${i}`, ssh("links"), "wandHintenLinks")),
+        wandHintenMitteLSlot?.map((inst, i) => renderSlotInstance(inst, `wand-hml-${i}`, ssh("mitteL"), "wandHintenMitteL")),
+        wandHintenMitteSlot?.map((inst, i) => renderSlotInstance(inst, `wand-hm-${i}`, ssh("mitte"), "wandHintenMitte")),
+        wandHintenMitteRSlot?.map((inst, i) => renderSlotInstance(inst, `wand-hmr-${i}`, ssh("mitteR"), "wandHintenMitteR")),
+        wandHintenRechtsSlot?.map((inst, i) => renderSlotInstance(inst, `wand-hr-${i}`, ssh("rechts"), "wandHintenRechts"))
+      ] })
     ] })
-  ] }) }) }) });
+  ] }) }) }) }) });
 }
 const konstruktionPropsSchema = {
   konstruktionstyp: {
@@ -1126,7 +1160,7 @@ const konstruktionDynamicModel = {
   label: "Konstruktion",
   description: "Modell für Veranda und Qubus",
   defaultProps: {
-    slotDefinitions: [...Object.values(VERANDA_SLOTS), ...Object.values(QUBUS_SLOTS)],
+    slotDefinitions: [...Object.values(KONSTRUKTION_SLOTS)],
     konstruktionstyp: "veranda",
     // Abmessungen & Position
     width: { expression: "4" },
@@ -1176,14 +1210,14 @@ const konstruktionDynamicModel = {
     const exportModule$1 = await res$1.then(factory => factory());
     var veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__ = exportModule$1;
 
-const SIMULATED_LICENSE = "Enterprise";
+const DEFAULT_TIER = "Basic";
 function productToTier(product) {
-  if (!product) return SIMULATED_LICENSE;
+  if (!product) return DEFAULT_TIER;
   const p = product.toLowerCase();
   if (p.includes("basic")) return "Basic";
   if (p.includes("pro")) return "Pro";
   if (p.includes("enterprise")) return "Enterprise";
-  return SIMULATED_LICENSE;
+  return DEFAULT_TIER;
 }
 function useLicenseTier() {
   const app = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useApp();
@@ -1512,7 +1546,6 @@ function LedBeleuchtungModel(props) {
     schwelleBreite,
     pfettenBreite,
     pfostenTiefe,
-    pfostenBreite,
     schwelle,
     pfette,
     isQubus,
@@ -1548,7 +1581,7 @@ function LedBeleuchtungModel(props) {
   const kegelHelligkeit = Math.max(0, Math.min(1, getVal(props.kegelHelligkeit, 0.12)));
   const effDachneigung = eindeckungDachneigung ?? dachneigung;
   const effWidth = isQubus ? innerWidth || width : width;
-  const gesamtBreite = isQubus ? effWidth : effWidth + (pfostenBreite || 0);
+  const gesamtBreite = effWidth;
   const effDepth = isQubus ? parent.innerDepth || depth : depth;
   const { hoeheVorne: baseHV, hoeheHinten: baseHH } = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
     () => calcVerandaGeometry(effDepth, effDachneigung, height),
@@ -2160,7 +2193,7 @@ function SceneEnvironmentModel(props) {
       getNum(props.lightPosY, 30),
       getNum(props.lightPosZ, -10)
     ];
-    const shadowBias = getNum(props.shadowBias, -1e-3);
+    const shadowBias = getNum(props.shadowBias, -2e-4);
     const isNight = preset === 2;
     const mat = isNight ? mats.mond : mats.sonne;
     const lightColor = mat?.color ? "#" + mat.color.getHexString() : isNight ? "#aabbcc" : "#fff5e0";
@@ -2198,7 +2231,7 @@ function SceneEnvironmentModel(props) {
   }, [props, preset, mats]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(SceneEnvironmentProvider, { value: envValues, children: [
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneShadowLight, {}),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.SoftShadows, { size: 25, samples: 16, focus: 0 }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.SoftShadows, { size: 10, samples: 25, focus: 0 }),
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare__react__loadShare__.Suspense, { fallback: null, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasEnvMap, {}) }),
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneSkyBackground, {})
   ] });
@@ -2217,7 +2250,7 @@ const sceneEnvironmentDynamicModel = {
     hdrUrl: { expression: `"https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/city.hdr"` },
     envIntensity: { expression: "0.4" },
     ambientIntensity: { expression: "0.5" },
-    shadowBias: { expression: "-0.001" }
+    shadowBias: { expression: "-0.0002" }
   },
   propsDialog: {
     preset: {
@@ -2437,16 +2470,6 @@ const RegenrinneBase = ({
   farbeHex,
   material
 }) => {
-  const bodyRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    const mesh = bodyRef.current;
-    if (!mesh) return;
-    const mat = mesh.material;
-    const mats = Array.isArray(mat) ? mat : [mat];
-    mats.forEach((m) => {
-      m.shadowSide = veranda_mf_2_plugin__loadShare__three__loadShare__.BackSide;
-    });
-  }, [material]);
   const bodySettings = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
     () => ({ curveSegments, steps: 1, depth: width, bevelEnabled: false }),
     [curveSegments, width]
@@ -2460,8 +2483,7 @@ const RegenrinneBase = ({
     {
       color: farbeHex,
       metalness: MATERIAL_DEFAULTS.metall.metalness,
-      roughness: MATERIAL_DEFAULTS.metall.roughness + 0.05,
-      shadowSide: veranda_mf_2_plugin__loadShare__three__loadShare__.BackSide
+      roughness: MATERIAL_DEFAULTS.metall.roughness + 0.05
     }
   ) });
   const capMaterialNode = /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
@@ -2479,7 +2501,6 @@ const RegenrinneBase = ({
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
       "mesh",
       {
-        ref: bodyRef,
         rotation: [0, Math.PI / 2, 0],
         position: [-width / 2, 0, 0],
         castShadow: true,
@@ -2495,6 +2516,8 @@ const RegenrinneBase = ({
       {
         rotation: [0, Math.PI / 2, 0],
         position: [-width / 2 * (i ? 1.001 : -0.999), 0, 0],
+        castShadow: true,
+        receiveShadow: true,
         children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [capShape, capSettings] }),
           capMaterialNode
@@ -2816,15 +2839,15 @@ const PolycarbonatEindeckung = ({
         }
       )
     ] }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "polySteg", position: [-breite / 2 + STEG_DICKE / 2, 0, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "polySteg", position: [-breite / 2 + STEG_DICKE / 2, 0, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [STEG_DICKE, innenHoehe, tiefe] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: farbe, roughness })
     ] }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "polySteg", position: [breite / 2 - STEG_DICKE / 2, 0, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "polySteg", position: [breite / 2 - STEG_DICKE / 2, 0, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [STEG_DICKE, innenHoehe, tiefe] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: farbe, roughness })
     ] }),
-    stegePositionen.map((x, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "polySteg", position: [x, 0, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, children: [
+    stegePositionen.map((x, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "polySteg", position: [x, 0, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [STEG_DICKE, innenHoehe, tiefe] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: farbe, roughness })
     ] }, i))
@@ -3160,7 +3183,6 @@ const Wandanschluss = ({
             metalness: MATERIAL_DEFAULTS.metall.metalness,
             roughness: MATERIAL_DEFAULTS.metall.roughness,
             side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide,
-            shadowSide: veranda_mf_2_plugin__loadShare__three__loadShare__.BackSide,
             polygonOffset: true,
             polygonOffsetFactor: -1,
             polygonOffsetUnits: -1
@@ -3335,6 +3357,14 @@ const GummiDichtungen = ({
   leistenZMitte,
   leistenSchraegTiefe
 }) => {
+  const gummiMat = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => new veranda_mf_2_plugin__loadShare__three__loadShare__.MeshPhysicalMaterial({
+    color: DEFAULT_FARBEN.gummi,
+    roughness: MATERIAL_DEFAULTS.gummi.roughness,
+    metalness: MATERIAL_DEFAULTS.gummi.metalness
+  }), []);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
+    gummiMat.dispose();
+  }, [gummiMat]);
   const gummiGeom = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (eindeckungDicke <= 0) return null;
     const s = new veranda_mf_2_plugin__loadShare__three__loadShare__.Shape();
@@ -3366,14 +3396,7 @@ const GummiDichtungen = ({
         leistenZMitte
       ],
       rotation: [-neig, 0, 0],
-      children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-        "meshPhysicalMaterial",
-        {
-          color: DEFAULT_FARBEN.gummi,
-          roughness: MATERIAL_DEFAULTS.gummi.roughness,
-          metalness: MATERIAL_DEFAULTS.gummi.metalness
-        }
-      )
+      material: gummiMat
     },
     `gummi-${i}`
   )) });
@@ -4010,6 +4033,8 @@ const Konstruktion = ({
   pfostenTyp,
   pfostenBreite,
   pfostenTiefe,
+  pfostenBreiteHinten = pfostenBreite,
+  pfostenTiefeHinten = pfostenTiefe,
   quertraegerHoehe,
   quertraegerHoeheHinten,
   quertraegerTiefe,
@@ -4031,7 +4056,7 @@ const Konstruktion = ({
     [gesamtBreite, pfostenAnzahlHinten]
   );
   const zVorne = -gesamtTiefe / 2 + dachVorsprung + pfostenTiefe / 2;
-  const zHinten = gesamtTiefe / 2 - pfostenTiefe / 2;
+  const zHinten = gesamtTiefe / 2 - pfostenTiefeHinten / 2;
   const quertraegerZVorne = -gesamtTiefe / 2 + dachVorsprung + quertraegerTiefe / 2;
   const quertraegerZHinten = gesamtTiefe / 2 - quertraegerTiefe / 2;
   const quertraegerBreite = gesamtBreite + pfostenBreite;
@@ -4052,8 +4077,8 @@ const Konstruktion = ({
       Pfosten,
       {
         typ: pfostenTyp,
-        breite: pfostenBreite,
-        tiefe: pfostenTiefe,
+        breite: pfostenBreiteHinten,
+        tiefe: pfostenTiefeHinten,
         hoehe: pfostenHoeheHinten,
         material,
         position: [xPos, pfostenHoeheHinten / 2, zHinten]
@@ -4149,9 +4174,8 @@ function GlasEindeckungModel(props) {
   const depth = parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal$1(props.depth)) || 3;
   const height = parent.height || 0;
   const dachneigung = parent.eindeckungDachneigung ?? parent.dachneigung;
-  const pfostenBreite = parent.pfostenBreite || 0.1;
   const pfostenTiefe = parent.pfostenTiefe || 0.1;
-  const gesamtBreite = parent.isQubus ? width : width + pfostenBreite;
+  const gesamtBreite = width;
   const isAR = useIsARMode();
   const pfettenBreite = parent.pfettenBreite;
   const schwelleBreite = parent.schwelleBreite;
@@ -4481,7 +4505,7 @@ function MetallEindeckungModel(props) {
   const _laengsbalkenHoehe = Number(exprVal$1(laengsbalkenHoehe));
   const hatAussenSparren = Number(exprVal$1(sparrenAussen)) === 1;
   const sparrenAuflage = Number(exprVal$1(parent.sparrenAuflage));
-  const eindeckungBreite = parent.isQubus ? width : width + parent.pfostenBreite;
+  const eindeckungBreite = width;
   const querbalkenBreite = eindeckungBreite;
   const { hoeheHinten: baseHHinten, hoeheVorne: baseHVorne } = calcVerandaGeometry(depth, dachneigung, height);
   const eindeckungTyp = METALL_EINDECKUNG_MAP[Number(exprVal$1(eindeckung))] ?? "welle";
@@ -4540,7 +4564,7 @@ function MetallEindeckungModel(props) {
   const sparrenOberkante = sparrenAuflage === 0 ? {
     vorne: hoeheVorne + sparrenHoehe,
     hinten: hoeheHinten + sparrenHoehe
-  } : { vorne: hVorne_m, hinten: hHinten_m };
+  } : sparrenAuflage === 1 ? { vorne: hVorne_m, hinten: hHinten_m } : { vorne: hoeheVorne, hinten: hoeheHinten };
   const metallOKVorne = sparrenOberkante.vorne + metallPeakOffset + auflageOffset;
   const metallOKHinten = sparrenOberkante.hinten + metallPeakOffset + auflageOffset;
   const hoeheDiff = metallOKHinten - metallOKVorne;
@@ -4668,11 +4692,11 @@ function MetallEindeckungModel(props) {
           Stirnblech,
           {
             stirnblechHoehe: _stirnblechHoehe,
-            stirnblechTiefe: sparrenAuflage != 1 ? _stirnblechTiefe : parent.schwelleBreite + _stirnblechTiefe,
+            stirnblechTiefe: sparrenAuflage !== 1 ? _stirnblechTiefe : parent.schwelleBreite + _stirnblechTiefe,
             farbe: metallFarbeHex,
             anschlussBreite: eindeckungBreite,
             yPos: metallOKVorne + BLECH_STAERKE + 2e-3,
-            zPos: sparrenAuflage != 1 ? zInnenV_m - (BLECH_STAERKE * 2 + 2e-3) : -depth / 2 + pfostenTiefe_m - (parent.schwelleBreite + BLECH_STAERKE * 2 + 2e-3),
+            zPos: sparrenAuflage !== 1 ? zInnenV_m - (BLECH_STAERKE * 2 + 2e-3) : -depth / 2 + pfostenTiefe_m - (parent.schwelleBreite + BLECH_STAERKE * 2 + 2e-3),
             neigung: glasNeig,
             material: eindeckungProfilMaterial
           }
@@ -4846,7 +4870,7 @@ function LamellenEindeckungModel(props) {
   };
   const isLaengs = Number(lamellenRichtung) === 1;
   const spannendeAchse = isLaengs ? width : innerDepth;
-  const aussenBreite = parent.isQubus ? width : width + (parent.pfostenBreite || 0.1);
+  const aussenBreite = width;
   const aussenTiefe = parent.isQubus ? depth : innerDepth;
   const lamellenLaenge = isLaengs ? aussenTiefe - 2 * SCHIENE_BREITE : aussenBreite - 2 * SCHIENE_BREITE;
   const n = lamellenAnzahl > 0 ? lamellenAnzahl : Math.floor(spannendeAchse / lamellenBreite);
@@ -5634,7 +5658,7 @@ function SolarEindeckungModel(props) {
   const _leistenRundung = Number(exprVal$1(leistenRundung));
   const _maxZellenBreite = Number(exprVal$1(maxZellenBreite)) || 0.15;
   const _maxZellenTiefe = Number(exprVal$1(maxZellenTiefe)) || 0.15;
-  const querbalkenBreite = parent.isQubus ? width : width + parent.pfostenBreite;
+  const querbalkenBreite = width;
   const sparrenCount = Math.max(2, _sparrenAnzahl);
   const sparrenB2 = _sparrenBreite / 2;
   const sparrenX = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
@@ -5697,12 +5721,7 @@ function SolarEindeckungModel(props) {
   const modulBreiteRaw = exprVal$1(modulBreite);
   const modulTiefeRaw = exprVal$1(modulTiefe);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
-    const gesetztAberUnlesbar = (raw, val) => raw !== "" && raw !== "0" && val <= 0;
-    if (!useModulRaster && (gesetztAberUnlesbar(modulBreiteRaw, _modulBreite) || gesetztAberUnlesbar(modulTiefeRaw, _modulTiefe))) {
-      console.warn(
-        `[SolarEindeckung] modulBreite/modulTiefe nicht auswertbar – Fallback auf sparren-basierte Panels. Erhalten: modulBreite="${modulBreiteRaw}", modulTiefe="${modulTiefeRaw}". Expressions werden hier nicht evaluiert – bitte numerische Werte verwenden.`
-      );
-    }
+    return;
   }, [useModulRaster, modulBreiteRaw, modulTiefeRaw, _modulBreite, _modulTiefe]);
   const { modulRaster, leistenZPositionen } = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (!useModulRaster) return { modulRaster: [], leistenZPositionen: [] };
@@ -5730,9 +5749,6 @@ function SolarEindeckungModel(props) {
     }
     return { modulRaster: raster, leistenZPositionen: zPos };
   }, [useModulRaster, querbalkenBreite, _modulBreite, _modulTiefe, _modulAnzahlBreite, _leistenBreite, panelTiefe, zInnenV_s, sparrenOKVorne, steig_s, depth]);
-  console.log(
-    `[SolarEindeckung DEBUG] width=${width.toFixed(3)} depth=${depth.toFixed(3)} totalBreite=${_totalBreite} totalTiefe=${_totalTiefe} parent.width=${parent.width} parent.depth=${parent.depth} parent.isQubus=${parent.isQubus} parent.innerWidth=${parent.innerWidth} parent.innerDepth=${parent.innerDepth} props.width=${exprVal$1(props.width)} props.depth=${exprVal$1(props.depth)} | modulBreite=${_modulBreite} modulTiefe=${_modulTiefe} querbalkenBreite=${querbalkenBreite.toFixed(3)} panelTiefe=${panelTiefe.toFixed(3)} rasterModule=${modulRaster.length}`
-  );
   const leistenGeomQuer = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (!useModulRaster || _leistenBreite <= 0 || _leistenHoehe <= 0) return null;
     const profil = leistenProfil(_leistenBreite, _leistenHoehe, _leistenRundung);
@@ -6114,6 +6130,8 @@ function PfostenModel(props) {
   const pfostenAnzahlHinten = getVal(propAnzahlHinten, 2);
   const pfostenBreite = getVal(propPfostenBreite, 0.1);
   const pfostenTiefe = getVal(propPfostenTiefe, 0.1);
+  const pfostenBreiteHinten = getVal(props.pfostenBreiteHinten, pfostenBreite);
+  const pfostenTiefeHinten = getVal(props.pfostenTiefeHinten, pfostenTiefe);
   const wandInfo = useWandInfo();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     wandInfo.setPfostenAnzahlVorne(pfostenAnzahlVorne);
@@ -6130,6 +6148,7 @@ function PfostenModel(props) {
   const dachVorsprung = parent.dachVorsprung;
   const schwelle = parent.schwelle;
   const schwelleBreite = parent.schwelleBreite;
+  const schwelleHoehe = parent.schwelleHoehe;
   const sparrenAuflage = parent.sparrenAuflage;
   const sparrenHoehe = parent.sparrenHoehe;
   const pfette = parent.pfette;
@@ -6155,7 +6174,13 @@ function PfostenModel(props) {
   } else if (innenliegend) {
     quertraegerHoeheVorne = sparrenHoehe;
   } else {
-    quertraegerHoeheVorne = 0;
+    if (Number(schwelle) === 1) {
+      const sZOff = schwelleBreite >= pfostenTiefe ? schwelleBreite / 2 : pfostenTiefe - schwelleBreite / 2;
+      const schwelleOK = hoeheVorne + steigungPfosten * sZOff;
+      quertraegerHoeheVorne = hoeheAnPfosten - (schwelleOK - schwelleHoehe);
+    } else {
+      quertraegerHoeheVorne = 0;
+    }
   }
   const quertraegerHoeheHinten = Number(pfette) === 1 ? pfettenHoehe : 0;
   const profilMaterial = materials.profil;
@@ -6173,7 +6198,7 @@ function PfostenModel(props) {
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           Konstruktion,
           {
-            gesamtBreite: parent.isQubus ? width - pfostenBreite : width,
+            gesamtBreite: width - pfostenBreite,
             gesamtTiefe: depth,
             hoeheVorne,
             hoeheHinten,
@@ -6182,6 +6207,8 @@ function PfostenModel(props) {
             pfostenTyp,
             pfostenBreite,
             pfostenTiefe,
+            pfostenBreiteHinten,
+            pfostenTiefeHinten,
             quertraegerHoehe: quertraegerHoeheVorne,
             quertraegerHoeheHinten,
             quertraegerTiefe: 0,
@@ -6201,6 +6228,8 @@ const pfostenPropsSchema = {
   ] },
   pfostenBreite: { type: "expression", label: "Breite / Durchmesser (m)" },
   pfostenTiefe: { type: "expression", label: "Tiefe (m, nur Eckig/Klassisch)" },
+  pfostenBreiteHinten: { type: "expression", label: "Breite hinten (m, leer = wie vorne)" },
+  pfostenTiefeHinten: { type: "expression", label: "Tiefe hinten (m, leer = wie vorne)" },
   pfostenAnzahlVorne: { type: "expression", label: "Anzahl vorne" },
   pfostenAnzahlHinten: { type: "expression", label: "Anzahl hinten" }
 };
@@ -6212,6 +6241,8 @@ const pfostenDynamicModel = {
     typ: "0",
     pfostenBreite: { expression: "0.1" },
     pfostenTiefe: { expression: "0.1" },
+    pfostenBreiteHinten: { expression: "" },
+    pfostenTiefeHinten: { expression: "" },
     pfostenAnzahlVorne: { expression: "2" },
     pfostenAnzahlHinten: { expression: "2" }
   },
@@ -7873,7 +7904,22 @@ const sichtschutzwandPlankenDynamicModel = {
   disabledForAR: false
 };
 
-const SICHTSCHUTZWAND_AUFBAU_SLOT_ID = "b2f4e8a1-1234-4abc-9def-000000000001";
+const SICHTSCHUTZWAND_AUFBAU_SLOTS = {
+  aufbauLinks: { id: "veranda-slot-aufbau-links", name: "Aufbau Links" },
+  aufbauRechts: { id: "veranda-slot-aufbau-rechts", name: "Aufbau Rechts" },
+  aufbauVorne: { id: "veranda-slot-aufbau-vorne", name: "Aufbau Vorne" },
+  aufbauVorneLinks: { id: "veranda-slot-aufbau-vorne-links", name: "Aufbau Vorne Links" },
+  aufbauVorneMitteL: { id: "veranda-slot-aufbau-vorne-mitte-l", name: "Aufbau Vorne Mitte L" },
+  aufbauVorneMitte: { id: "veranda-slot-aufbau-vorne-mitte", name: "Aufbau Vorne Mitte" },
+  aufbauVorneMitteR: { id: "veranda-slot-aufbau-vorne-mitte-r", name: "Aufbau Vorne Mitte R" },
+  aufbauVorneRechts: { id: "veranda-slot-aufbau-vorne-rechts", name: "Aufbau Vorne Rechts" },
+  aufbauHinten: { id: "veranda-slot-aufbau-hinten", name: "Aufbau Hinten" },
+  aufbauHintenLinks: { id: "veranda-slot-aufbau-hinten-links", name: "Aufbau Hinten Links" },
+  aufbauHintenMitteL: { id: "veranda-slot-aufbau-hinten-mitte-l", name: "Aufbau Hinten Mitte L" },
+  aufbauHintenMitte: { id: "veranda-slot-aufbau-hinten-mitte", name: "Aufbau Hinten Mitte" },
+  aufbauHintenMitteR: { id: "veranda-slot-aufbau-hinten-mitte-r", name: "Aufbau Hinten Mitte R" },
+  aufbauHintenRechts: { id: "veranda-slot-aufbau-hinten-rechts", name: "Aufbau Hinten Rechts" }
+};
 
 function renderAufbauInstance(inst, key, wandBreite, wandHoehe) {
   const Comp = inst.component;
@@ -7938,9 +7984,14 @@ function SichtschutzwandWand({
     s.closePath();
     return s;
   }, [isSlant, hasTopBeam, wandBreite, wandHoehe, hoeheR, topBeamHeight]);
+  const topBeamExtrudeSettings = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
+    () => ({ depth: beamDepth, bevelEnabled: false }),
+    [beamDepth]
+  );
   const fuellungInstance = slots?.[SICHTSCHUTZWAND_FUELLUNG_SLOT_ID]?.[0];
   const FuellungComponent = fuellungInstance?.component;
-  const aufbauInstances = slots?.[SICHTSCHUTZWAND_AUFBAU_SLOT_ID];
+  const aufbauSlotIds = new Set(Object.values(SICHTSCHUTZWAND_AUFBAU_SLOTS).map((s) => s.id));
+  const aufbauInstances = Object.entries(slots ?? {}).filter(([k]) => aufbauSlotIds.has(k)).flatMap(([, v]) => v);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { children: [
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-wandBreite / 2 + RahmenBreite / 2, wandHoehe / 2, 0], castShadow: true, receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [RahmenBreite, wandHoehe, RahmenBreite] }),
@@ -7955,7 +8006,7 @@ function SichtschutzwandWand({
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }),
     hasTopBeam && isSlant && topBeamShapeSlant && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, 0, -beamDepth / 2], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [topBeamShapeSlant, { depth: beamDepth, bevelEnabled: false }] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { args: [topBeamShapeSlant, topBeamExtrudeSettings] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }) }),
     FuellungComponent && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
@@ -8181,13 +8232,16 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
         }
       };
     }, [keilAbschnittForContext, effectiveSide, ctxSegmentIndex, realSichtschutzHoehe, minAH, wandTyp, keilInfo]);
+    const isFrontBack = effectiveSide === 2 || effectiveSide === 3;
     const ssHoeheFromCtx = (() => {
       if (effectiveSide < 0 || effectiveSide > 3 || !keilInfo?.sichtschutzHoehe) return 0;
+      if (isFrontBack) return keilInfo.sichtschutzHoehe[effectiveSide][ctxSegmentIndex] ?? 0;
       const vals = Object.values(keilInfo.sichtschutzHoehe[effectiveSide]);
       return vals.length > 0 ? Math.max(0, ...vals) : 0;
     })();
     const minAHFromCtx = (() => {
       if (effectiveSide < 0 || effectiveSide > 3 || !keilInfo?.minAufbauHoehe) return 0;
+      if (isFrontBack) return keilInfo.minAufbauHoehe[effectiveSide][ctxSegmentIndex] ?? 0;
       const vals = Object.values(keilInfo.minAufbauHoehe[effectiveSide]);
       return vals.length > 0 ? Math.max(0, ...vals) : 0;
     })();
@@ -8403,8 +8457,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
           const ssp2 = props;
           const plTiefeStr = exprVal$1(ssp2.plankenTiefe);
           const plTiefe = plTiefeStr !== "" ? Number(plTiefeStr) : 0.02;
-          const plHoeheStr = exprVal$1(ssp2.plankenHoehe);
-          const plHoehe = plHoeheStr !== "" ? Number(plHoeheStr) : 0.15;
+          exprVal$1(ssp2.plankenHoehe);
           const qbStr = exprVal$1(ssp2.querbalken);
           const qb = qbStr !== "" ? Number(qbStr) : 1;
           const maxThickness = Math.max(0.04, plTiefe + 0.02);
@@ -8412,9 +8465,10 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
           const isRightSide = effectiveSide === 1;
           const sHoeheHinten = vHoehe === 1 && isSideWall && reduction <= 0 ? geoMax.zoneHoeheHinten - reduction - minAH : void 0;
           const [ssWandHoehe, ssWandHoeheHinten] = sHoeheHinten !== void 0 ? isRightSide ? [sHoeheHinten, realSichtschutzHoehe] : [realSichtschutzHoehe, sHoeheHinten] : [realSichtschutzHoehe, void 0];
-          const aufbauInstances = modelSlots?.[SICHTSCHUTZWAND_AUFBAU_SLOT_ID];
-          const slotsOhneAufbau = modelSlots ? Object.fromEntries(Object.entries(modelSlots).filter(([k]) => k !== SICHTSCHUTZWAND_AUFBAU_SLOT_ID)) : void 0;
-          if (aufbauInstances?.length) {
+          const aufbauSlotIds = new Set(Object.values(SICHTSCHUTZWAND_AUFBAU_SLOTS).map((s) => s.id));
+          const aufbauInstances = Object.entries(modelSlots ?? {}).filter(([k]) => aufbauSlotIds.has(k)).flatMap(([, v]) => v);
+          const slotsOhneAufbau = modelSlots ? Object.fromEntries(Object.entries(modelSlots).filter(([k]) => !aufbauSlotIds.has(k))) : void 0;
+          if (aufbauInstances.length) {
             const traegerAnchor = {
               position: [geo.posX, geo.zoneGroupY, geo.posZ],
               rotation: [0, geo.rotY, 0],
@@ -8447,11 +8501,15 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
                 autoAnchor,
                 ...otherProps
               } = inst.props ?? {};
-              const key = `sw-aufbau-${i}|${JSON.stringify(otherProps)}`;
+              const effectiveProps = { ...otherProps };
+              if (otherProps.segmentIndex === void 0 || Number(exprVal$1(otherProps.segmentIndex)) === -1) {
+                effectiveProps.segmentIndex = effectiveSegmentIndex;
+              }
+              const key = `sw-aufbau-${i}|${JSON.stringify(effectiveProps)}`;
               const rendered = /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                 Comp,
                 {
-                  ...otherProps,
+                  ...effectiveProps,
                   id: inst.model?.id,
                   modelAction: inst.modelAction,
                   slots: inst.slots,
@@ -8485,7 +8543,6 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
               wandBreite,
               wandHoehe: ssWandHoehe,
               wandHoeheHinten: ssWandHoeheHinten,
-              plankenHoehe: plHoehe,
               plankenTiefe: plTiefe,
               querbalken: qb,
               material,
@@ -8778,11 +8835,7 @@ const sichtschutzwandDynamicModel = {
         name: "Füllung",
         defaultModelId: "veranda-sichtschutzwand-planken"
       },
-      {
-        id: SICHTSCHUTZWAND_AUFBAU_SLOT_ID,
-        name: "Aufbau",
-        defaultModelId: ""
-      }
+      ...Object.values(SICHTSCHUTZWAND_AUFBAU_SLOTS)
     ]
   }
 };
@@ -8920,7 +8973,6 @@ function useBeschattungGeometry(props) {
   const sparrenAnzahl = eindeckungInfo.sparrenAnzahl > 0 ? eindeckungInfo.sparrenAnzahl : ctx.sparrenAnzahl ?? 6;
   const sparrenBreite = ctx.sparrenBreite;
   const sparrenHoehe = ctx.sparrenHoehe;
-  const pfostenBreite = ctx.pfostenBreite;
   const pfostenTiefe = ctx.pfostenTiefe;
   const schwelle = ctx.schwelle;
   const schwelleBreite = ctx.schwelleBreite;
@@ -8972,7 +9024,7 @@ function useBeschattungGeometry(props) {
   const zVorneUnterdach = -depth / 2 + dachVorsprung + quertraegerTiefeVorne;
   const zHintenUnterdach = depth / 2 - (Number(pfette) === 1 ? pfettenBreite : 0);
   const sparrenTiefeUnterdach = zHintenUnterdach - zVorneUnterdach;
-  const querbalkenBreite = ctx.isQubus ? width : width + pfostenBreite;
+  const querbalkenBreite = width;
   const sparrenPositions = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
     () => calcSparrenPositions(
       querbalkenBreite,
@@ -9214,7 +9266,7 @@ function MarkiseModel(props) {
     const isFront = wandSeiteCtx === 2;
     const isBack = wandSeiteCtx === 3;
     const freeWidth = wandGeo.wandBreite;
-    const fullWidth = isSide ? ctx.depth - ctx.dachVorsprung : ctx.isQubus ? ctx.width : ctx.width + ctx.pfostenBreite;
+    const fullWidth = isSide ? ctx.depth - ctx.dachVorsprung : ctx.width;
     const markiseWidth = anbringungN === 1 ? fullWidth : freeWidth;
     const hasPfette = Number(ctx.pfette) === 1;
     const postHalfDepth = isSide ? ctx.pfostenBreite / 2 : isBack && hasPfette ? ctx.pfettenBreite / 2 : ctx.pfostenTiefe / 2;
@@ -10490,16 +10542,10 @@ function HighlightPlane(props) {
   );
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
     planGeo.dispose();
-  }, [planGeo]);
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
     iconGeo.dispose();
-  }, [iconGeo]);
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
     iconTex.dispose();
-  }, [iconTex]);
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => {
     iconMat.dispose();
-  }, [iconMat]);
+  }, [planGeo, iconGeo, iconTex, iconMat]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     "group",
     {
@@ -10556,10 +10602,9 @@ function registerVerandaSdk() {
     useWandSeite,
     WandInfoContext,
     useWandInfo,
-    SICHTSCHUTZWAND_AUFBAU_SLOT_ID,
+    SICHTSCHUTZWAND_AUFBAU_SLOTS,
     SICHTSCHUTZWAND_FUELLUNG_SLOT_ID,
-    VERANDA_SLOTS,
-    QUBUS_SLOTS
+    KONSTRUKTION_SLOTS
   };
   window.__VERANDA_SDK__ = sdk;
 }
