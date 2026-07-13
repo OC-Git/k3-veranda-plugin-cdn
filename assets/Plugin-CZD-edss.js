@@ -10497,8 +10497,9 @@ function HighlightPlane(props) {
   const hoehe = Number(exprVal$1(props.hoehe)) || 0;
   const iconSize = Number(exprVal$1(props.iconSize)) || 0.15;
   const showIcon = Number(exprVal$1(props.showIcon) ?? "1") !== 0;
+  const segmentIndex = Number(exprVal$1(props.segmentIndex) ?? "-1");
   const wandSeite = useWandSeite();
-  const geo = useWandGeometry(wandSeite, breite, 0, hoehe);
+  const geo = useWandGeometry(wandSeite, breite, 0, hoehe, segmentIndex);
   const width = geo.wandBreite;
   const hV = geo.zoneHoeheVorne;
   const hH = geo.zoneHoeheHinten;
@@ -10606,7 +10607,7 @@ function registerVerandaSdk() {
 registerVerandaSdk();
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "0.1.5",
+  version: "0.1.6",
   viewer: {
     sceneComponents: {
       "oc.veranda.shadowLighting": shadowLightingSceneComponent
@@ -10649,12 +10650,6 @@ const Plugin = {
     }
   },
   logic: {
-    core: {
-      preprocessFullApp: {
-        description: "Veranda Plugin: App-Daten vor Store-Init validieren",
-        fn: (app) => app
-      }
-    },
     config: {
       onSaveEvent: {
         description: "Veranda Plugin: Post-Save-Event (Analytics/Webhook)",
