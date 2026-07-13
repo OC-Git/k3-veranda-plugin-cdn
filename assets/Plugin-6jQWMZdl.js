@@ -8611,8 +8611,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
   }
   const baseDefaultProps = {
     breite: { expression: "0" },
-    hoehe: { expression: "0" },
-    segmentIndex: { expression: "-1" }
+    hoehe: { expression: "0" }
   };
   if (wandTyp === WAND_TYP.KEIL || wandTyp === WAND_TYP.SCHIEBETUER) {
     baseDefaultProps.fuellungTyp = { expression: "0" };
@@ -8643,7 +8642,6 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
   const DIALOG_LABELS = {
     breite: "Breite (0=auto aus Veranda) (m)",
     hoehe: "Höhe (0=auto aus Veranda) (m)",
-    segmentIndex: "Feld-Index (0=1. Feld, 1=2. Feld, … | -1=volle Breite)",
     glasTyp: "Füllungstyp (0=Glas,1=Poly,2=Planken)",
     fuellungTypOben: "Füllung oben (0=Glas, 1=Poly, 2=Planken)",
     fuellungTypUnten: "Füllung unten (0=Glas, 1=Poly, 2=Planken)",
@@ -8690,9 +8688,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     querbalken: "Abschlussbalken oben",
     volleHoehe: "Volle Höhe (1=Ja, 0=Nein)"
   };
-  let baseDialogKeys = ["breite", "hoehe", "segmentIndex"];
+  let baseDialogKeys = ["breite", "hoehe"];
   if (wandTyp === WAND_TYP.KEIL || wandTyp === WAND_TYP.SCHIEBETUER) {
-    baseDialogKeys = ["breite", "hoehe", "segmentIndex", "fuellungTyp", "opacity", "roughness", "plankenHoehe", "plankenTiefe"];
+    baseDialogKeys = ["breite", "hoehe", "fuellungTyp", "opacity", "roughness", "plankenHoehe", "plankenTiefe"];
     if (wandTyp === WAND_TYP.KEIL) {
       baseDialogKeys.push("glasTyp");
     }
@@ -8700,7 +8698,6 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     baseDialogKeys = [
       "breite",
       "hoehe",
-      "segmentIndex",
       "fuellungTypOben",
       "opacityOben",
       "roughnessOben",
@@ -8803,7 +8800,6 @@ const shuttersDynamicModel = createWandModel(WAND_TYP.SHUTTERS, "Shutters", {
   anzahlRahmen: 1,
   oeffnungSchiebe: 0,
   oeffnungLamellen: 0,
-  segmentIndex: { expression: "-1" },
   rahmenBreite: 0.04,
   rahmenTiefe: 0.04
 }, void 0, "Pro");
@@ -8816,7 +8812,6 @@ const _base = createWandModel(
     hoehe: 0,
     volleHoehe: 1,
     minAufbauHoehe: 0,
-    segmentIndex: { expression: "-1" },
     // Planken
     plankenHoehe: 0.15,
     plankenTiefe: 0.02,
@@ -8979,10 +8974,11 @@ function useBeschattungGeometry(props) {
   const pfette = ctx.pfette;
   const pfettenBreite = ctx.pfettenBreite;
   const sparrenAuflage = ctx.sparrenAuflage;
+  const isQubus = ctx.isQubus ?? false;
   const innenliegend = sparrenAuflage !== void 0 && Number(sparrenAuflage) === 1;
   const { hoeheVorne: hRawVorne, hoeheHinten: hRawHinten } = calcVerandaGeometry(depth, dachneigung, height);
-  const quertraegerTiefeVorne = Number(schwelle) === 1 ? Math.max(schwelleBreite, pfostenTiefe) : 0;
-  const quertraegerTiefeHinten = Number(pfette) === 1 ? Math.max(pfettenBreite, pfostenTiefe) : 0;
+  const quertraegerTiefeVorne = isQubus ? 0 : Number(schwelle) === 1 ? Math.max(schwelleBreite, pfostenTiefe) : 0;
+  const quertraegerTiefeHinten = isQubus ? 0 : Number(pfette) === 1 ? Math.max(pfettenBreite, pfostenTiefe) : 0;
   const steigung = depth > 0 ? (hRawHinten - hRawVorne) / depth : 0;
   let zVorne;
   let zHinten;
@@ -9022,7 +9018,7 @@ function useBeschattungGeometry(props) {
   const zHintenAufdach = depth / 2 - wandHorizTiefe;
   const zVorneAufdach = -depth / 2 + quertraegerTiefeVorne;
   const zVorneUnterdach = -depth / 2 + dachVorsprung + quertraegerTiefeVorne;
-  const zHintenUnterdach = depth / 2 - (Number(pfette) === 1 ? pfettenBreite : 0);
+  const zHintenUnterdach = depth / 2 - (isQubus ? 0 : Number(pfette) === 1 ? pfettenBreite : 0);
   const sparrenTiefeUnterdach = zHintenUnterdach - zVorneUnterdach;
   const querbalkenBreite = width;
   const sparrenPositions = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
@@ -9266,7 +9262,7 @@ function MarkiseModel(props) {
     const isFront = wandSeiteCtx === 2;
     const isBack = wandSeiteCtx === 3;
     const freeWidth = wandGeo.wandBreite;
-    const fullWidth = isSide ? ctx.depth - ctx.dachVorsprung : ctx.width;
+    const fullWidth = isSide ? ctx.depth - ctx.dachVorsprung : freeWidth + ctx.pfostenBreite;
     const markiseWidth = anbringungN === 1 ? fullWidth : freeWidth;
     const hasPfette = Number(ctx.pfette) === 1;
     const postHalfDepth = isSide ? ctx.pfostenBreite / 2 : isBack && hasPfette ? ctx.pfettenBreite / 2 : ctx.pfostenTiefe / 2;
@@ -9283,7 +9279,7 @@ function MarkiseModel(props) {
     const kassetteR_sk = kassettenDurchmesser > 0 ? kassettenDurchmesser / 2 : KASSETTE_R;
     const kastenW_sk = kastenBreite > 0 ? kastenBreite : kassetteR_sk * 2;
     const kastenH_sk = kastenHoehe > 0 ? kastenHoehe : kassetteR_sk * 2;
-    const baseHeight = isFront ? wandGeo.zoneHoeheVorne : isBack ? bgeo.ySparrenUKHinten : bgeo.ySparrenUKVorne;
+    const baseHeight = isFront ? wandGeo.zoneHoeheVorne : isBack ? bgeo.ySparrenUKHinten : ctx.isQubus ? wandGeo.zoneHoeheVorne : bgeo.ySparrenUKVorne;
     const kassetteTopY = baseHeight - keilReduction;
     const maxFall = Math.max(0, wandGeo.zoneHoeheVorne - keilReduction - ssHoeheFromCtx);
     const gesamtFall = tiefe > 0 ? Math.min(tiefe, maxFall) : maxFall;
@@ -9839,8 +9835,7 @@ const markisePropsSchema = {
     { value: "1", label: "Außen" },
     { value: "2", label: "Innen" }
   ] },
-  mitKeil: { type: "expression", label: "Keil berücksichtigen – Senkrecht (0=nein, 1=ja)" },
-  segmentIndex: { type: "expression", label: "Segment-Index (0=links-außen, -1=auto/voll)" }
+  mitKeil: { type: "expression", label: "Keil berücksichtigen – Senkrecht (0=nein, 1=ja)" }
 };
 const markiseDynamicModel = {
   type: "veranda-markise",
@@ -9859,8 +9854,7 @@ const markiseDynamicModel = {
     kastenHoehe: { expression: "0" },
     anbringung: "2",
     mitKeil: { expression: "1" },
-    winkel: { expression: "0" },
-    segmentIndex: { expression: "-1" }
+    winkel: { expression: "0" }
   },
   propsDialog: markisePropsSchema,
   component: MarkiseModel,
