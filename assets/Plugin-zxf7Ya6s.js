@@ -715,6 +715,25 @@ function useVerandaGeometry() {
   return veranda_mf_2_plugin__loadShare__react__loadShare__.useContext(VerandaGeometryContext);
 }
 
+let state$1 = { linksIds: [], rechtsIds: [] };
+const listeners$1 = /* @__PURE__ */ new Set();
+const seitenteilStore = {
+  get: () => state$1,
+  setIds: (linksIds, rechtsIds) => {
+    const same = state$1.linksIds.length === linksIds.length && state$1.rechtsIds.length === rechtsIds.length && state$1.linksIds.every((id, i) => id === linksIds[i]) && state$1.rechtsIds.every((id, i) => id === rechtsIds[i]);
+    if (same) return;
+    state$1 = { linksIds, rechtsIds };
+    listeners$1.forEach((l) => l());
+  },
+  subscribe: (cb) => {
+    listeners$1.add(cb);
+    return () => listeners$1.delete(cb);
+  }
+};
+function useSeitenteilIds() {
+  return veranda_mf_2_plugin__loadShare__react__loadShare__.useSyncExternalStore(seitenteilStore.subscribe, seitenteilStore.get);
+}
+
 const WandSeiteContext = veranda_mf_2_plugin__loadShare__react__loadShare__.createContext(0);
 const WandSeiteProvider = WandSeiteContext.Provider;
 function useWandSeite() {
@@ -885,6 +904,12 @@ function KonstruktionModel(props) {
   const ledSlot = slots?.[KONSTRUKTION_SLOTS.led.id];
   const wandLinksSlot = slots?.[KONSTRUKTION_SLOTS.wandLinks.id];
   const wandRechtsSlot = slots?.[KONSTRUKTION_SLOTS.wandRechts.id];
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    seitenteilStore.setIds(
+      (wandLinksSlot ?? []).map((i) => i.id),
+      (wandRechtsSlot ?? []).map((i) => i.id)
+    );
+  }, [wandLinksSlot, wandRechtsSlot]);
   const wandVorneLinksSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneLinks.id];
   const wandVorneMitteLSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneMitteL.id];
   const wandVorneMitteSlot = slots?.[KONSTRUKTION_SLOTS.wandVorneMitte.id];
@@ -1200,7 +1225,7 @@ const konstruktionPropsSchema = {
 const konstruktionDynamicModel = {
   type: "veranda",
   label: "Konstruktion",
-  description: "Modell für Veranda und Qubus",
+  description: "Konstruktion – Veranda (Pultdach) oder Qubus (Flachdach)",
   defaultProps: {
     slotDefinitions: [...Object.values(KONSTRUKTION_SLOTS)],
     konstruktionstyp: "veranda",
@@ -2108,8 +2133,8 @@ const ledBeleuchtungPropsSchema = {
 };
 const ledStripeDynamicModel = {
   type: "ledBeleuchtung",
-  label: "LED Beleuchtung",
-  description: "LED Strahler oder Stripes, automatisch an den Sparren montiert",
+  label: "LED-Beleuchtung",
+  description: "Beleuchtung – LED Strahler oder Stripes an den Sparren",
   materials: ["led"],
   disabledForAR: true,
   requiredLicense: "Enterprise",
@@ -2430,7 +2455,8 @@ function SceneEnvironmentModel(props) {
 }
 const sceneEnvironmentDynamicModel = {
   id: "oc.veranda.sceneEnvironment",
-  label: "Scene Environment",
+  label: "Szenenumgebung",
+  description: "Szene – Beleuchtung, Umgebung und Kameraeinstellungen",
   type: "root",
   component: SceneEnvironmentModel,
   defaultProps: {
@@ -2515,23 +2541,17 @@ const orbitControlsLimitSceneComponent = {
 function SeitenteilKameraEffect() {
   const setCameraPosition = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useSetCameraPosition();
   const openInstance = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance();
-  const linksInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandLinks.id);
-  const rechtsInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandRechts.id);
-  const pfostenInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.pfosten.id);
-  const eindeckungInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.eindeckung.id);
-  const isLinks = linksInstances.some((i) => i.id === openInstance.id);
-  const isRechts = rechtsInstances.some((i) => i.id === openInstance.id);
+  const { linksIds, rechtsIds } = useSeitenteilIds();
+  const isLinks = linksIds.includes(openInstance.id);
+  const isRechts = rechtsIds.includes(openInstance.id);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
     console.log("[oc.veranda] SeitenteilKamera", {
       openId: openInstance.id,
-      variableId: openInstance.variableId,
       isRoot: openInstance.isRoot,
       isLinks,
       isRechts,
-      linksIds: linksInstances.map((i) => i.id),
-      rechtsIds: rechtsInstances.map((i) => i.id),
-      pfostenIds: pfostenInstances.map((i) => i.id),
-      eindeckungIds: eindeckungInstances.map((i) => i.id)
+      linksIds,
+      rechtsIds
     });
     if (isLinks) {
       setCameraPosition({ position: [-10, 0, 0], lookAt: [0, 0, 0], focusType: "static" });
@@ -2540,17 +2560,7 @@ function SeitenteilKameraEffect() {
     } else if (openInstance.isRoot) {
       setCameraPosition(null);
     }
-  }, [
-    openInstance.id,
-    openInstance.isRoot,
-    isLinks,
-    isRechts,
-    setCameraPosition,
-    linksInstances,
-    rechtsInstances,
-    pfostenInstances,
-    eindeckungInstances
-  ]);
+  }, [openInstance.id, openInstance.isRoot, isLinks, isRechts, setCameraPosition, linksIds, rechtsIds]);
   return null;
 }
 const seitenteilKameraSceneComponent = {
@@ -4678,8 +4688,8 @@ const glasEindeckungPropsSchema = {
 };
 const glasEindeckungDynamicModel = {
   type: "veranda-glas-eindeckung",
-  label: "Veranda Glas/Poly Eindeckung",
-  description: "Glas- oder Polycarbonat-Eindeckung für Veranda und Qubus",
+  label: "Glas-/Poly-Eindeckung",
+  description: "Eindeckung – Glas oder Polycarbonat",
   defaultProps: {
     width: { expression: "1" },
     height: { expression: "1" },
@@ -5059,8 +5069,8 @@ const metallEindeckungPropsSchema = {
 };
 const metallEindeckungDynamicModel = {
   type: "veranda-metall-eindeckung",
-  label: "Veranda Welle/Trapez Eindeckung",
-  description: "Metall-Eindeckung mit Wellen- oder Trapezblechprofil",
+  label: "Metall-Eindeckung",
+  description: "Eindeckung – Welle oder Trapezblech",
   defaultProps: {
     width: { expression: "1" },
     height: { expression: "1" },
@@ -5756,8 +5766,8 @@ const lamellenEindeckungPropsSchema = {
 };
 const lamellenEindeckungDynamicModel = {
   type: "veranda-lamellen-eindeckung",
-  label: "Lamelleneindeckung (Dach)",
-  description: "Lamellen-Eindeckung für das Dach mit einstellbarem Winkel",
+  label: "Lamelleneindeckung",
+  description: "Eindeckung – Lamellen mit einstellbarem Neigungswinkel",
   screenshot: "/images/thumbnails/pfosten-rund.png",
   defaultProps: {
     lamellenBreite: { expression: "0.202" },
@@ -6250,8 +6260,8 @@ const solarEindeckungPropsSchema = {
 };
 const solarEindeckungDynamicModel = {
   type: "veranda-solar-eindeckung",
-  label: "Solareindeckung",
-  description: "Solarpanel-Eindeckung für Veranda-Dachflächen",
+  label: "Solar-Eindeckung",
+  description: "Eindeckung – Photovoltaik-Solarmodule",
   defaultProps: {
     // Geometrie
     totalBreite: { expression: "0" },
@@ -8172,7 +8182,7 @@ function SichtschutzwandPlankenComponent(props) {
 const sichtschutzwandPlankenDynamicModel = {
   type: "veranda-sichtschutzwand-planken",
   label: "Sichtschutzwand Planken",
-  description: "Planken-Füllung für Sichtschutzwand",
+  description: "Sichtschutzwand – Planken-Füllung",
   materials: ["profil"],
   defaultProps: {
     plankenHoehe: { expression: "0.15" },
@@ -10121,7 +10131,7 @@ const markisePropsSchema = {
 const markiseDynamicModel = {
   type: "veranda-markise",
   label: "Markise",
-  description: "Auf-/Unterdach-/Senkrecht-/Kassettenmarkise (markiseTyp wählbar). Senkrecht: im Wand-Slot platzieren.",
+  description: "Beschattung – Auf-/Unterdach-/Senkrecht-/Kassettenmarkise",
   defaultProps: {
     markiseTyp: "0",
     tiefe: { expression: "0" },
@@ -10468,8 +10478,8 @@ const plisseePropsSchema = {
 };
 const plisseeDynamicModel = createBeschattungUnterdachModel({
   type: "veranda-plissee",
-  label: "Plissee (Faltstore)",
-  description: "Faltstoren-Beschattung mit parametrischen Faltsegmenten",
+  label: "Plissee",
+  description: "Beschattung – Faltstore mit parametrischen Faltsegmenten",
   defaultProps: {
     tiefe: { expression: "2" },
     opacity: { expression: "0.8" },
@@ -10756,8 +10766,8 @@ const stoffPropsSchema = {
 };
 const stoffDynamicModel = createBeschattungUnterdachModel({
   type: "veranda-stoff",
-  label: "Stoff (Faltmarkise)",
-  description: "Faltmarkise mit hängenden Stoffsegmenten",
+  label: "Faltmarkise",
+  description: "Beschattung – Faltmarkise mit hängenden Stoffsegmenten",
   defaultProps: {
     tiefe: { expression: "2" },
     opacity: { expression: "1" },

@@ -3,7 +3,7 @@ import { _ as __vitePreload } from './preload-helper-CqoC6PUU.js';
 const exposesMap = {
     
         "./Plugin": async () => {
-          const importModule = await __vitePreload(() => import('./Plugin-BlnMhWKU.js'),true              ?[]:void 0);
+          const importModule = await __vitePreload(() => import('./Plugin-zxf7Ya6s.js'),true              ?[]:void 0);
           const exportModule = {};
           Object.assign(exportModule, importModule);
           Object.defineProperty(exportModule, "__esModule", {
