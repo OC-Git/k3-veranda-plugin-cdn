@@ -230,7 +230,7 @@ reactDom_production.useFormState = function (action, initialState, permalink) {
 reactDom_production.useFormStatus = function () {
   return ReactSharedInternals.H.useHostTransitionStatus();
 };
-reactDom_production.version = "19.2.4";
+reactDom_production.version = "19.1.1";
 
 function checkDCE() {
   if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {

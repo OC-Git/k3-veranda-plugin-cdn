@@ -1247,7 +1247,7 @@ const konstruktionDynamicModel = {
     customShareInfo: {shareConfig:{
       singleton: true,
       strictVersion: false,
-      requiredVersion: "^2.3.0"
+      requiredVersion: "^2.5.0"
     }}}));
     const exportModule = await res.then(factory => factory());
     var veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__ = exportModule;
@@ -2512,11 +2512,8 @@ const orbitControlsLimitSceneComponent = {
   }
 };
 
-const cameraApiAvailable = typeof veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useSetCameraPosition === "function" && typeof veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance === "function";
-if (!cameraApiAvailable) {
-  console.warn("[oc.veranda] Seitenteile-Kamera inaktiv: K3 Test-Server braucht k3-plugin-api ≥ 2.3.0");
-}
-function SeitenteilKameraEffect() {
+const hasNewApi = typeof veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useSetCameraPosition === "function" && typeof veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance === "function";
+function SeitenteilKameraNewApi() {
   const setCameraPosition = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useSetCameraPosition();
   const openInstance = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance();
   const linksInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandLinks.id);
@@ -2524,14 +2521,6 @@ function SeitenteilKameraEffect() {
   const isLinks = linksInstances.some((i) => i.id === openInstance.id);
   const isRechts = rechtsInstances.some((i) => i.id === openInstance.id);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    console.log("[oc.veranda] SeitenteilKamera", {
-      openId: openInstance.id,
-      isRoot: openInstance.isRoot,
-      isLinks,
-      isRechts,
-      linksIds: linksInstances.map((i) => i.id),
-      rechtsIds: rechtsInstances.map((i) => i.id)
-    });
     if (isLinks) {
       setCameraPosition({ position: [-10, 0, 0], lookAt: [0, 0, 0], focusType: "dynamic", disableFocus: true });
     } else if (isRechts) {
@@ -2542,10 +2531,58 @@ function SeitenteilKameraEffect() {
   }, [openInstance.id, openInstance.isRoot, isLinks, isRechts, setCameraPosition]);
   return null;
 }
+function SeitenteilKameraFallback() {
+  const { camera, controls } = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useThree();
+  const linksInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandLinks.id);
+  const rechtsInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandRechts.id);
+  const [url, setUrl] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(() => window.location.href);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    const update = () => setUrl(window.location.href);
+    window.addEventListener("popstate", update);
+    const origPush = history.pushState.bind(history);
+    const origReplace = history.replaceState.bind(history);
+    history.pushState = (...args) => {
+      origPush(...args);
+      update();
+    };
+    history.replaceState = (...args) => {
+      origReplace(...args);
+      update();
+    };
+    return () => {
+      window.removeEventListener("popstate", update);
+      history.pushState = origPush;
+      history.replaceState = origReplace;
+    };
+  }, []);
+  const isLinks = linksInstances.some((i) => url.includes(i.id));
+  const isRechts = rechtsInstances.some((i) => url.includes(i.id));
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    console.log("[oc.veranda] SeitenteilKamera fallback", {
+      url,
+      isLinks,
+      isRechts,
+      linksIds: linksInstances.map((i) => i.id),
+      rechtsIds: rechtsInstances.map((i) => i.id)
+    });
+    if (!controls) return;
+    const orb = controls;
+    if (isLinks) {
+      camera.position.set(-10, camera.position.y, 0);
+      orb.target.set(0, 0, 0);
+      orb.update();
+    } else if (isRechts) {
+      camera.position.set(10, camera.position.y, 0);
+      orb.target.set(0, 0, 0);
+      orb.update();
+    }
+  }, [isLinks, isRechts, camera, controls, url]);
+  return null;
+}
 const seitenteilKameraSceneComponent = {
   description: "Kamera senkrecht auf Seitenteile ausrichten beim Öffnen",
   hoc: (Wrapped) => (props) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-    cameraApiAvailable && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SeitenteilKameraEffect, {}),
+    hasNewApi ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SeitenteilKameraNewApi, {}) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SeitenteilKameraFallback, {}),
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Wrapped, { ...props })
   ] })
 };
