@@ -2512,8 +2512,7 @@ const orbitControlsLimitSceneComponent = {
   }
 };
 
-const hasNewApi = typeof veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useSetCameraPosition === "function" && typeof veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance === "function";
-function SeitenteilKameraNewApi() {
+function SeitenteilKameraEffect() {
   const setCameraPosition = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useSetCameraPosition();
   const openInstance = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance();
   const linksInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandLinks.id);
@@ -2522,67 +2521,19 @@ function SeitenteilKameraNewApi() {
   const isRechts = rechtsInstances.some((i) => i.id === openInstance.id);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
     if (isLinks) {
-      setCameraPosition({ position: [-10, 0, 0], lookAt: [0, 0, 0], focusType: "dynamic", disableFocus: true });
+      setCameraPosition({ position: [-10, 0, 0], lookAt: [0, 0, 0], focusType: "dynamic" });
     } else if (isRechts) {
-      setCameraPosition({ position: [10, 0, 0], lookAt: [0, 0, 0], focusType: "dynamic", disableFocus: true });
+      setCameraPosition({ position: [10, 0, 0], lookAt: [0, 0, 0], focusType: "dynamic" });
     } else if (openInstance.isRoot) {
       setCameraPosition(null);
     }
   }, [openInstance.id, openInstance.isRoot, isLinks, isRechts, setCameraPosition]);
   return null;
 }
-const getK3OpenId = () => {
-  try {
-    const state = window.oc3?.get();
-    return state?.openInstance?.id ?? state?.ruleEngine?.openInstance?.id ?? "";
-  } catch {
-    return "";
-  }
-};
-function SeitenteilKameraFallback() {
-  const { camera, controls } = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useThree();
-  const linksInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandLinks.id);
-  const rechtsInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandRechts.id);
-  const [openId, setOpenId] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(() => getK3OpenId());
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    const onHash = () => setOpenId(getK3OpenId());
-    window.addEventListener("hashchange", onHash);
-    const oc3 = window.oc3;
-    const unsub = oc3?.subscribe?.(() => setOpenId(getK3OpenId()));
-    console.log("[oc.veranda] oc3 state", oc3?.get?.());
-    return () => {
-      window.removeEventListener("hashchange", onHash);
-      unsub?.();
-    };
-  }, []);
-  const isLinks = linksInstances.some((i) => i.id === openId);
-  const isRechts = rechtsInstances.some((i) => i.id === openId);
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    console.log("[oc.veranda] SeitenteilKamera fallback", {
-      openId,
-      isLinks,
-      isRechts,
-      linksIds: linksInstances.map((i) => i.id),
-      rechtsIds: rechtsInstances.map((i) => i.id)
-    });
-    if (!controls) return;
-    const orb = controls;
-    if (isLinks) {
-      camera.position.set(-10, camera.position.y, 0);
-      orb.target.set(0, 0, 0);
-      orb.update();
-    } else if (isRechts) {
-      camera.position.set(10, camera.position.y, 0);
-      orb.target.set(0, 0, 0);
-      orb.update();
-    }
-  }, [isLinks, isRechts, camera, controls, openId]);
-  return null;
-}
 const seitenteilKameraSceneComponent = {
   description: "Kamera senkrecht auf Seitenteile ausrichten beim Öffnen",
   hoc: (Wrapped) => (props) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-    hasNewApi ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SeitenteilKameraNewApi, {}) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SeitenteilKameraFallback, {}),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SeitenteilKameraEffect, {}),
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(Wrapped, { ...props })
   ] })
 };
