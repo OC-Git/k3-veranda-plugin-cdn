@@ -2520,14 +2520,22 @@ function SeitenteilKameraEffect() {
   const isLinks = linksInstances.some((i) => i.id === openInstance.id);
   const isRechts = rechtsInstances.some((i) => i.id === openInstance.id);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    console.log("[oc.veranda] SeitenteilKamera", {
+      openId: openInstance.id,
+      isRoot: openInstance.isRoot,
+      isLinks,
+      isRechts,
+      linksIds: linksInstances.map((i) => i.id),
+      rechtsIds: rechtsInstances.map((i) => i.id)
+    });
     if (isLinks) {
-      setCameraPosition({ position: [-10, 0, 0], lookAt: [0, 0, 0], focusType: "dynamic" });
+      setCameraPosition({ position: [-10, 0, 0], lookAt: [0, 0, 0], focusType: "static" });
     } else if (isRechts) {
-      setCameraPosition({ position: [10, 0, 0], lookAt: [0, 0, 0], focusType: "dynamic" });
+      setCameraPosition({ position: [10, 0, 0], lookAt: [0, 0, 0], focusType: "static" });
     } else if (openInstance.isRoot) {
       setCameraPosition(null);
     }
-  }, [openInstance.id, openInstance.isRoot, isLinks, isRechts, setCameraPosition]);
+  }, [openInstance.id, openInstance.isRoot, isLinks, isRechts, setCameraPosition, linksInstances, rechtsInstances]);
   return null;
 }
 const seitenteilKameraSceneComponent = {
