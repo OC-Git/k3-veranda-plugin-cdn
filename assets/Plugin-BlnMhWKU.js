@@ -2517,16 +2517,21 @@ function SeitenteilKameraEffect() {
   const openInstance = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance();
   const linksInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandLinks.id);
   const rechtsInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.wandRechts.id);
+  const pfostenInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.pfosten.id);
+  const eindeckungInstances = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useConfigurationInstances(KONSTRUKTION_SLOTS.eindeckung.id);
   const isLinks = linksInstances.some((i) => i.id === openInstance.id);
   const isRechts = rechtsInstances.some((i) => i.id === openInstance.id);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
     console.log("[oc.veranda] SeitenteilKamera", {
       openId: openInstance.id,
+      variableId: openInstance.variableId,
       isRoot: openInstance.isRoot,
       isLinks,
       isRechts,
       linksIds: linksInstances.map((i) => i.id),
-      rechtsIds: rechtsInstances.map((i) => i.id)
+      rechtsIds: rechtsInstances.map((i) => i.id),
+      pfostenIds: pfostenInstances.map((i) => i.id),
+      eindeckungIds: eindeckungInstances.map((i) => i.id)
     });
     if (isLinks) {
       setCameraPosition({ position: [-10, 0, 0], lookAt: [0, 0, 0], focusType: "static" });
@@ -2535,7 +2540,17 @@ function SeitenteilKameraEffect() {
     } else if (openInstance.isRoot) {
       setCameraPosition(null);
     }
-  }, [openInstance.id, openInstance.isRoot, isLinks, isRechts, setCameraPosition, linksInstances, rechtsInstances]);
+  }, [
+    openInstance.id,
+    openInstance.isRoot,
+    isLinks,
+    isRechts,
+    setCameraPosition,
+    linksInstances,
+    rechtsInstances,
+    pfostenInstances,
+    eindeckungInstances
+  ]);
   return null;
 }
 const seitenteilKameraSceneComponent = {
