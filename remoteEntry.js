@@ -1,5 +1,5 @@
 import { i as init_1, v as veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__ } from './assets/veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__-YRia8a0_.js';
-import exposesMap from './assets/virtualExposes-CSTKFmn9.js';
+import exposesMap from './assets/virtualExposes-CNygFufi.js';
 import { _ as __vitePreload } from './assets/preload-helper-CqoC6PUU.js';
 
 const importMap = {
@@ -24,13 +24,13 @@ const importMap = {
           return pkg
         }
       ,
-        "three": async () => {
-          let pkg = await __vitePreload(() => import('./assets/three.module-wdyv8Ec4.js'),true              ?[]:void 0);
+        "@react-three/drei": async () => {
+          let pkg = await __vitePreload(() => import('./assets/index-BU2oKdGF.js'),true              ?[]:void 0);
           return pkg
         }
       ,
-        "@react-three/drei": async () => {
-          let pkg = await __vitePreload(() => import('./assets/index-BU2oKdGF.js'),true              ?[]:void 0);
+        "three": async () => {
+          let pkg = await __vitePreload(() => import('./assets/three.module-wdyv8Ec4.js'),true              ?[]:void 0);
           return pkg
         }
       ,
@@ -146,15 +146,15 @@ const importMap = {
             }
           }
         ,
-          "three": {
-            name: "three",
-            version: "0.177.0",
+          "@react-three/drei": {
+            name: "@react-three/drei",
+            version: "10.7.7",
             scope: ["default"],
             loaded: false,
             from: "veranda-plugin",
             async get () {
-              usedShared["three"].loaded = true;
-              const {"three": pkgDynamicImport} = importMap; 
+              usedShared["@react-three/drei"].loaded = true;
+              const {"@react-three/drei": pkgDynamicImport} = importMap; 
               const res = await pkgDynamicImport();
               const exportModule = {...res};
               // All npm packages pre-built by vite will be converted to esm
@@ -172,15 +172,15 @@ const importMap = {
             }
           }
         ,
-          "@react-three/drei": {
-            name: "@react-three/drei",
-            version: "10.7.7",
+          "three": {
+            name: "three",
+            version: "0.177.0",
             scope: ["default"],
             loaded: false,
             from: "veranda-plugin",
             async get () {
-              usedShared["@react-three/drei"].loaded = true;
-              const {"@react-three/drei": pkgDynamicImport} = importMap; 
+              usedShared["three"].loaded = true;
+              const {"three": pkgDynamicImport} = importMap; 
               const res = await pkgDynamicImport();
               const exportModule = {...res};
               // All npm packages pre-built by vite will be converted to esm
