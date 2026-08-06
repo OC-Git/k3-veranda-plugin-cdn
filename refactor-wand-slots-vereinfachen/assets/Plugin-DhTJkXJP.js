@@ -10081,7 +10081,8 @@ function SenkrechtMarkiseModel(props) {
   const effectivePosZ = wandGeo.posZ;
   const railSign = -1;
   const railAbstand = Number(schienenAbstand);
-  const ySign = isSide ? -railSign : railSign;
+  const yFlip = anbringungN === 1 ? -1 : 1;
+  const ySign = (isSide ? -railSign : railSign) * yFlip;
   const kassetteR_sk = kassettenDurchmesser > 0 ? kassettenDurchmesser / 2 : KASSETTE_R;
   const kastenW_sk = kastenBreite > 0 ? kastenBreite : kassetteR_sk * 2;
   const kastenH_sk = kastenHoehe > 0 ? kastenHoehe : kassetteR_sk * 2;
