@@ -327,7 +327,7 @@ function berechnePositionen(gesamtBreite, anzahl) {
   return positionen;
 }
 
-function calcWandGeometry(wandSeite, breite, hoehe, parentWidth, parentDepth, parentHeight, parentDachneigung, pfostenBreite = 0, pfostenTiefe = 0, sparrenHoehe = 0, pfette = 0, pfettenBreite = 0, dachVorsprung = 0, sparrenAuflage = 0, schwelle = 0, schwelleBreite = 0, schwelleHoehe = 0, segmentIndex = -1, pfostenAnzahlVorne = 2, pfostenAnzahlHinten = 2, isQubus = false, segmentAnzahl) {
+function calcWandGeometry(wandSeite, breite, hoehe, parentWidth, parentDepth, parentHeight, parentDachneigung, pfostenBreite = 0, pfostenTiefe = 0, sparrenHoehe = 0, pfette = 0, pfettenBreite = 0, dachVorsprung = 0, sparrenAuflage = 0, schwelle = 0, schwelleBreite = 0, schwelleHoehe = 0, segmentIndex = -1, pfostenAnzahlVorne = 2, pfostenAnzahlHinten = 2, isQubus = false, segmentAnzahl, rinnenHoehe = 0.08) {
   const isSide = wandSeite === 0 || wandSeite === 1;
   const isFront = wandSeite === 2;
   const isBack = wandSeite === 3;
@@ -395,7 +395,10 @@ function calcWandGeometry(wandSeite, breite, hoehe, parentWidth, parentDepth, pa
   const innenliegend = Number(sparrenAuflage) === 1;
   const usableHoeheVorne = isQubus ? hoeheVorne - schwelleHoehe : innenliegend ? hoeheAtWandFront - sparrenHoehe : hoeheAtWandFront;
   const usableHoeheHinten = isQubus ? hoeheHinten - schwelleHoehe : innenliegend ? hoeheAtWandBack - sparrenHoehe : hoeheAtWandBack;
-  const pfostenTopVorne = usableHoeheVorne;
+  const qtVorneRinne = Number(schwelle) === 1 ? Math.max(schwelleBreite, pfostenTiefe) : 0;
+  const schwelleOK = innenliegend ? hoeheVorne + steigung * qtVorneRinne : hoeheVorne + sparrenHoehe;
+  const rinneY = schwelleOK - rinnenHoehe;
+  const pfostenTopVorne = isFront ? rinneY : usableHoeheVorne;
   const defaultHoeheVorne = isSide ? usableHoeheVorne : isFront ? pfostenTopVorne : usableHoeheHinten;
   const defaultHoeheHinten = isSide ? usableHoeheHinten : isBack ? usableHoeheHinten : usableHoeheVorne;
   const wandHoeheVorne = hoehe > 0 ? hoehe : defaultHoeheVorne;
@@ -435,7 +438,8 @@ function calcWandSlotAnchor(geo, wandSeite, segmentIndex = -1, segmentAnzahl) {
     geo.pfostenAnzahlVorne,
     geo.pfostenAnzahlHinten,
     geo.isQubus ?? false,
-    segmentAnzahl
+    segmentAnzahl,
+    geo.rinnenHoehe ?? 0.08
   );
   return {
     position: [g.posX, g.zoneGroupY, g.posZ],
@@ -515,10 +519,6 @@ function calcSlotAnchors(geo) {
   const wandLinks = calcWandSlotAnchor(geo, 1);
   const wandRechts = calcWandSlotAnchor(geo, 0);
   const wandVorne = calcWandSlotAnchor(geo, 2);
-  if (!isQubus) {
-    wandVorne.size.hoehe = hoeheVorne;
-    wandVorne.meta.hoeheVorne = hoeheVorne;
-  }
   const wandHinten = calcWandSlotAnchor(geo, 3);
   const pfosten = {
     position: [0, 0, 0],
@@ -8334,7 +8334,8 @@ function useWandGeometry(wandSeite, breite, _tiefe, hoehe, segmentIndex = -1, se
     p.pfostenAnzahlVorne,
     p.pfostenAnzahlHinten,
     p.isQubus,
-    segmentAnzahl
+    segmentAnzahl,
+    p.rinnenHoehe ?? 0.08
   );
 }
 function BasicWandRenderer({
@@ -8399,7 +8400,8 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
       ctx.pfostenAnzahlVorne,
       ctx.pfostenAnzahlHinten,
       ctx.isQubus,
-      effectiveSegmentAnzahl
+      effectiveSegmentAnzahl,
+      ctx.rinnenHoehe ?? 0.08
     );
     const isSideWall = effectiveSide === 0 || effectiveSide === 1;
     const keilAbschnittFromCtx = effectiveSide >= 0 && effectiveSide < 4 && keilInfo?.keilAbschnitt ? keilInfo.keilAbschnitt[effectiveSide] ?? -1 : -1;
@@ -8429,7 +8431,8 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
       ctx.pfostenAnzahlVorne,
       ctx.pfostenAnzahlHinten,
       ctx.isQubus,
-      effectiveSegmentAnzahl
+      effectiveSegmentAnzahl,
+      ctx.rinnenHoehe ?? 0.08
     );
     const wandBreite = geo.wandBreite;
     const zoneHoeheVorne = geo.zoneHoeheVorne;
@@ -10035,7 +10038,8 @@ function SenkrechtMarkiseModel(props) {
       ctx.pfostenAnzahlVorne,
       ctx.pfostenAnzahlHinten,
       ctx.isQubus,
-      segmentAnzahl
+      segmentAnzahl,
+      ctx.rinnenHoehe ?? 0.08
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -10058,7 +10062,8 @@ function SenkrechtMarkiseModel(props) {
       ctx.pfostenAnzahlVorne,
       ctx.pfostenAnzahlHinten,
       ctx.isQubus,
-      segmentAnzahl
+      segmentAnzahl,
+      ctx.rinnenHoehe
     ]
   );
   const keilAbschnittCtx = wandInfo.keilAbschnitt[wandSeiteCtx] ?? 0;
