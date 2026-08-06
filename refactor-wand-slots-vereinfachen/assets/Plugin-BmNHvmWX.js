@@ -8303,7 +8303,7 @@ const SichtschutzwandWandMemo = veranda_mf_2_plugin__loadShare__react__loadShare
 
 const WAND_TYPE_MAP = {
   [WAND_TYP.KEIL]: "veranda-wand-keil",
-  [WAND_TYP.RAHMENWAND]: "veranda-wand-rahmenwand",
+  [WAND_TYP.RAHMENWANDWAND]: "veranda-wand-rahmenwand",
   [WAND_TYP.SCHIEBETUER]: "veranda-wand-schiebetuer",
   [WAND_TYP.SHUTTERS]: "veranda-wand-shutters",
   [WAND_TYP.SICHTSCHUTZWAND]: "veranda-wand-sichtschutzwand",
@@ -8447,7 +8447,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
       case WAND_TYP.KEIL:
         frameThickness = Number(exprVal$1(props.dicke) ?? 0.07);
         break;
-      case WAND_TYP.RAHMENWAND:
+      case WAND_TYP.RAHMENWANDWAND:
         frameThickness = 0.05;
         break;
       case WAND_TYP.SCHIEBETUER: {
@@ -8540,7 +8540,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
           beamBottomY = 0;
           break;
         }
-        case WAND_TYP.RAHMENWAND:
+        case WAND_TYP.RAHMENWANDWAND:
         default: {
           beamHeight = Math.max(0, zoneHoeheHinten - ssReduction);
           beamBottomY = ssReduction;
@@ -8549,7 +8549,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
       }
     }
     let aufbauTopLevel = null;
-    const beschattungInstances = wandTyp === WAND_TYP.RAHMEN || wandTyp === WAND_TYP.SCHIEBETUER ? Object.entries(modelSlots ?? {}).filter(([k]) => k === WAND_BESCHATTUNG_SLOT.id).flatMap(([, v]) => v) : [];
+    const beschattungInstances = wandTyp === WAND_TYP.RAHMENWAND || wandTyp === WAND_TYP.SCHIEBETUER ? Object.entries(modelSlots ?? {}).filter(([k]) => k === WAND_BESCHATTUNG_SLOT.id).flatMap(([, v]) => v) : [];
     const beschattungNode = beschattungInstances.length > 0 ? beschattungInstances.map((inst, i) => {
       const Comp = inst.component;
       if (!Comp) return null;
@@ -8646,7 +8646,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
             }
           );
         }
-        case WAND_TYP.RAHMENWAND: {
+        case WAND_TYP.RAHMENWANDWAND: {
           const rp = props;
           const isSide = effectiveSide === 0 || effectiveSide === 1;
           const isRightSide = effectiveSide === 1;
@@ -8927,7 +8927,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     baseDefaultProps.glasTyp = { expression: "0" };
     baseDefaultProps.opacity = { expression: "0.2" };
     baseDefaultProps.roughness = { expression: "0" };
-  } else if (wandTyp === WAND_TYP.RAHMENWAND) {
+  } else if (wandTyp === WAND_TYP.RAHMENWANDWAND) {
     baseDefaultProps.fuellungTypOben = { expression: "0" };
     baseDefaultProps.opacityOben = { expression: "0.2" };
     baseDefaultProps.roughnessOben = { expression: "0" };
@@ -9011,7 +9011,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     if (wandTyp === WAND_TYP.KEIL) {
       baseDialogKeys.push("glasTyp");
     }
-  } else if (wandTyp === WAND_TYP.RAHMENWAND) {
+  } else if (wandTyp === WAND_TYP.RAHMENWANDWAND) {
     baseDialogKeys = [
       "breite",
       "hoehe",
@@ -9040,7 +9040,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
       wandPropsSchema[key] = { type: "expression", label: label2 };
     }
   }
-  const hasBeschattungSlot = wandTyp === WAND_TYP.RAHMEN || wandTyp === WAND_TYP.SCHIEBETUER;
+  const hasBeschattungSlot = wandTyp === WAND_TYP.RAHMENWAND || wandTyp === WAND_TYP.SCHIEBETUER;
   return {
     type: WAND_TYPE_MAP[wandTyp] ?? `veranda-wand-typ${wandTyp}`,
     label,
