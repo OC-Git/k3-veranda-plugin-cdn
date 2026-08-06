@@ -8190,8 +8190,8 @@ const SICHTSCHUTZWAND_AUFBAU_SLOTS = {
   aufbauVorne: { id: "veranda-slot-aufbau-vorne", name: "Aufbau Vorne" },
   aufbauHinten: { id: "veranda-slot-aufbau-hinten", name: "Aufbau Hinten" }
 };
-const SENKRECHT_MARKISE_SLOT = {
-  id: "veranda-slot-senkrecht-markise"};
+const WAND_BESCHATTUNG_SLOT = {
+  id: "veranda-slot-wand-beschattung"};
 
 function renderAufbauInstance(inst, key, wandBreite, wandHoehe) {
   const Comp = inst.component;
@@ -8547,8 +8547,8 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
       }
     }
     let aufbauTopLevel = null;
-    const smInstances = Object.entries(modelSlots ?? {}).filter(([k]) => k === SENKRECHT_MARKISE_SLOT.id).flatMap(([, v]) => v);
-    const senkrechtMarkiseNode = smInstances.length > 0 ? smInstances.map((inst, i) => {
+    const beschattungInstances = wandTyp === WAND_TYP.RAHMEN || wandTyp === WAND_TYP.SCHIEBETUER ? Object.entries(modelSlots ?? {}).filter(([k]) => k === WAND_BESCHATTUNG_SLOT.id).flatMap(([, v]) => v) : [];
+    const beschattungNode = beschattungInstances.length > 0 ? beschattungInstances.map((inst, i) => {
       const Comp = inst.component;
       if (!Comp) return null;
       const {
@@ -8569,21 +8569,17 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
         wandSeite: _ownWs,
         ...otherProps
       } = inst.props ?? {};
-      const effectiveProps = {
-        ...otherProps,
-        segmentIndex: effectiveSegmentIndex
-      };
-      const key = `sm-child-${i}|${JSON.stringify(effectiveProps)}`;
       return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
         Comp,
         {
-          ...effectiveProps,
+          ...otherProps,
+          segmentIndex: effectiveSegmentIndex,
           id: inst.model?.id,
           modelAction: inst.modelAction,
           parentGeometry: ctx,
           materials: instMat
         },
-        key
+        `beschattung-${i}`
       );
     }) : null;
     const renderContent = () => {
@@ -8907,10 +8903,10 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
         ]
       }
     );
-    if (aufbauTopLevel || senkrechtMarkiseNode) {
+    if (aufbauTopLevel || beschattungNode) {
       return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
         wallGroup,
-        senkrechtMarkiseNode,
+        beschattungNode,
         aufbauTopLevel
       ] });
     }
