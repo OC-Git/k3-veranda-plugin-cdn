@@ -8191,7 +8191,9 @@ const SICHTSCHUTZWAND_AUFBAU_SLOTS = {
   aufbauHinten: { id: "veranda-slot-aufbau-hinten", name: "Aufbau Hinten" }
 };
 const WAND_BESCHATTUNG_SLOT = {
-  id: "veranda-slot-wand-beschattung"};
+  id: "veranda-slot-wand-beschattung",
+  name: "Beschattung"
+};
 
 function renderAufbauInstance(inst, key, wandBreite, wandHoehe) {
   const Comp = inst.component;
@@ -9038,6 +9040,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
       wandPropsSchema[key] = { type: "expression", label: label2 };
     }
   }
+  const hasBeschattungSlot = wandTyp === WAND_TYP.RAHMEN || wandTyp === WAND_TYP.SCHIEBETUER;
   return {
     type: WAND_TYPE_MAP[wandTyp] ?? `veranda-wand-typ${wandTyp}`,
     label,
@@ -9050,7 +9053,10 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     component: WandModel,
     materials: slots,
     disabledForAR: false,
-    requiredLicense
+    requiredLicense,
+    ...hasBeschattungSlot && {
+      slotDefinitions: [WAND_BESCHATTUNG_SLOT]
+    }
   };
 }
 
