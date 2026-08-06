@@ -9047,16 +9047,16 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     description: `Wand – ${label}`,
     defaultProps: {
       ...baseDefaultProps,
-      ...convertedExtra
+      ...convertedExtra,
+      ...hasBeschattungSlot && {
+        slotDefinitions: [WAND_BESCHATTUNG_SLOT]
+      }
     },
     propsDialog: wandPropsSchema,
     component: WandModel,
     materials: slots,
     disabledForAR: false,
-    requiredLicense,
-    ...hasBeschattungSlot && {
-      slotDefinitions: [WAND_BESCHATTUNG_SLOT]
-    }
+    requiredLicense
   };
 }
 
