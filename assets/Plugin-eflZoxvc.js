@@ -389,6 +389,18 @@ const MATERIAL_DEFAULTS = {
   gummi: { roughness: 0.9, metalness: 0 }};
 
 const OFFSET = 6;
+function collectDescendantIds(inst, side, pos, result) {
+  const subSlots = inst.slots;
+  if (!subSlots) return;
+  for (const subInsts of Object.values(subSlots)) {
+    if (!Array.isArray(subInsts)) continue;
+    for (const sub of subInsts) {
+      const subId = sub.modelAction?.anchoringSelection?.instance?.id;
+      if (subId) result.push({ id: String(subId), side, pos });
+      collectDescendantIds(sub, side, pos, result);
+    }
+  }
+}
 function makeSeitenInstanz(inst, side, anchorPos) {
   const id = inst.modelAction?.anchoringSelection?.instance?.id;
   if (!id) return null;
@@ -417,9 +429,18 @@ function useSeitenKamera(slotAnchors, height, filledInstanzen) {
     }
     return map;
   }, [linksInsts, rechtsInsts, vorneInsts, hintenInsts, filledInstanzen]);
+  const isLockedRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    if (!openInstance.id) return;
     const entry = idToEntry.get(openInstance.id);
-    if (!entry) return;
+    if (!entry) {
+      if (isLockedRef.current) {
+        setCameraPosition(null);
+        isLockedRef.current = false;
+      }
+      return;
+    }
+    isLockedRef.current = true;
     const [px, , pz] = entry.pos;
     const cy = height / 2;
     const cx = px + (entry.side === 0 ? -OFFSET : entry.side === 1 ? OFFSET : 0);
@@ -429,8 +450,12 @@ function useSeitenKamera(slotAnchors, height, filledInstanzen) {
       lookAt: [px, cy, pz],
       focusType: "static"
     });
-    return () => setCameraPosition(null);
   }, [openInstance.id, idToEntry, height, setCameraPosition]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    return () => {
+      if (isLockedRef.current) setCameraPosition(null);
+    };
+  }, [setCameraPosition]);
 }
 
 function calcVerandaGeometry(depth, dachneigung, height) {
@@ -1150,6 +1175,132 @@ function useSceneMode() {
   return veranda_mf_2_plugin__loadShare__react__loadShare__.useContext(SceneModeContext);
 }
 
+function calcSlotLayout(totalHeight, registrations, totalHeightH) {
+  if (registrations.length === 0) return [];
+  const sorted = [...registrations].sort((a, b) => a.priority - b.priority);
+  const result = [];
+  const _calc = (total, getDesired, getMin) => {
+    const fixedTotal = sorted.reduce((sum, r) => {
+      return r.mode === "fixed" ? sum + Math.max(getMin(r), getDesired(r)) : sum;
+    }, 0);
+    const fills = sorted.filter((r) => r.mode === "fill");
+    const remaining = Math.max(0, total - fixedTotal);
+    const fillHeight = fills.length > 0 ? remaining / fills.length : 0;
+    const offsets = [];
+    const heights = [];
+    let y = 0;
+    let fillsAssigned = 0;
+    for (const reg of sorted) {
+      offsets.push(y);
+      let h;
+      if (reg.mode === "fixed") {
+        h = Math.max(getMin(reg), getDesired(reg));
+      } else {
+        fillsAssigned++;
+        if (fillsAssigned === fills.length) {
+          h = total - y;
+        } else {
+          h = fillHeight;
+        }
+      }
+      heights.push(h);
+      y += h;
+    }
+    return { offsets, heights };
+  };
+  const front = _calc(
+    totalHeight,
+    (r) => r.desiredHeight,
+    (r) => r.minHeight
+  );
+  const back = totalHeightH !== void 0 ? _calc(
+    totalHeightH,
+    (r) => r.desiredHeightH ?? r.desiredHeight,
+    (r) => r.minHeightH ?? r.minHeight
+  ) : null;
+  for (let i = 0; i < sorted.length; i++) {
+    const reg = sorted[i];
+    const height = front.heights[i];
+    const alloc = {
+      id: reg.id,
+      yOffset: front.offsets[i],
+      height,
+      fits: height >= reg.minHeight - 1e-3
+    };
+    if (back) {
+      const heightH = back.heights[i];
+      alloc.yOffsetH = back.offsets[i];
+      alloc.heightH = heightH;
+      alloc.fitsH = heightH >= (reg.minHeightH ?? reg.minHeight) - 1e-3;
+    }
+    result.push(alloc);
+  }
+  return result;
+}
+
+const SlotLayoutContext = React.createContext(null);
+function SlotLayoutProvider({ totalHeight, totalHeightH, children }) {
+  const registrationsRef = React.useRef([]);
+  const allocationsRef = React.useRef([]);
+  const recompute = React.useCallback(() => {
+    allocationsRef.current = calcSlotLayout(
+      totalHeight,
+      registrationsRef.current,
+      totalHeightH
+    );
+  }, [totalHeight, totalHeightH]);
+  const register = React.useCallback((reg) => {
+    const idx = registrationsRef.current.findIndex((r) => r.id === reg.id);
+    if (idx >= 0) {
+      registrationsRef.current[idx] = reg;
+    } else {
+      registrationsRef.current = [...registrationsRef.current, reg];
+    }
+    recompute();
+  }, [recompute]);
+  const unregister = React.useCallback((id) => {
+    registrationsRef.current = registrationsRef.current.filter((r) => r.id !== id);
+    recompute();
+  }, [recompute]);
+  const getAllocation = React.useCallback((id) => {
+    return allocationsRef.current.find((a) => a.id === id) ?? null;
+  }, []);
+  React.useLayoutEffect(() => {
+    recompute();
+  }, [recompute]);
+  const value = React.useMemo(() => ({
+    register,
+    unregister,
+    getAllocation,
+    totalHeight,
+    totalHeightH
+  }), [register, unregister, getAllocation, totalHeight, totalHeightH]);
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutContext.Provider, { value, children });
+}
+let _idCounter = 0;
+function useSlotSpace(reg) {
+  const ctx = React.useContext(SlotLayoutContext);
+  const idRef = React.useRef(null);
+  const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
+  if (idRef.current === null) {
+    idRef.current = `slot-space-${++_idCounter}`;
+  }
+  const id = idRef.current;
+  const regRef = React.useRef(reg);
+  const hasChanged = regRef.current.priority !== reg.priority || regRef.current.mode !== reg.mode || regRef.current.desiredHeight !== reg.desiredHeight || regRef.current.minHeight !== reg.minHeight || regRef.current.desiredHeightH !== reg.desiredHeightH || regRef.current.minHeightH !== reg.minHeightH;
+  if (hasChanged) {
+    regRef.current = reg;
+  }
+  React.useLayoutEffect(() => {
+    if (!ctx) return;
+    ctx.register({ ...regRef.current, id });
+    forceUpdate();
+    return () => ctx.unregister(id);
+  }, [ctx, id, reg.priority, reg.mode, reg.desiredHeight, reg.minHeight, reg.desiredHeightH, reg.minHeightH]);
+  if (!ctx) return null;
+  return ctx.getAllocation(id);
+}
+
 const WAND_KAMERA_OFFSET = 6;
 function WandKlickZiel({ wandSeite, anchor, height }) {
   const setCameraPosition = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useSetCameraPosition();
@@ -1435,11 +1586,17 @@ function KonstruktionModel(props) {
     const result = [];
     for (const inst of wandLinksSlot) {
       const e = makeSeitenInstanz(inst, 1, slotAnchors.wandLinks.position);
-      if (e) result.push(e);
+      if (e) {
+        result.push(e);
+        collectDescendantIds(inst, 1, slotAnchors.wandLinks.position, result);
+      }
     }
     for (const inst of wandRechtsSlot) {
       const e = makeSeitenInstanz(inst, 0, slotAnchors.wandRechts.position);
-      if (e) result.push(e);
+      if (e) {
+        result.push(e);
+        collectDescendantIds(inst, 0, slotAnchors.wandRechts.position, result);
+      }
     }
     wandVorneSlot.forEach((inst, i) => {
       const rawSeg = inst.props?.segmentIndex;
@@ -1447,7 +1604,10 @@ function KonstruktionModel(props) {
       const segIdx = segStr !== "" ? Number(segStr) : i;
       const anchor = calcWandSlotAnchor(parentGeometry, 2, segIdx, wandVorneSlot.length);
       const e = makeSeitenInstanz(inst, 2, anchor.position);
-      if (e) result.push(e);
+      if (e) {
+        result.push(e);
+        collectDescendantIds(inst, 2, anchor.position, result);
+      }
     });
     wandHintenSlot.forEach((inst, i) => {
       const rawSeg = inst.props?.segmentIndex;
@@ -1455,7 +1615,10 @@ function KonstruktionModel(props) {
       const segIdx = segStr !== "" ? Number(segStr) : i;
       const anchor = calcWandSlotAnchor(parentGeometry, 3, segIdx, wandHintenSlot.length);
       const e = makeSeitenInstanz(inst, 3, anchor.position);
-      if (e) result.push(e);
+      if (e) {
+        result.push(e);
+        collectDescendantIds(inst, 3, anchor.position, result);
+      }
     });
     return result;
   }, [wandLinksSlot, wandRechtsSlot, wandVorneSlot, wandHintenSlot, slotAnchors, parentGeometry]);
@@ -1465,6 +1628,34 @@ function KonstruktionModel(props) {
     wandRechts: 0,
     wandVorne: 2,
     wandHinten: 3
+  };
+  const renderWandSlotGrouped = (instances, slotKey, wandSeiteVal, baseKey) => {
+    if (!instances?.length) return null;
+    const groups = /* @__PURE__ */ new Map();
+    instances.forEach((inst, i) => {
+      const rawSeg = inst.props?.segmentIndex;
+      const segIdxStr = rawSeg !== void 0 ? exprVal$1(rawSeg) : "";
+      const segIdx = segIdxStr !== "" ? Number(segIdxStr) : -1;
+      const key = isNaN(segIdx) ? -1 : segIdx;
+      const group = groups.get(key) ?? [];
+      group.push({ inst, i });
+      groups.set(key, group);
+    });
+    return Array.from(groups.entries()).map(([segIdx, group]) => {
+      const anchor = calcWandSlotAnchor(parentGeometry, wandSeiteVal, segIdx);
+      return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        SlotLayoutProvider,
+        {
+          totalHeight: anchor.meta.hoeheVorne,
+          totalHeightH: anchor.meta.hoeheHinten,
+          slotKey: `${baseKey}-seg${segIdx}`,
+          children: group.map(
+            ({ inst, i }) => renderSlotInstance(inst, `${baseKey}-${i}`, i, slotKey)
+          )
+        },
+        `${baseKey}-seg${segIdx}`
+      );
+    });
   };
   const renderSlotInstance = (inst, fallbackKey, forcedSegmentIndex, slotKey) => {
     const Comp = inst.component;
@@ -1597,20 +1788,20 @@ function KonstruktionModel(props) {
           )
         ] });
       })(),
-      eindeckungSlot?.map((inst, i) => renderSlotInstance(inst, `eindeckung-${i}`, void 0, "eindeckung")),
-      ledSlot?.map((inst, i) => renderSlotInstance(inst, `led-${i}-sa${eindeckungSparrenAnzahl}`, void 0, "led")),
-      rinneSlot?.map((inst, i) => renderSlotInstance(inst, `rinne-${i}`, void 0, "rinne")),
-      someBeschattungSlot.map((inst, i) => renderSlotInstance(inst, `beschattung-${i}`, i, "beschattung")),
+      eindeckungSlot?.map((inst, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutProvider, { totalHeight: slotAnchors.eindeckung.size.hoehe, slotKey: `eindeckung-${i}`, children: renderSlotInstance(inst, `eindeckung-${i}`, void 0, "eindeckung") }, `eindeckung-${i}`)),
+      ledSlot?.map((inst, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutProvider, { totalHeight: slotAnchors.led.size.hoehe, slotKey: `led-${i}`, children: renderSlotInstance(inst, `led-${i}-sa${eindeckungSparrenAnzahl}`, void 0, "led") }, `led-${i}`)),
+      rinneSlot?.map((inst, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutProvider, { totalHeight: slotAnchors.rinne.size.hoehe, slotKey: `rinne-${i}`, children: renderSlotInstance(inst, `rinne-${i}`, void 0, "rinne") }, `rinne-${i}`)),
+      someBeschattungSlot.map((inst, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutProvider, { totalHeight: slotAnchors.beschattung.size.hoehe, slotKey: `beschattung-${i}`, children: renderSlotInstance(inst, `beschattung-${i}`, i, "beschattung") }, `beschattung-${i}`)),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 1, children: [
-        wandLinksSlot?.map((inst, i) => renderSlotInstance(inst, `wand-l-${i}`, i, "wandLinks")),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 1, anchor: slotAnchors.wandLinks, height: parentGeometry.height })
+        renderWandSlotGrouped(wandLinksSlot, "wandLinks", 1, "wand-l"),
+        !wandLinksSlot?.some((inst) => inst.component != null) && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 1, anchor: slotAnchors.wandLinks, height: parentGeometry.height })
       ] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 0, children: [
-        wandRechtsSlot?.map((inst, i) => renderSlotInstance(inst, `wand-r-${i}`, i, "wandRechts")),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 0, anchor: slotAnchors.wandRechts, height: parentGeometry.height })
+        renderWandSlotGrouped(wandRechtsSlot, "wandRechts", 0, "wand-r"),
+        !wandRechtsSlot?.some((inst) => inst.component != null) && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 0, anchor: slotAnchors.wandRechts, height: parentGeometry.height })
       ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 2, children: wandVorneSlot.map((inst, i) => renderSlotInstance(inst, `wand-v-${i}`, i, "wandVorne")) }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 3, children: wandHintenSlot.map((inst, i) => renderSlotInstance(inst, `wand-h-${i}`, i, "wandHinten")) })
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 2, children: renderWandSlotGrouped(wandVorneSlot, "wandVorne", 2, "wand-v") }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 3, children: renderWandSlotGrouped(wandHintenSlot, "wandHinten", 3, "wand-h") })
     ] })
   ] }) }) }) }) });
 }
@@ -9185,7 +9376,10 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     const currentSsReduction = isAufbauWand ? ssHoeheFromCtx : 0;
     const availableSpaceForAufbau = zoneHoeheVorne - reduction - currentSsReduction;
     const isTooSmall = isAufbauWand && availableSpaceForAufbau < minAHFromCtx - 1e-3;
-    const ssReduction = currentSsReduction;
+    const slotAlloc = useSlotSpace(
+      isSichtschutz ? { priority: 0, mode: "fixed", desiredHeight: realSichtschutzHoehe, minHeight: 0.05 } : wandTyp === WAND_TYP.KEIL ? { priority: 2, mode: "fill", desiredHeight: 0, minHeight: 0.01 } : { priority: 1, mode: "fill", desiredHeight: 0, minHeight: minAH }
+    );
+    const ssReduction = slotAlloc !== null ? isSichtschutz || wandTyp === WAND_TYP.KEIL ? 0 : slotAlloc.yOffset : currentSsReduction;
     const hasPfette = Number(ctx.pfette) === 1;
     const beamX = (effectiveSide === 0 ? 1 : -1) * (wandBreite / 2 + ctx.pfettenBreite / 2);
     const beamZ = (ctx.pfostenBreite - frameThickness) / 2;
@@ -10740,7 +10934,7 @@ function SenkrechtMarkiseModel(props) {
   if (anbringungN === 1) {
     wallSurfaceZ = isSide ? postHalfDepth : -postHalfDepth;
   } else if (anbringungN === 2) {
-    wallSurfaceZ = isSide ? -postHalfDepth : postHalfDepth;
+    wallSurfaceZ = isSide ? postHalfDepth : -postHalfDepth;
   }
   const effectivePosZ = wandGeo.posZ;
   const railSign = -1;
@@ -10748,29 +10942,30 @@ function SenkrechtMarkiseModel(props) {
   const yFlip = anbringungN === 1 ? -1 : 1;
   const ySign = (isSide ? -railSign : railSign) * yFlip;
   const kassetteR_sk = kassettenDurchmesser > 0 ? kassettenDurchmesser / 2 : KASSETTE_R;
-  const kastenW_sk = kastenBreite > 0 ? kastenBreite : kassetteR_sk * 2;
-  const kastenH_sk = kastenHoehe > 0 ? kastenHoehe : kassetteR_sk * 2;
   const baseHeight = isFront ? wandGeo.zoneHoeheVorne : isBack ? bgeo.ySparrenUKHinten : ctx.isQubus ? wandGeo.zoneHoeheVorne : bgeo.ySparrenUKVorne;
   const kassetteTopY = baseHeight - keilReduction;
   const maxFall = Math.max(0, wandGeo.zoneHoeheVorne - keilReduction - ssHoeheFromCtx);
   const gesamtFall = tiefe > 0 ? Math.min(tiefe, maxFall) : maxFall;
   const effFall = gesamtFall * oeffnung;
+  const kastenW_sk = kastenBreite > 0 ? kastenBreite : kassetteR_sk * 2;
+  const kastenH_sk = Math.min(kastenHoehe > 0 ? kastenHoehe : kassetteR_sk * 2, gesamtFall);
   const halfZ_sk = gesamtFall / 2;
   const kassetteZ_sk = halfZ_sk - kassetteR_sk;
+  const kassetteZ_eck_sk = halfZ_sk - kastenH_sk / 2;
   const rollR_sk = kastenArtN === 2 ? kassetteR_sk * (0.3 + 0.7 * (1 - oeffnung)) : kassetteR_sk;
-  const stoffStartZ_sk = halfZ_sk - kassetteR_sk - rollR_sk;
-  const stoffSchraeg_sk = Math.max(0, effFall - kassetteR_sk - rollR_sk);
+  const stoffStartZ_sk = kastenArtN === 1 ? halfZ_sk - kastenH_sk : halfZ_sk - kassetteR_sk - rollR_sk;
+  const stoffSchraeg_sk = kastenArtN === 1 ? Math.max(0, effFall - kastenH_sk) : Math.max(0, effFall - kassetteR_sk - rollR_sk);
   const auslaufZ_sk = stoffStartZ_sk - stoffSchraeg_sk;
-  const railLength_sk = gesamtFall - kassetteR_sk - SCHIENE_W;
-  const railCenterZ_sk = -(kassetteR_sk + SCHIENE_W) / 2;
+  const railLength_sk = kastenArtN === 1 ? Math.max(0, gesamtFall - kastenH_sk - SCHIENE_W) : gesamtFall - kassetteR_sk - SCHIENE_W;
+  const railCenterZ_sk = kastenArtN === 1 ? (SCHIENE_W - kastenH_sk) / 2 : -(kassetteR_sk + SCHIENE_W) / 2;
   const groupY_sk = kassetteTopY - halfZ_sk;
   const isZwischen = anbringungN === 0;
   const railLift_sk = isZwischen ? 0 : railAbstand;
   const railY_sk = isZwischen ? 0 : ySign * (railLift_sk + SCHIENE_H / 2);
   const railBotY_sk = isZwischen ? 0 : ySign * (SCHIENE_BOTTOM_H / 2);
-  const kassetteY_sk = isZwischen ? 0 : ySign * kassetteR_sk;
-  const kassetteYEc_sk = isZwischen ? 0 : ySign * (kastenH_sk / 2);
-  const klemmeWandY_sk = ySign * railLift_sk;
+  const kassetteY_sk = isZwischen ? isSide ? kassetteR_sk - postHalfDepth : 0 : ySign * kassetteR_sk;
+  const kassetteYEc_sk = isZwischen ? isSide ? kastenW_sk / 2 - postHalfDepth : 0 : ySign * (kastenW_sk / 2);
+  const klemmeWandY_sk = ySign * (railLift_sk + HALTER_KLEMME_H / 2);
   const klemmeSchY_sk = ySign * (HALTER_KLEMME_H / 2);
   const stabLen_sk = railLift_sk - HALTER_KLEMME_H;
   const stabY_sk = ySign * ((railLift_sk + HALTER_KLEMME_H) / 2);
@@ -10790,8 +10985,8 @@ function SenkrechtMarkiseModel(props) {
       children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneShadowLight, {}),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, groupY_sk, wallSurfaceZ], rotation: [-Math.PI / 2, 0, 0], children: [
-          kastenArtN === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, kassetteYEc_sk, kassetteZ_sk], castShadow: true, children: [
-            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [markiseWidth, kastenH_sk, kastenW_sk] }),
+          kastenArtN === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, kassetteYEc_sk, kassetteZ_eck_sk], castShadow: true, children: [
+            /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [markiseWidth, kastenW_sk, kastenH_sk] }),
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
           ] }),
           kastenArtN !== 1 && kastenArtN !== 2 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
@@ -11715,6 +11910,8 @@ function registerVerandaSdk() {
     useWandSeite,
     WandInfoContext,
     useWandInfo,
+    SlotLayoutContext,
+    useSlotSpace,
     SICHTSCHUTZWAND_AUFBAU_SLOTS,
     SICHTSCHUTZWAND_FUELLUNG_SLOT_ID,
     KONSTRUKTION_SLOTS
