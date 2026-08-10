@@ -431,6 +431,7 @@ function useSeitenKamera(slotAnchors, height, filledInstanzen) {
   }, [linksInsts, rechtsInsts, vorneInsts, hintenInsts, filledInstanzen]);
   const isLockedRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    console.log("[cam] id=", openInstance.id, "mapSize=", idToEntry.size, "hit=", idToEntry.has(openInstance.id), "keys=", [...idToEntry.keys()].join(","));
     if (!openInstance.id) return;
     const entry = idToEntry.get(openInstance.id);
     if (!entry) {
