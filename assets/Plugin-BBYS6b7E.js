@@ -431,11 +431,15 @@ function useSeitenKamera(slotAnchors, height, filledInstanzen) {
   }, [linksInsts, rechtsInsts, vorneInsts, hintenInsts, filledInstanzen]);
   const isLockedRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    console.log("[cam] id=", openInstance.id, "mapSize=", idToEntry.size, "hit=", idToEntry.has(openInstance.id), "keys=", [...idToEntry.keys()].join(","));
-    if (!openInstance.id) return;
+    if (!openInstance.id) {
+      console.log("[cam] id=LEER → ignoriert (isLocked=", isLockedRef.current, ")");
+      return;
+    }
     const entry = idToEntry.get(openInstance.id);
+    console.log("[cam] id=", openInstance.id, "hit=", !!entry, "locked=", isLockedRef.current);
     if (!entry) {
       if (isLockedRef.current) {
+        console.log("[cam] UNLOCK");
         setCameraPosition(null);
         isLockedRef.current = false;
       }
@@ -446,6 +450,7 @@ function useSeitenKamera(slotAnchors, height, filledInstanzen) {
     const cy = height / 2;
     const cx = px + (entry.side === 0 ? -OFFSET : entry.side === 1 ? OFFSET : 0);
     const cz = pz + (entry.side === 2 ? -OFFSET : entry.side === 3 ? OFFSET : 0);
+    console.log("[cam] LOCK side=", entry.side, "pos=", [cx.toFixed(2), cy.toFixed(2), cz.toFixed(2)]);
     setCameraPosition({
       position: [cx, cy, cz],
       lookAt: [px, cy, pz],
