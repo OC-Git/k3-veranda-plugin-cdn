@@ -389,6 +389,7 @@ const MATERIAL_DEFAULTS = {
   gummi: { roughness: 0.9, metalness: 0 }};
 
 const OFFSET = 6;
+const WandCameraContext = React.createContext(null);
 function collectDescendantIds(inst, side, pos, result) {
   const subSlots = inst.slots;
   if (!subSlots) return;
@@ -405,6 +406,13 @@ function makeSeitenInstanz(inst, side, anchorPos) {
   const id = inst.modelAction?.anchoringSelection?.instance?.id;
   if (!id) return null;
   return { id: String(id), side, pos: anchorPos };
+}
+function computeCameraPos(side, pos, height) {
+  const [px, , pz] = pos;
+  const cy = height / 2;
+  const cx = px + (side === 0 ? -OFFSET : side === 1 ? OFFSET : 0);
+  const cz = pz + (side === 2 ? -OFFSET : side === 3 ? OFFSET : 0);
+  return { position: [cx, cy, cz], lookAt: [px, cy, pz] };
 }
 function useSeitenKamera(slotAnchors, height, filledInstanzen) {
   const openInstance = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useOpenInstance();
@@ -430,38 +438,60 @@ function useSeitenKamera(slotAnchors, height, filledInstanzen) {
     return map;
   }, [linksInsts, rechtsInsts, vorneInsts, hintenInsts, filledInstanzen]);
   const isLockedRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
+  const sichtschutzLockedRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
+  const unlockTimerRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(null);
+  const lockForWall = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback((side, pos) => {
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+      unlockTimerRef.current = null;
+    }
+    isLockedRef.current = true;
+    sichtschutzLockedRef.current = true;
+    const cam = computeCameraPos(side, pos, height);
+    setCameraPosition({ position: cam.position, lookAt: cam.lookAt, focusType: "static" });
+  }, [height, setCameraPosition]);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
     if (!openInstance.id) {
-      console.log("[cam] id=LEER → ignoriert (isLocked=", isLockedRef.current, ")");
-      return;
-    }
-    const entry = idToEntry.get(openInstance.id);
-    console.log("[cam] id=", openInstance.id, "hit=", !!entry, "locked=", isLockedRef.current);
-    if (!entry) {
-      if (isLockedRef.current) {
-        console.log("[cam] UNLOCK");
-        setCameraPosition(null);
-        isLockedRef.current = false;
+      if (unlockTimerRef.current) {
+        clearTimeout(unlockTimerRef.current);
+        unlockTimerRef.current = null;
       }
       return;
     }
-    isLockedRef.current = true;
-    const [px, , pz] = entry.pos;
-    const cy = height / 2;
-    const cx = px + (entry.side === 0 ? -OFFSET : entry.side === 1 ? OFFSET : 0);
-    const cz = pz + (entry.side === 2 ? -OFFSET : entry.side === 3 ? OFFSET : 0);
-    console.log("[cam] LOCK side=", entry.side, "pos=", [cx.toFixed(2), cy.toFixed(2), cz.toFixed(2)]);
-    setCameraPosition({
-      position: [cx, cy, cz],
-      lookAt: [px, cy, pz],
-      focusType: "static"
-    });
+    const entry = idToEntry.get(openInstance.id);
+    if (entry) {
+      if (unlockTimerRef.current) {
+        clearTimeout(unlockTimerRef.current);
+        unlockTimerRef.current = null;
+      }
+      sichtschutzLockedRef.current = false;
+      isLockedRef.current = true;
+      const cam = computeCameraPos(entry.side, entry.pos, height);
+      setCameraPosition({ position: cam.position, lookAt: cam.lookAt, focusType: "static" });
+      return;
+    }
+    if (!isLockedRef.current) return;
+    if (sichtschutzLockedRef.current) {
+      if (!unlockTimerRef.current) {
+        unlockTimerRef.current = setTimeout(() => {
+          setCameraPosition(null);
+          isLockedRef.current = false;
+          sichtschutzLockedRef.current = false;
+          unlockTimerRef.current = null;
+        }, 300);
+      }
+    } else {
+      setCameraPosition(null);
+      isLockedRef.current = false;
+    }
   }, [openInstance.id, idToEntry, height, setCameraPosition]);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
     return () => {
+      if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
       if (isLockedRef.current) setCameraPosition(null);
     };
   }, [setCameraPosition]);
+  return lockForWall;
 }
 
 function calcVerandaGeometry(depth, dachneigung, height) {
@@ -1628,7 +1658,7 @@ function KonstruktionModel(props) {
     });
     return result;
   }, [wandLinksSlot, wandRechtsSlot, wandVorneSlot, wandHintenSlot, slotAnchors, parentGeometry]);
-  useSeitenKamera(slotAnchors, parentGeometry.height, filledInstanzen);
+  const lockForWall = useSeitenKamera(slotAnchors, parentGeometry.height, filledInstanzen);
   const WAND_SEITE_BY_SLOT = {
     wandLinks: 1,
     wandRechts: 0,
@@ -1798,16 +1828,18 @@ function KonstruktionModel(props) {
       ledSlot?.map((inst, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutProvider, { totalHeight: slotAnchors.led.size.hoehe, slotKey: `led-${i}`, children: renderSlotInstance(inst, `led-${i}-sa${eindeckungSparrenAnzahl}`, void 0, "led") }, `led-${i}`)),
       rinneSlot?.map((inst, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutProvider, { totalHeight: slotAnchors.rinne.size.hoehe, slotKey: `rinne-${i}`, children: renderSlotInstance(inst, `rinne-${i}`, void 0, "rinne") }, `rinne-${i}`)),
       someBeschattungSlot.map((inst, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SlotLayoutProvider, { totalHeight: slotAnchors.beschattung.size.hoehe, slotKey: `beschattung-${i}`, children: renderSlotInstance(inst, `beschattung-${i}`, i, "beschattung") }, `beschattung-${i}`)),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 1, children: [
-        renderWandSlotGrouped(wandLinksSlot, "wandLinks", 1, "wand-l"),
-        !wandLinksSlot?.some((inst) => inst.component != null) && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 1, anchor: slotAnchors.wandLinks, height: parentGeometry.height })
-      ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 0, children: [
-        renderWandSlotGrouped(wandRechtsSlot, "wandRechts", 0, "wand-r"),
-        !wandRechtsSlot?.some((inst) => inst.component != null) && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 0, anchor: slotAnchors.wandRechts, height: parentGeometry.height })
-      ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 2, children: renderWandSlotGrouped(wandVorneSlot, "wandVorne", 2, "wand-v") }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 3, children: renderWandSlotGrouped(wandHintenSlot, "wandHinten", 3, "wand-h") })
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandCameraContext.Provider, { value: lockForWall, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 1, children: [
+          renderWandSlotGrouped(wandLinksSlot, "wandLinks", 1, "wand-l"),
+          !wandLinksSlot?.some((inst) => inst.component != null) && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 1, anchor: slotAnchors.wandLinks, height: parentGeometry.height })
+        ] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(WandSeiteProvider, { value: 0, children: [
+          renderWandSlotGrouped(wandRechtsSlot, "wandRechts", 0, "wand-r"),
+          !wandRechtsSlot?.some((inst) => inst.component != null) && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandKlickZiel, { wandSeite: 0, anchor: slotAnchors.wandRechts, height: parentGeometry.height })
+        ] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 2, children: renderWandSlotGrouped(wandVorneSlot, "wandVorne", 2, "wand-v") }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(WandSeiteProvider, { value: 3, children: renderWandSlotGrouped(wandHintenSlot, "wandHinten", 3, "wand-h") })
+      ] })
     ] })
   ] }) }) }) }) });
 }
@@ -9176,6 +9208,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     const eindeckungInfo = useEindeckungInfo();
     const effectiveSide = useWandSeite();
     const isSichtschutz = wandTyp === WAND_TYP.SICHTSCHUTZWAND;
+    const lockForWall = veranda_mf_2_plugin__loadShare__react__loadShare__.useContext(WandCameraContext);
     const effectiveBreite = Number(exprVal$1(breite)) || 0;
     const manualHoehe = Number(exprVal$1(hoehe)) || 0;
     const segIdxStr = exprVal$1(props.segmentIndex);
@@ -9707,19 +9740,26 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
               return rendered;
             });
           }
-          return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, 0, ssZ], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-            SichtschutzwandWandMemo,
+          return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+            "group",
             {
-              wandBreite,
-              wandHoehe: ssWandHoehe,
-              wandHoeheHinten: ssWandHoeheHinten,
-              plankenTiefe: plTiefe,
-              querbalken: qb,
-              material,
-              farbeHex,
-              slots: slotsOhneAufbau
+              position: [0, 0, ssZ],
+              onClick: lockForWall ? () => lockForWall(effectiveSide, [geo.posX, 0, geo.posZ]) : void 0,
+              children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+                SichtschutzwandWandMemo,
+                {
+                  wandBreite,
+                  wandHoehe: ssWandHoehe,
+                  wandHoeheHinten: ssWandHoeheHinten,
+                  plankenTiefe: plTiefe,
+                  querbalken: qb,
+                  material,
+                  farbeHex,
+                  slots: slotsOhneAufbau
+                }
+              )
             }
-          ) });
+          );
         }
         default: {
           const defaultHoehe = zoneHoeheVorne - keilReductionAuto - ssReduction;
