@@ -23,7 +23,6 @@ const DEFAULT_ENVIRONMENT = {
   lightColor: "#fff4d6",
   envIntensity: 1,
   lightPosition: [12, 12, 8],
-  hdrUrl: "https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/city.hdr",
   ambientIntensity: 0.25,
   ambientColor: "#ffffff",
   shadowBias: -1e-3,
@@ -2891,22 +2890,6 @@ function HouseTransparencyGroup({
   }) });
 }
 
-function GlasEnvMapLoader({ hdrUrl, envIntensity }) {
-  const { scene } = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useThree();
-  const envMap = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.useEnvironment({ files: hdrUrl });
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    if (!envMap) return;
-    scene.environment = envMap;
-    scene.environmentIntensity = envIntensity;
-  }, [envMap, scene, envIntensity]);
-  return null;
-}
-function GlasEnvMap() {
-  const { hdrUrl, envIntensity } = useSceneEnvironment();
-  if (!hdrUrl || !/\.(hdr|exr)(\?.*)?$/i.test(hdrUrl)) return null;
-  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasEnvMapLoader, { hdrUrl, envIntensity });
-}
-
 function SceneSkyBackground() {
   const { isNight, lightPosition, lightColor } = useSceneEnvironment();
   if (isNight) {
@@ -2946,7 +2929,6 @@ function SceneSkyBackground() {
   );
 }
 
-const DEFAULT_HDR_URL = "https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/city.hdr";
 const PRESETS = {
   1: {
     // Tag
@@ -2958,7 +2940,6 @@ const PRESETS = {
   2: {
     // Nacht
     intensityScale: 0.08,
-    hdrUrl: "https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/night.hdr",
     ambientIntensity: 0.03,
     ambientColor: "#112233",
     isNight: true
@@ -2979,11 +2960,6 @@ function SceneEnvironmentModel(props) {
   const hausTransparenzUebergang = numVal(props.hausTransparenzUebergang, 45);
   const hausTransparenzMax = numVal(props.hausTransparenzMax, 0.98);
   const hausSlotInstanzen = props.slots?.[SCENE_SLOTS.haus.id];
-  const [envMapReady, setEnvMapReady] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
-  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
-    const id = requestAnimationFrame(() => setEnvMapReady(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
   const envValues = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     const getNum = (val, fallback) => {
       const v = exprVal(val);
@@ -3000,9 +2976,6 @@ function SceneEnvironmentModel(props) {
     const isNight = preset === 2;
     const mat = isNight ? mats.mond : mats.sonne;
     const lightColor = mat?.color ? "#" + mat.color.getHexString() : isNight ? "#aabbcc" : "#fff5e0";
-    const rawUrl = String(exprVal(props.hdrUrl) ?? "").trim();
-    const presetHdr = preset !== 0 && PRESETS[preset]?.hdrUrl ? PRESETS[preset].hdrUrl : DEFAULT_HDR_URL;
-    const hdrUrl = rawUrl.startsWith("http") ? rawUrl : presetHdr;
     const envIntensity = getNum(props.envIntensity, 0.4);
     if (preset !== 0 && PRESETS[preset]) {
       const p = PRESETS[preset];
@@ -3010,7 +2983,6 @@ function SceneEnvironmentModel(props) {
         intensity,
         lightColor,
         lightPosition,
-        hdrUrl,
         envIntensity,
         ambientIntensity: p.ambientIntensity ?? 0.5,
         ambientColor: p.ambientColor ?? "#ffffff",
@@ -3023,7 +2995,6 @@ function SceneEnvironmentModel(props) {
       intensity,
       lightColor,
       lightPosition,
-      hdrUrl,
       envIntensity,
       ambientIntensity: getNum(props.ambientIntensity, 0.5),
       ambientColor: String(exprVal(props.ambientColor) || "#ffffff"),
@@ -3034,7 +3005,6 @@ function SceneEnvironmentModel(props) {
   }, [props, preset, mats]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(SceneEnvironmentProvider, { value: envValues, children: [
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneShadowLight, {}),
-    envMapReady && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare__react__loadShare__.Suspense, { fallback: null, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(GlasEnvMap, {}) }),
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneSkyBackground, {}),
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
       HouseTransparencyGroup,
@@ -3062,7 +3032,6 @@ const sceneEnvironmentDynamicModel = {
     lightPosX: { expression: "5" },
     lightPosY: { expression: "30" },
     lightPosZ: { expression: "-10" },
-    hdrUrl: { expression: `"https://oc-k3.s3.eu-central-1.amazonaws.com/libs/3d/environments/city.hdr"` },
     envIntensity: { expression: "0.4" },
     ambientIntensity: { expression: "0.5" },
     shadowBias: { expression: "-0.0002" },
@@ -3088,7 +3057,6 @@ const sceneEnvironmentDynamicModel = {
     lightPosX: { label: "Licht Pos X (m)", type: "expression" },
     lightPosY: { label: "Licht Pos Y (m)", type: "expression" },
     lightPosZ: { label: "Licht Pos Z (m)", type: "expression" },
-    hdrUrl: { label: "HDR URL (Pfad oder leer)", type: "expression" },
     envIntensity: { label: "Umgebungs-Helligkeit (Multiplikator)", type: "expression" },
     ambientIntensity: { label: "Umgebungslicht-Intensität (Multiplikator)", type: "expression" },
     shadowBias: { label: "Schatten-Bias (z.B. 0.001)", type: "expression" },
