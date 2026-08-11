@@ -5387,7 +5387,7 @@ const glasEindeckungDynamicModel = {
     sparrenAussenHoehe: { expression: "0.12" },
     quertraegerHoehe: { expression: "0.1" },
     quertraegerTiefe: { expression: "0.1" },
-    eindeckungTyp: "0",
+    eindeckungTyp: { expression: "0" },
     eindeckungDicke: { expression: "0.016" },
     opacity: { expression: "0.2" },
     roughness: { expression: "0.0" },
@@ -5407,7 +5407,7 @@ const glasEindeckungDynamicModel = {
     querbalken: { expression: "0" },
     querbalkenHoehe: { expression: "0" },
     querbalkenBreite: { expression: "0" },
-    einzelMaterialien: "0"
+    einzelMaterialien: { expression: "0" }
   },
   propsDialog: glasEindeckungPropsSchema,
   component: GlasEindeckungModel,
@@ -5762,7 +5762,7 @@ const metallEindeckungDynamicModel = {
     balkenAnzahl: { expression: "4" },
     balkenBreite: { expression: "0.06" },
     balkenHoehe: { expression: "0.08" },
-    eindeckung: "0",
+    eindeckung: { expression: "0" },
     eindeckungDicke: { expression: "0.008" },
     amplitude: { expression: "4" },
     frequenz: { expression: "10" },
@@ -5776,7 +5776,7 @@ const metallEindeckungDynamicModel = {
     seitenabschlussHoehe: { expression: "0.03" },
     seitenabschlussTiefe: { expression: "0.04" },
     sparrenAussen: { expression: "1" },
-    sparrenAuflage: "0",
+    sparrenAuflage: { expression: "0" },
     laengsbalkenBreite: { expression: "0.06" },
     laengsbalkenHoehe: { expression: "0.08" }
   },
@@ -6393,9 +6393,9 @@ const lamellenEindeckungDynamicModel = {
     lamellenRoughness: { expression: "0.3" },
     lamellenAnzahl: { expression: "0" },
     lamellenWinkel: { expression: "0" },
-    lamellenRichtung: "0",
+    lamellenRichtung: { expression: "0" },
     slatMoveIn: { expression: "0" },
-    sparrenAuflage: "0",
+    sparrenAuflage: { expression: "0" },
     extension: { expression: "0" },
     wandanschlussHoehe: { expression: "0.12" },
     wandanschlussTiefe: { expression: "0.06" }
@@ -7027,7 +7027,7 @@ const regenrinneDynamicModel = {
   label: "Regenrinne",
   description: "Regenrinne – Kasten, Eckig, Rund, Klassisch oder Fantasy",
   defaultProps: {
-    typ: "0",
+    typ: { expression: "0" },
     rinnenBreite: { expression: "0.12" },
     rinnenHoehe: { expression: "0.08" },
     wandStaerke: { expression: "0.009" }
@@ -7170,7 +7170,7 @@ const pfostenDynamicModel = {
   label: "Pfosten",
   description: "Pfosten – Eckig, Rund oder Klassisch",
   defaultProps: {
-    typ: "0",
+    typ: { expression: "0" },
     pfostenBreite: { expression: "0.1" },
     pfostenTiefe: { expression: "0.1" },
     pfostenBreiteHinten: { expression: "" },
