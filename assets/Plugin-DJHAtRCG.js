@@ -276,6 +276,12 @@ const DEFAULT$1 = {
   aussensparrenHoehe: 0,
   setAussensparrenHoehe: () => {
   },
+  sparrenAuflage: 0,
+  setSparrenAuflage: () => {
+  },
+  sparrenHoehe: 0.12,
+  setSparrenHoehe: () => {
+  },
   lamellenLedData: null,
   setEindeckungInfo: () => {
   },
@@ -1330,6 +1336,20 @@ function useKonstruktionState(pfostenAnzahlVorneInit, pfostenAnzahlHintenInit) {
     },
     []
   );
+  const [sparrenAuflage, setSparrenAuflageState] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(0);
+  const setSparrenAuflage = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback(
+    (v) => {
+      setSparrenAuflageState((p) => Math.abs(p - v) < 1e-3 ? p : v);
+    },
+    []
+  );
+  const [sparrenHoehe, setSparrenHoeheState] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(0.12);
+  const setSparrenHoehe = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback(
+    (h) => {
+      setSparrenHoeheState((p) => Math.abs(p - h) < 1e-4 ? p : h);
+    },
+    []
+  );
   const [lamellenLedData, setLamellenLedDataState] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(null);
   const setLamellenLedData = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback((data) => {
     setLamellenLedDataState(data);
@@ -1356,6 +1376,10 @@ function useKonstruktionState(pfostenAnzahlVorneInit, pfostenAnzahlHintenInit) {
     setUnterEindeckungHoehe,
     aussensparrenHoehe,
     setAussensparrenHoehe,
+    sparrenAuflage,
+    setSparrenAuflage,
+    sparrenHoehe,
+    setSparrenHoehe,
     lamellenLedData,
     setLamellenLedData
   };
@@ -1380,16 +1404,6 @@ const konstruktionPropsSchema = {
   // Dach
   dachneigung: { type: "expression", label: "Dachneigung (°)", group: "Dach", description: "Neigungswinkel des Dachs in Grad. 0 = flach (Qubus), typisch 3–15° für Veranda." },
   dachVorsprung: { type: "expression", label: "Dachvorsprung (m)", group: "Dach", description: "Überstand des Dachs über die Vorderfront hinaus." },
-  sparrenAuflage: {
-    type: "radioGroup",
-    label: "Sparrenauflage (0=Aufliegend, 1=Innenliegend)",
-    group: "Dach",
-    description: "Aufliegend: Eindeckung liegt auf Sparren-Oberkante. Innenliegend: Eindeckung bündig mit Sparren-Unterkante (sichtbare Sparren).",
-    options: [
-      { value: "0", label: "Aufliegend" },
-      { value: "1", label: "Innenliegend" }
-    ]
-  },
   // Qubus-Rahmen
   rahmenBreite: { type: "expression", label: "Rahmen Breite (m)", group: "Qubus-Rahmen", description: "Querschnitt-Breite der umlaufenden Rahmenbalken (nur Qubus). Ersetzt Schwelle und Pfette." },
   rahmenHoehe: { type: "expression", label: "Rahmen Höhe (m)", group: "Qubus-Rahmen", description: "Querschnitt-Höhe der umlaufenden Rahmenbalken (nur Qubus)." },
@@ -1446,7 +1460,6 @@ function KonstruktionModel(props) {
     depth: propDepth = 3,
     dachneigung: propDachneigung = 0,
     dachVorsprung: propDachVorsprung = 0,
-    sparrenAuflage: propSparrenAuflage = 0,
     schwelle: propSchwelle = 1,
     schwelleBreite: propSchwelleBreite = 0.1,
     schwelleHoehe: propSchwelleHoehe = 0.06,
@@ -1474,7 +1487,6 @@ function KonstruktionModel(props) {
   const depth = Math.max(0.01, getVal(propDepth, 3));
   const dachneigung = getVal(propDachneigung, 0);
   const dachVorsprung = getVal(propDachVorsprung, 0);
-  const sparrenAuflage = getVal(propSparrenAuflage, 0);
   const schwelle = getVal(propSchwelle, 1);
   const schwelleBreite = Math.max(1e-3, getVal(propSchwelleBreite, 0.1));
   const schwelleHoehe = Math.max(1e-3, getVal(propSchwelleHoehe, 0.06));
@@ -1537,6 +1549,10 @@ function KonstruktionModel(props) {
     setUnterEindeckungHoehe,
     aussensparrenHoehe,
     setAussensparrenHoehe,
+    sparrenAuflage,
+    setSparrenAuflage,
+    sparrenHoehe,
+    setSparrenHoehe,
     lamellenLedData,
     setLamellenLedData
   } = state;
@@ -1585,7 +1601,7 @@ function KonstruktionModel(props) {
     pfostenTiefe: pfostenTiefeVal,
     sparrenAnzahl: eindeckungSparrenAnzahl,
     sparrenBreite: 0.06,
-    sparrenHoehe: 0.12,
+    sparrenHoehe,
     sparrenAuflage,
     schwelle: kTyp === "qubus" ? 1 : schwelle,
     schwelleBreite: kTyp === "qubus" ? rahmenBreite : schwelleBreite,
@@ -1618,6 +1634,7 @@ function KonstruktionModel(props) {
     pfostenTiefeVal,
     eindeckungSparrenAnzahl,
     sparrenAuflage,
+    sparrenHoehe,
     schwelle,
     schwelleBreite,
     schwelleHoehe,
@@ -1742,6 +1759,10 @@ function KonstruktionModel(props) {
       setUnterEindeckungHoehe,
       aussensparrenHoehe,
       setAussensparrenHoehe,
+      sparrenAuflage,
+      setSparrenAuflage,
+      sparrenHoehe,
+      setSparrenHoehe,
       lamellenLedData,
       setEindeckungInfo,
       setLamellenLedData
@@ -1765,7 +1786,7 @@ function KonstruktionModel(props) {
           const postZMid = dachVorsprung + pfostenTiefeVal / 2;
           const sZOff = schwelleBreite >= pfostenTiefeVal ? schwelleBreite / 2 : pfostenTiefeVal - schwelleBreite / 2;
           const stZOff = postZMid;
-          const offsetSparren = auflageTyp === "innenliegend" ? 0.12 : 0;
+          const offsetSparren = auflageTyp === "innenliegend" ? sparrenHoehe : 0;
           const sUK = hoeheVorne + steigung * sZOff;
           const stUK = hoeheVorne + steigung * stZOff - offsetSparren;
           const schwelleY = sUK - schwelleHoehe / 2;
@@ -5160,7 +5181,7 @@ function GlasEindeckungModel(props) {
   const sparrenHoehe = Number(exprVal(sparrenHoeheProp)) || parent.sparrenHoehe;
   const sparrenAussenBreite = Number(exprVal(sparrenAussenBreiteProp)) || sparrenBreite;
   const sparrenAussenHoehe = Number(exprVal(sparrenAussenHoeheProp)) || sparrenHoehe;
-  const sparrenAuflage = Number(exprVal(parent.sparrenAuflage));
+  const sparrenAuflage = Number(exprVal(_sparrenAuflageProp));
   const useEinzel = Number(exprVal(einzelMaterialien)) === 1;
   const konstruktionMaterial = useEinzel ? materials.konstruktion ?? profilMaterial : profilMaterial;
   const sparrenMaterial = useEinzel ? materials.sparren ?? profilMaterial : profilMaterial;
@@ -5201,7 +5222,7 @@ function GlasEindeckungModel(props) {
   const hoeheHinten = baseHHinten - qubusOffset;
   const auflageTyp = sparrenAuflage === 1 ? "innenliegend" : "aufliegend";
   const hatAussenSparren = Number(exprVal(sparrenAussen)) === 1;
-  const { setEindeckungInfo, setUnterEindeckungHoehe, setAussensparrenHoehe } = useEindeckungInfo();
+  const { setEindeckungInfo, setUnterEindeckungHoehe, setAussensparrenHoehe, setSparrenAuflage, setSparrenHoehe: setSparrenHoeheCtx } = useEindeckungInfo();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     setEindeckungInfo(
       _eindeckungDicke,
@@ -5213,11 +5234,15 @@ function GlasEindeckungModel(props) {
     );
     setUnterEindeckungHoehe((sparrenAuflage === 0 ? sparrenHoehe : 0) + _eindeckungDicke + _leistenHoehe);
     setAussensparrenHoehe(hatAussenSparren ? sparrenAussenHoehe : 0);
+    setSparrenAuflage(sparrenAuflage);
+    setSparrenHoeheCtx(sparrenHoehe);
     return () => {
       setUnterEindeckungHoehe(0);
       setAussensparrenHoehe(0);
+      setSparrenAuflage(0);
+      setSparrenHoeheCtx(0.12);
     };
-  }, [_eindeckungDicke, _leistenHoehe, sparrenAuflage, sparrenHoehe, extension, _wandanschlussTiefe, sparrenAnzahl, qubusOffset, hatAussenSparren, sparrenAussenHoehe, setEindeckungInfo, setUnterEindeckungHoehe, setAussensparrenHoehe]);
+  }, [_eindeckungDicke, _leistenHoehe, sparrenAuflage, sparrenHoehe, extension, _wandanschlussTiefe, sparrenAnzahl, qubusOffset, hatAussenSparren, sparrenAussenHoehe, setEindeckungInfo, setUnterEindeckungHoehe, setAussensparrenHoehe, setSparrenAuflage, setSparrenHoeheCtx]);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (!platteMaterial) return;
     const mat = platteMaterial;
@@ -5476,7 +5501,7 @@ function MetallEindeckungModel(props) {
   const _laengsbalkenBreite = Number(exprVal(laengsbalkenBreite));
   const _laengsbalkenHoehe = Number(exprVal(laengsbalkenHoehe));
   const hatAussenSparren = Number(exprVal(sparrenAussen)) === 1;
-  const sparrenAuflage = Number(exprVal(parent.sparrenAuflage));
+  const sparrenAuflage = Number(exprVal(_sparrenAuflageProp));
   const eindeckungBreite = width;
   const querbalkenBreite = eindeckungBreite;
   const { hoeheHinten: baseHHinten, hoeheVorne: baseHVorne } = calcVerandaGeometry(depth, dachneigung, height);
@@ -5488,7 +5513,7 @@ function MetallEindeckungModel(props) {
   const qubusOffset = parent.isQubus ? metallPeakOffset + auflageOffset + (sparrenAuflage === 0 ? sparrenHoehe : 0) : 0;
   const hoeheVorne = baseHVorne - qubusOffset;
   const hoeheHinten = baseHHinten - qubusOffset;
-  const { setEindeckungInfo, setUnterEindeckungHoehe, setAussensparrenHoehe } = useEindeckungInfo();
+  const { setEindeckungInfo, setUnterEindeckungHoehe, setAussensparrenHoehe, setSparrenAuflage, setSparrenHoehe: setSparrenHoeheCtx } = useEindeckungInfo();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     setEindeckungInfo(
       _eindeckungDicke,
@@ -5502,9 +5527,13 @@ function MetallEindeckungModel(props) {
       (sparrenAuflage === 0 ? sparrenHoehe : 0) + metallPeakOffset + auflageOffset
     );
     setAussensparrenHoehe(hatAussenSparren ? _laengsbalkenHoehe : 0);
+    setSparrenAuflage(sparrenAuflage);
+    setSparrenHoeheCtx(sparrenHoehe);
     return () => {
       setUnterEindeckungHoehe(0);
       setAussensparrenHoehe(0);
+      setSparrenAuflage(0);
+      setSparrenHoeheCtx(0.12);
     };
   }, [
     _eindeckungDicke,
@@ -5519,7 +5548,9 @@ function MetallEindeckungModel(props) {
     qubusOffset,
     setEindeckungInfo,
     setUnterEindeckungHoehe,
-    setAussensparrenHoehe
+    setAussensparrenHoehe,
+    setSparrenAuflage,
+    setSparrenHoeheCtx
   ]);
   const metallFarbeHex = "#808080";
   const dachVS_m = 0;
@@ -5817,10 +5848,16 @@ function LamellenEindeckungModel(props) {
   const qubusOffset = 0;
   const hoeheVorne = baseHVorne - qubusOffset;
   const hoeheHinten = baseHHinten - qubusOffset;
-  const { setEindeckungInfo, setLamellenLedData } = useEindeckungInfo();
+  const { setEindeckungInfo, setLamellenLedData, setSparrenAuflage, setSparrenHoehe: setSparrenHoeheCtx } = useEindeckungInfo();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     setEindeckungInfo(0, 0, Number(extension) === 1, Number(wandanschlussTiefe), 0, qubusOffset);
-  }, [extension, wandanschlussTiefe, qubusOffset, setEindeckungInfo]);
+    setSparrenAuflage(1);
+    setSparrenHoeheCtx(parent.sparrenHoehe);
+    return () => {
+      setSparrenAuflage(0);
+      setSparrenHoeheCtx(0.12);
+    };
+  }, [extension, wandanschlussTiefe, qubusOffset, setEindeckungInfo, setSparrenAuflage, setSparrenHoeheCtx, parent.sparrenHoehe]);
   const profilMaterial = materials.profil;
   const lamelleMaterial = materials.lamelle;
   const farbeHex = "#808080";
@@ -6547,7 +6584,13 @@ function SolarEindeckungModel(props) {
       effectiveSparrenAnzahl,
       qubusOffset
     );
-  }, [solarDicke, _leistenHoehe, extension, wandanschlussTiefe, effectiveSparrenAnzahl, qubusOffset, eindeckungInfo.setEindeckungInfo]);
+    eindeckungInfo.setSparrenAuflage(_sparrenAuflage);
+    eindeckungInfo.setSparrenHoehe(_sparrenHoehe);
+    return () => {
+      eindeckungInfo.setSparrenAuflage(0);
+      eindeckungInfo.setSparrenHoehe(0.12);
+    };
+  }, [solarDicke, _leistenHoehe, extension, wandanschlussTiefe, effectiveSparrenAnzahl, qubusOffset, _sparrenAuflage, _sparrenHoehe, eindeckungInfo.setEindeckungInfo, eindeckungInfo.setSparrenAuflage, eindeckungInfo.setSparrenHoehe]);
   const isAR = useIsARMode();
   const profilMaterial = materials.profil;
   const glasMaterial = materials.glas;
@@ -11930,7 +11973,7 @@ function registerVerandaSdk() {
 registerVerandaSdk();
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "1.0.1",
+  version: "1.0.2",
   viewer: {
     sceneComponents: {
       // "oc.veranda.shadowLighting": shadowLightingSceneComponent,
@@ -11952,7 +11995,6 @@ const Plugin = {
       solarEindeckungDynamicModel,
       // Beschattung
       markiseDynamicModel,
-      senkrechtMarkiseDynamicModel,
       plisseeDynamicModel,
       stoffDynamicModel,
       // Wand
@@ -11960,6 +12002,7 @@ const Plugin = {
       rahmenwandDynamicModel,
       schiebetuerDynamicModel,
       shuttersDynamicModel,
+      senkrechtMarkiseDynamicModel,
       sichtschutzwandDynamicModel,
       // Highlight
       highlightPlaneDynamicModel,
