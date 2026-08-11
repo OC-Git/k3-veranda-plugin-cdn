@@ -453,18 +453,18 @@ function createExtrudeGeometry(shape, depth, curveSegments = 1) {
   return geom;
 }
 
-function exprVal$1(v) {
+function exprVal(v) {
   if (v !== null && v !== void 0 && typeof v === "object" && "expression" in v) {
     return String(v.expression ?? "");
   }
   return String(v ?? "");
 }
 function numVal(v, fallback = 0) {
-  const n = Number(exprVal$1(v).replace(",", "."));
+  const n = Number(exprVal(v).replace(",", "."));
   return Number.isNaN(n) ? fallback : n;
 }
 function berechnePositionen(gesamtBreite, anzahl) {
-  const n = anzahl != null ? Math.round(Number(exprVal$1(anzahl))) : 2;
+  const n = anzahl != null ? Math.round(Number(exprVal(anzahl))) : 2;
   if (isNaN(n) || n <= 0) return [];
   if (n === 1) return [0];
   const positionen = [];
@@ -1463,12 +1463,12 @@ function KonstruktionModel(props) {
     slots
   } = props;
   const getVal = (v, fallback) => {
-    const valStr = exprVal$1(v);
+    const valStr = exprVal(v);
     const val = Number(valStr);
     if (v === void 0 || v === null || valStr === "" || isNaN(val)) return fallback;
     return val;
   };
-  const kTyp = Number(exprVal$1(konstruktionstyp)) === 1 ? "qubus" : "veranda";
+  const kTyp = Number(exprVal(konstruktionstyp)) === 1 ? "qubus" : "veranda";
   const width = Math.max(0.01, getVal(propWidth, 4));
   const height = Math.max(0.01, getVal(propHeight, 2.5));
   const depth = Math.max(0.01, getVal(propDepth, 3));
@@ -1641,14 +1641,14 @@ function KonstruktionModel(props) {
     }
     wandVorneSlot.forEach((inst, i) => {
       const rawSeg = inst.props?.segmentIndex;
-      const segStr = rawSeg !== void 0 ? exprVal$1(rawSeg) : "";
+      const segStr = rawSeg !== void 0 ? exprVal(rawSeg) : "";
       const segIdx = segStr !== "" ? Number(segStr) : i;
       const anchor = calcWandSlotAnchor(parentGeometry, 2, segIdx, wandVorneSlot.length);
       result.push(...collectSeitenInstanzen(inst, 2, anchor.position));
     });
     wandHintenSlot.forEach((inst, i) => {
       const rawSeg = inst.props?.segmentIndex;
-      const segStr = rawSeg !== void 0 ? exprVal$1(rawSeg) : "";
+      const segStr = rawSeg !== void 0 ? exprVal(rawSeg) : "";
       const segIdx = segStr !== "" ? Number(segStr) : i;
       const anchor = calcWandSlotAnchor(parentGeometry, 3, segIdx, wandHintenSlot.length);
       result.push(...collectSeitenInstanzen(inst, 3, anchor.position));
@@ -1676,7 +1676,7 @@ function KonstruktionModel(props) {
       ...otherProps
     } = inst.props ?? {};
     const effectiveProps = { ...otherProps };
-    const existingSegIdx = otherProps.segmentIndex !== void 0 ? Number(exprVal$1(otherProps.segmentIndex)) : -1;
+    const existingSegIdx = otherProps.segmentIndex !== void 0 ? Number(exprVal(otherProps.segmentIndex)) : -1;
     if (forcedSegmentIndex !== void 0 && existingSegIdx === -1) {
       effectiveProps.segmentIndex = forcedSegmentIndex;
     }
@@ -1684,9 +1684,9 @@ function KonstruktionModel(props) {
     const key = `${fallbackKey}|${propsKey}`;
     const ma = inst.modelAction;
     const wandSeite = slotKey ? WAND_SEITE_BY_SLOT[slotKey] : void 0;
-    const segAnzStr = exprVal$1(effectiveProps.segmentAnzahl);
+    const segAnzStr = exprVal(effectiveProps.segmentAnzahl);
     const segmentAnzahl = segAnzStr !== "" ? Number(segAnzStr) : void 0;
-    const segIdx = effectiveProps.segmentIndex !== void 0 ? Number(exprVal$1(effectiveProps.segmentIndex)) : -1;
+    const segIdx = effectiveProps.segmentIndex !== void 0 ? Number(exprVal(effectiveProps.segmentIndex)) : -1;
     const anchor = wandSeite !== void 0 ? calcWandSlotAnchor(parentGeometry, wandSeite, segIdx, segmentAnzahl) : slotKey ? slotAnchors[slotKey] : void 0;
     const rendered = /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
       "group",
@@ -1711,7 +1711,7 @@ function KonstruktionModel(props) {
       },
       key
     );
-    const autoAnchorVal = exprVal$1(autoAnchor);
+    const autoAnchorVal = exprVal(autoAnchor);
     if (anchor && (autoAnchorVal === "1" || autoAnchorVal === "true")) {
       return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: anchor.position, rotation: anchor.rotation, children: rendered }, key);
     }
@@ -2191,23 +2191,23 @@ function LedBeleuchtungModel(props) {
   const isLamellenQuer = lamellenLedData !== null && lamellenLedData.richtung === 0;
   const isLamellenLaengs = lamellenLedData !== null && lamellenLedData.richtung === 1;
   const getVal = (v, fallback) => {
-    const val = Number(exprVal$1(v));
+    const val = Number(exprVal(v));
     return isNaN(val) ? fallback : val;
   };
-  const ledTyp = String(exprVal$1(props.ledTyp) || "stripes");
+  const ledTyp = String(exprVal(props.ledTyp) || "stripes");
   const ledMat = materials?.led;
   const ledMatColor = ledMat?.color;
-  const ledFarbe = ledMatColor ? "#" + ledMatColor.getHexString() : String(exprVal$1(props.ledFarbe) || "#ffffff");
+  const ledFarbe = ledMatColor ? "#" + ledMatColor.getHexString() : String(exprVal(props.ledFarbe) || "#ffffff");
   const intensitaet = getVal(props.intensitaet, 1.5);
   const strahlerJedenNten = Math.max(1, Math.round(getVal(props.strahlerJedenNten, 1)));
   const anzahlProSparren = Math.max(1, Math.round(getVal(props.anzahlProSparren, 3)));
-  const strahlerForm = String(exprVal$1(props.strahlerForm) || "rund");
+  const strahlerForm = String(exprVal(props.strahlerForm) || "rund");
   const strahlerDurchmesser = Math.max(0.02, getVal(props.strahlerDurchmesser, 0.08));
   const stripeJedenNten = Math.max(1, Math.round(getVal(props.stripeJedenNten, 1)));
   const stripeLaenge = Math.max(0, getVal(props.stripeLaenge, 0));
   const stripeBreite = Math.max(5e-3, getVal(props.stripeBreite, 0.04));
-  const qubusSeiten = String(exprVal$1(props.qubusSeiten) || "alle");
-  const montageTyp = String(exprVal$1(props.montageTyp) || "aufgebaut");
+  const qubusSeiten = String(exprVal(props.qubusSeiten) || "alle");
+  const montageTyp = String(exprVal(props.montageTyp) || "aufgebaut");
   const eingebaut = montageTyp === "eingebaut";
   const bloomAn = getVal(props.bloomAn, 1) >= 1;
   const bloomStaerke = Math.max(0, getVal(props.bloomStaerke, 1));
@@ -2223,8 +2223,8 @@ function LedBeleuchtungModel(props) {
   const hoeheVorne = baseHV - qubusOffset;
   const hoeheHinten = baseHH - qubusOffset;
   const auflageTyp = sparrenAuflage === 1 ? "innenliegend" : "aufliegend";
-  const qtVorne = isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal$1(schwelle)) === 1 ? Math.max(schwelleBreite || 0, pfostenTiefe || 0) : 0 : 0;
-  const qtHinten = isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal$1(pfette)) === 1 ? pfettenBreite || 0 : 0 : 0;
+  const qtVorne = isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal(schwelle)) === 1 ? Math.max(schwelleBreite || 0, pfostenTiefe || 0) : 0 : 0;
+  const qtHinten = isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal(pfette)) === 1 ? pfettenBreite || 0 : 0 : 0;
   const { sparrenY, sparrenZ, sparrenTiefe, hoeheDiff } = useDachGeometrie({
     gesamtTiefe: effDepth,
     hoeheVorne,
@@ -2942,7 +2942,7 @@ const PRESETS = {
   }
 };
 function SceneEnvironmentModel(props) {
-  const preset = Number(exprVal$1(props.preset)) || 0;
+  const preset = Number(exprVal(props.preset)) || 0;
   const orbitAzimuthAktiv = numVal(props.orbitAzimuthAktiv, 0) > 0;
   const orbitAzimuthGrad = numVal(props.orbitAzimuthGrad, 85);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
@@ -2958,7 +2958,7 @@ function SceneEnvironmentModel(props) {
   const hausSlotInstanzen = props.slots?.[SCENE_SLOTS.haus.id];
   const envValues = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     const getNum = (val, fallback) => {
-      const v = exprVal$1(val);
+      const v = exprVal(val);
       return v === void 0 || v === null || v === "" ? fallback : Number(v);
     };
     const intensityScale = preset !== 0 && PRESETS[preset] ? PRESETS[preset].intensityScale : 1;
@@ -2993,7 +2993,7 @@ function SceneEnvironmentModel(props) {
       lightPosition,
       envIntensity,
       ambientIntensity: getNum(props.ambientIntensity, 0.5),
-      ambientColor: String(exprVal$1(props.ambientColor) || "#ffffff"),
+      ambientColor: String(exprVal(props.ambientColor) || "#ffffff"),
       shadowBias,
       isNight: false,
       _provided: true
@@ -5144,8 +5144,8 @@ function GlasEindeckungModel(props) {
     scale
   } = props;
   const parent = useVerandaGeometry();
-  const width = parent.isQubus ? parent.innerWidth || 0 : parent.width || Number(exprVal$1(props.width)) || 4;
-  const depth = parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal$1(props.depth)) || 3;
+  const width = parent.isQubus ? parent.innerWidth || 0 : parent.width || Number(exprVal(props.width)) || 4;
+  const depth = parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal(props.depth)) || 3;
   const height = parent.height || 0;
   const dachneigung = parent.eindeckungDachneigung ?? parent.dachneigung;
   const pfostenTiefe = parent.pfostenTiefe || 0.1;
@@ -5155,13 +5155,13 @@ function GlasEindeckungModel(props) {
   const schwelleBreite = parent.schwelleBreite;
   const profilMaterial = materials.profil;
   if (profilMaterial) profilMaterial.name = "profil";
-  const sparrenAnzahl = Number(exprVal$1(sparrenAnzahlProp));
-  const sparrenBreite = Number(exprVal$1(sparrenBreiteProp)) || parent.sparrenBreite;
-  const sparrenHoehe = Number(exprVal$1(sparrenHoeheProp)) || parent.sparrenHoehe;
-  const sparrenAussenBreite = Number(exprVal$1(sparrenAussenBreiteProp)) || sparrenBreite;
-  const sparrenAussenHoehe = Number(exprVal$1(sparrenAussenHoeheProp)) || sparrenHoehe;
-  const sparrenAuflage = Number(exprVal$1(parent.sparrenAuflage));
-  const useEinzel = Number(exprVal$1(einzelMaterialien)) === 1;
+  const sparrenAnzahl = Number(exprVal(sparrenAnzahlProp));
+  const sparrenBreite = Number(exprVal(sparrenBreiteProp)) || parent.sparrenBreite;
+  const sparrenHoehe = Number(exprVal(sparrenHoeheProp)) || parent.sparrenHoehe;
+  const sparrenAussenBreite = Number(exprVal(sparrenAussenBreiteProp)) || sparrenBreite;
+  const sparrenAussenHoehe = Number(exprVal(sparrenAussenHoeheProp)) || sparrenHoehe;
+  const sparrenAuflage = Number(exprVal(parent.sparrenAuflage));
+  const useEinzel = Number(exprVal(einzelMaterialien)) === 1;
   const konstruktionMaterial = useEinzel ? materials.konstruktion ?? profilMaterial : profilMaterial;
   const sparrenMaterial = useEinzel ? materials.sparren ?? profilMaterial : profilMaterial;
   const leistenMaterial = useEinzel ? materials.leisten ?? profilMaterial : profilMaterial;
@@ -5177,20 +5177,20 @@ function GlasEindeckungModel(props) {
   if (platteMaterial) {
     platteMaterial.name = eindeckung === "glas" ? "glas" : "poly";
   }
-  const _eindeckungDicke = Number(exprVal$1(eindeckungDicke));
-  const _leistenHoehe = Number(exprVal$1(leistenHoehe));
-  const _leistenBreite = Number(exprVal$1(leistenBreite));
-  const _leistenRundung = Number(exprVal$1(leistenRundung));
-  const _opacity = Number(exprVal$1(opacity));
-  const _roughness = Number(exprVal$1(roughness));
-  const _metalness = Number(exprVal$1(metalness));
-  const _envMapIntensity = Number(exprVal$1(envMapIntensity));
-  const _kammergroesse = Number(exprVal$1(kammergroesse));
-  const _wandanschlussHoehe = Number(exprVal$1(wandanschlussHoehe));
-  const _wandanschlussTiefe = Number(exprVal$1(wandanschlussTiefe));
-  const _stirnblechHoehe = Number(exprVal$1(stirnblechHoehe));
-  const _stirnblechTiefe = Number(exprVal$1(stirnblechTiefe));
-  const _vornAbschlussleiste = Number(exprVal$1(vornAbschlussleiste));
+  const _eindeckungDicke = Number(exprVal(eindeckungDicke));
+  const _leistenHoehe = Number(exprVal(leistenHoehe));
+  const _leistenBreite = Number(exprVal(leistenBreite));
+  const _leistenRundung = Number(exprVal(leistenRundung));
+  const _opacity = Number(exprVal(opacity));
+  const _roughness = Number(exprVal(roughness));
+  const _metalness = Number(exprVal(metalness));
+  const _envMapIntensity = Number(exprVal(envMapIntensity));
+  const _kammergroesse = Number(exprVal(kammergroesse));
+  const _wandanschlussHoehe = Number(exprVal(wandanschlussHoehe));
+  const _wandanschlussTiefe = Number(exprVal(wandanschlussTiefe));
+  const _stirnblechHoehe = Number(exprVal(stirnblechHoehe));
+  const _stirnblechTiefe = Number(exprVal(stirnblechTiefe));
+  const _vornAbschlussleiste = Number(exprVal(vornAbschlussleiste));
   const { hoeheHinten: baseHHinten, hoeheVorne: baseHVorne } = calcVerandaGeometry(
     depth,
     dachneigung,
@@ -5200,7 +5200,7 @@ function GlasEindeckungModel(props) {
   const hoeheVorne = baseHVorne - qubusOffset;
   const hoeheHinten = baseHHinten - qubusOffset;
   const auflageTyp = sparrenAuflage === 1 ? "innenliegend" : "aufliegend";
-  const hatAussenSparren = Number(exprVal$1(sparrenAussen)) === 1;
+  const hatAussenSparren = Number(exprVal(sparrenAussen)) === 1;
   const { setEindeckungInfo, setUnterEindeckungHoehe, setAussensparrenHoehe } = useEindeckungInfo();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     setEindeckungInfo(
@@ -5236,12 +5236,12 @@ function GlasEindeckungModel(props) {
     mat.needsUpdate = true;
     patchSurface(mat, "glas", { strength: isAR ? 0 : 1 });
   }, [platteMaterial, _opacity, _roughness, isAR]);
-  const _querbalken = Number(exprVal$1(querbalken)) === 1;
-  const _querbalkenHoehe = Number(exprVal$1(querbalkenHoehe)) || sparrenHoehe;
-  const _querbalkenBreite = Number(exprVal$1(querbalkenBreite)) || sparrenBreite;
-  const _quertraegerTiefe = Number(exprVal$1(quertraegerTiefe));
-  const qtVorne = parent.isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal$1(parent.schwelle)) === 1 ? Math.max(schwelleBreite, pfostenTiefe) : 0 : _quertraegerTiefe;
-  const qtHinten = parent.isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal$1(parent.pfette)) === 1 ? pfettenBreite : 0 : 0;
+  const _querbalken = Number(exprVal(querbalken)) === 1;
+  const _querbalkenHoehe = Number(exprVal(querbalkenHoehe)) || sparrenHoehe;
+  const _querbalkenBreite = Number(exprVal(querbalkenBreite)) || sparrenBreite;
+  const _quertraegerTiefe = Number(exprVal(quertraegerTiefe));
+  const qtVorne = parent.isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal(parent.schwelle)) === 1 ? Math.max(schwelleBreite, pfostenTiefe) : 0 : _quertraegerTiefe;
+  const qtHinten = parent.isQubus ? 0 : sparrenAuflage === 1 ? Number(exprVal(parent.pfette)) === 1 ? pfettenBreite : 0 : 0;
   const glasFarbeHex = "#88bbcc";
   const leistenFarbeHex = "#c0c0c0";
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
@@ -5312,7 +5312,7 @@ function GlasEindeckungModel(props) {
             wandanschlussTiefe: _wandanschlussTiefe,
             wandanschlussFarbe: leistenFarbeHex,
             dachVorsprung: 0,
-            stirnblech: Number(exprVal$1(stirnblech)) === 1,
+            stirnblech: Number(exprVal(stirnblech)) === 1,
             stirnblechHoehe: _stirnblechHoehe,
             stirnblechTiefe: _stirnblechTiefe,
             vornAbschlussleiste: _vornAbschlussleiste === 1,
@@ -5449,8 +5449,8 @@ function MetallEindeckungModel(props) {
     scale
   } = props;
   const parent = useVerandaGeometry();
-  const width = parent.isQubus ? parent.innerWidth || 0 : parent.width || Number(exprVal$1(props.width)) || 4;
-  const depth = parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal$1(props.depth)) || 3;
+  const width = parent.isQubus ? parent.innerWidth || 0 : parent.width || Number(exprVal(props.width)) || 4;
+  const depth = parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal(props.depth)) || 3;
   const height = parent.height || 0;
   const dachneigung = parent.eindeckungDachneigung ?? parent.dachneigung;
   const sparrenHoehe = parent.sparrenHoehe || 0.12;
@@ -5461,26 +5461,26 @@ function MetallEindeckungModel(props) {
   if (eindeckungMaterial) eindeckungMaterial.name = "eindeckung";
   if (eindeckungProfilMaterial && eindeckungProfilMaterial !== eindeckungMaterial)
     eindeckungProfilMaterial.name = "eindeckung-profil";
-  const _balkenAnzahl = Number(exprVal$1(balkenAnzahl));
-  const _balkenBreite = Number(exprVal$1(balkenBreite));
-  const _balkenHoehe = Number(exprVal$1(balkenHoehe));
-  const _eindeckungDicke = Number(exprVal$1(eindeckungDicke));
-  const _amplitude = Number(exprVal$1(amplitude));
-  const _frequenz = Number(exprVal$1(frequenz));
-  const _wandanschlussHoehe = Number(exprVal$1(wandanschlussHoehe));
-  const _wandanschlussTiefe = Number(exprVal$1(wandanschlussTiefe));
-  const _stirnblechHoehe = Number(exprVal$1(stirnblechHoehe));
-  const _stirnblechTiefe = Number(exprVal$1(stirnblechTiefe));
-  const _seitenabschlussHoehe = Number(exprVal$1(seitenabschlussHoehe));
-  const _seitenabschlussTiefe = Number(exprVal$1(seitenabschlussTiefe));
-  const _laengsbalkenBreite = Number(exprVal$1(laengsbalkenBreite));
-  const _laengsbalkenHoehe = Number(exprVal$1(laengsbalkenHoehe));
-  const hatAussenSparren = Number(exprVal$1(sparrenAussen)) === 1;
-  const sparrenAuflage = Number(exprVal$1(parent.sparrenAuflage));
+  const _balkenAnzahl = Number(exprVal(balkenAnzahl));
+  const _balkenBreite = Number(exprVal(balkenBreite));
+  const _balkenHoehe = Number(exprVal(balkenHoehe));
+  const _eindeckungDicke = Number(exprVal(eindeckungDicke));
+  const _amplitude = Number(exprVal(amplitude));
+  const _frequenz = Number(exprVal(frequenz));
+  const _wandanschlussHoehe = Number(exprVal(wandanschlussHoehe));
+  const _wandanschlussTiefe = Number(exprVal(wandanschlussTiefe));
+  const _stirnblechHoehe = Number(exprVal(stirnblechHoehe));
+  const _stirnblechTiefe = Number(exprVal(stirnblechTiefe));
+  const _seitenabschlussHoehe = Number(exprVal(seitenabschlussHoehe));
+  const _seitenabschlussTiefe = Number(exprVal(seitenabschlussTiefe));
+  const _laengsbalkenBreite = Number(exprVal(laengsbalkenBreite));
+  const _laengsbalkenHoehe = Number(exprVal(laengsbalkenHoehe));
+  const hatAussenSparren = Number(exprVal(sparrenAussen)) === 1;
+  const sparrenAuflage = Number(exprVal(parent.sparrenAuflage));
   const eindeckungBreite = width;
   const querbalkenBreite = eindeckungBreite;
   const { hoeheHinten: baseHHinten, hoeheVorne: baseHVorne } = calcVerandaGeometry(depth, dachneigung, height);
-  const eindeckungTyp = METALL_EINDECKUNG_MAP[Number(exprVal$1(eindeckung))] ?? "welle";
+  const eindeckungTyp = METALL_EINDECKUNG_MAP[Number(exprVal(eindeckung))] ?? "welle";
   const metallPeakOffset = eindeckungTyp === "welle" ? _eindeckungDicke + 2 * (_amplitude / 200) : _eindeckungDicke + _amplitude / 100;
   const talOffset = calcEindeckungBottomOffset(eindeckungTyp, _eindeckungDicke, _amplitude);
   const neigungRad = Math.atan2(baseHHinten - baseHVorne, depth);
@@ -5524,8 +5524,8 @@ function MetallEindeckungModel(props) {
   const metallFarbeHex = "#808080";
   const dachVS_m = 0;
   const pfostenTiefe_m = parent.pfostenTiefe;
-  const schwEff_m = !parent.isQubus && Number(exprVal$1(parent.schwelle)) === 1 ? Math.max(parent.schwelleBreite, pfostenTiefe_m) : 0;
-  const pfEff_m = !parent.isQubus && Number(exprVal$1(parent.pfette)) === 1 ? parent.pfettenBreite : 0;
+  const schwEff_m = !parent.isQubus && Number(exprVal(parent.schwelle)) === 1 ? Math.max(parent.schwelleBreite, pfostenTiefe_m) : 0;
+  const pfEff_m = !parent.isQubus && Number(exprVal(parent.pfette)) === 1 ? parent.pfettenBreite : 0;
   const zInnenV_m = sparrenAuflage === 1 ? -depth / 2 + dachVS_m + schwEff_m : -depth / 2;
   const zInnenH_m = sparrenAuflage === 1 ? depth / 2 - pfEff_m : depth / 2;
   const innerD_m = Math.max(0.01, zInnenH_m - zInnenV_m);
@@ -5646,7 +5646,7 @@ function MetallEindeckungModel(props) {
             material: eindeckungMaterial
           }
         ) }),
-        Number(exprVal$1(wandanschluss)) === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        Number(exprVal(wandanschluss)) === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           Wandanschluss,
           {
             wandanschlussHoehe: _wandanschlussHoehe,
@@ -5660,7 +5660,7 @@ function MetallEindeckungModel(props) {
             material: eindeckungProfilMaterial
           }
         ),
-        Number(exprVal$1(stirnblech)) === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        Number(exprVal(stirnblech)) === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           Stirnblech,
           {
             stirnblechHoehe: _stirnblechHoehe,
@@ -5673,7 +5673,7 @@ function MetallEindeckungModel(props) {
             material: eindeckungProfilMaterial
           }
         ),
-        Number(exprVal$1(seitenabschluss)) === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+        Number(exprVal(seitenabschluss)) === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
             Seitenabschluss,
             {
@@ -5806,8 +5806,8 @@ function LamellenEindeckungModel(props) {
     materials = {}
   } = props;
   const parent = useVerandaGeometry();
-  const width = parent.isQubus ? parent.innerWidth ?? (Number(exprVal$1(props.width)) || 4) : parent.width || Number(exprVal$1(props.width)) || 4;
-  const depth = parent.isQubus ? parent.innerDepth ?? (Number(exprVal$1(props.depth)) || 3) : parent.depth || Number(exprVal$1(props.depth)) || 3;
+  const width = parent.isQubus ? parent.innerWidth ?? (Number(exprVal(props.width)) || 4) : parent.width || Number(exprVal(props.width)) || 4;
+  const depth = parent.isQubus ? parent.innerDepth ?? (Number(exprVal(props.depth)) || 3) : parent.depth || Number(exprVal(props.depth)) || 3;
   const height = parent.height || 0;
   const dachneigung = parent.eindeckungDachneigung ?? parent.dachneigung ?? 0;
   const { hoeheHinten: baseHHinten, hoeheVorne: baseHVorne, neigung } = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
@@ -6514,28 +6514,28 @@ function SolarEindeckungModel(props) {
     materials = {}
   } = props;
   const parent = useVerandaGeometry();
-  const _totalBreite = Number(exprVal$1(totalBreite));
-  const _totalTiefe = Number(exprVal$1(totalTiefe));
-  const width = _totalBreite > 0 ? _totalBreite : parent.isQubus ? parent.innerWidth || 0 : parent.width || Number(exprVal$1(props.width)) || 4;
-  const depth = _totalTiefe > 0 ? _totalTiefe : parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal$1(props.depth)) || 3;
+  const _totalBreite = Number(exprVal(totalBreite));
+  const _totalTiefe = Number(exprVal(totalTiefe));
+  const width = _totalBreite > 0 ? _totalBreite : parent.isQubus ? parent.innerWidth || 0 : parent.width || Number(exprVal(props.width)) || 4;
+  const depth = _totalTiefe > 0 ? _totalTiefe : parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal(props.depth)) || 3;
   const height = parent.height || 0;
   const { hoeheHinten: baseHHinten, hoeheVorne: baseHVorne, neigung } = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
     () => calcVerandaGeometry(depth, parent.eindeckungDachneigung ?? parent.dachneigung, height),
     [depth, parent.eindeckungDachneigung, parent.dachneigung, height]
   );
-  const _leistenHoehe = Number(exprVal$1(leistenHoehe));
+  const _leistenHoehe = Number(exprVal(leistenHoehe));
   const solarDicke = 6e-3;
-  const _sparrenAuflageStr = exprVal$1(_sparrenAuflage_prop);
+  const _sparrenAuflageStr = exprVal(_sparrenAuflage_prop);
   const _sparrenAuflage = _sparrenAuflageStr === "" || Number.isNaN(Number(_sparrenAuflageStr)) ? Number(parent.sparrenAuflage) || 0 : Number(_sparrenAuflageStr);
-  const qubusOffset = parent.isQubus ? solarDicke + _leistenHoehe + (_sparrenAuflage === 0 ? Number(exprVal$1(sparrenHoehe || parent.sparrenHoehe)) : 0) : 0;
+  const qubusOffset = parent.isQubus ? solarDicke + _leistenHoehe + (_sparrenAuflage === 0 ? Number(exprVal(sparrenHoehe || parent.sparrenHoehe)) : 0) : 0;
   const hoeheVorne = baseHVorne - qubusOffset;
   const hoeheHinten = baseHHinten - qubusOffset;
-  const _sparrenAnzahl = Number(exprVal$1(sparrenAnzahl));
-  const _sparrenBreite = Number(exprVal$1(sparrenBreite)) > 0 ? Number(exprVal$1(sparrenBreite)) : parent.sparrenBreite;
-  const _sparrenHoehe = Number(exprVal$1(sparrenHoehe)) > 0 ? Number(exprVal$1(sparrenHoehe)) : parent.sparrenHoehe;
-  const _sparrenAussenBreite = Number(exprVal$1(sparrenAussenBreite)) > 0 ? Number(exprVal$1(sparrenAussenBreite)) : _sparrenBreite;
-  const _sparrenAussenHoehe = Number(exprVal$1(sparrenAussenHoehe)) > 0 ? Number(exprVal$1(sparrenAussenHoehe)) : _sparrenHoehe;
-  const hatAussenSparren = Number(exprVal$1(sparrenAussen)) === 1;
+  const _sparrenAnzahl = Number(exprVal(sparrenAnzahl));
+  const _sparrenBreite = Number(exprVal(sparrenBreite)) > 0 ? Number(exprVal(sparrenBreite)) : parent.sparrenBreite;
+  const _sparrenHoehe = Number(exprVal(sparrenHoehe)) > 0 ? Number(exprVal(sparrenHoehe)) : parent.sparrenHoehe;
+  const _sparrenAussenBreite = Number(exprVal(sparrenAussenBreite)) > 0 ? Number(exprVal(sparrenAussenBreite)) : _sparrenBreite;
+  const _sparrenAussenHoehe = Number(exprVal(sparrenAussenHoehe)) > 0 ? Number(exprVal(sparrenAussenHoehe)) : _sparrenHoehe;
+  const hatAussenSparren = Number(exprVal(sparrenAussen)) === 1;
   const eindeckungInfo = useEindeckungInfo();
   const effectiveSparrenAnzahl = Math.max(2, _sparrenAnzahl);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
@@ -6543,7 +6543,7 @@ function SolarEindeckungModel(props) {
       solarDicke,
       _leistenHoehe,
       Number(extension) === 1,
-      Number(exprVal$1(wandanschlussTiefe)),
+      Number(exprVal(wandanschlussTiefe)),
       effectiveSparrenAnzahl,
       qubusOffset
     );
@@ -6553,17 +6553,17 @@ function SolarEindeckungModel(props) {
   const glasMaterial = materials.glas;
   if (profilMaterial) profilMaterial.name = "profil";
   if (glasMaterial) glasMaterial.name = "glas";
-  const useEinzel = Number(exprVal$1(einzelMaterialien)) === 1;
+  const useEinzel = Number(exprVal(einzelMaterialien)) === 1;
   const anschlussMaterial = useEinzel ? materials.anschluss ?? profilMaterial : profilMaterial;
   const leistenMaterial = useEinzel ? materials.leisten ?? profilMaterial : profilMaterial;
   const panelFarbeHex = "#1a2a3a";
   const rahmenFarbeHex = "#808080";
   const anschlussFarbeHex = "#c0c0c0";
   const leistenFarbeHex = "#c0c0c0";
-  const _leistenBreite = Number(exprVal$1(leistenBreite));
-  const _leistenRundung = Number(exprVal$1(leistenRundung));
-  const _maxZellenBreite = Number(exprVal$1(maxZellenBreite)) || 0.15;
-  const _maxZellenTiefe = Number(exprVal$1(maxZellenTiefe)) || 0.15;
+  const _leistenBreite = Number(exprVal(leistenBreite));
+  const _leistenRundung = Number(exprVal(leistenRundung));
+  const _maxZellenBreite = Number(exprVal(maxZellenBreite)) || 0.15;
+  const _maxZellenTiefe = Number(exprVal(maxZellenTiefe)) || 0.15;
   const querbalkenBreite = width;
   const sparrenCount = Math.max(2, _sparrenAnzahl);
   const sparrenB2 = _sparrenBreite / 2;
@@ -6624,8 +6624,8 @@ function SolarEindeckungModel(props) {
   const _modulTiefe = numVal(modulTiefe);
   const _modulAnzahlBreite = numVal(modulAnzahlBreite);
   const useModulRaster = _modulBreite > 0 && _modulTiefe > 0;
-  const modulBreiteRaw = exprVal$1(modulBreite);
-  const modulTiefeRaw = exprVal$1(modulTiefe);
+  const modulBreiteRaw = exprVal(modulBreite);
+  const modulTiefeRaw = exprVal(modulTiefe);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     return;
   }, [useModulRaster, modulBreiteRaw, modulTiefeRaw, _modulBreite, _modulTiefe]);
@@ -6945,15 +6945,15 @@ const solarEindeckungDynamicModel = {
 
 function RegenrinneModel(props) {
   const getVal = (v, fallback) => {
-    const valStr = exprVal$1(v);
+    const valStr = exprVal(v);
     const val = Number(valStr);
     if (v === void 0 || v === null || valStr === "" || isNaN(val))
       return fallback;
     return val;
   };
   const parent = useVerandaGeometry();
-  const width = parent.width || Number(exprVal$1(props.width)) || 4;
-  const depth = parent.depth || Number(exprVal$1(props.depth)) || 3;
+  const width = parent.width || Number(exprVal(props.width)) || 4;
+  const depth = parent.depth || Number(exprVal(props.depth)) || 3;
   const height = parent.height || 0;
   const rinnenBreite = getVal(props.rinnenBreite, 0.12);
   const rinnenHoehe = getVal(props.rinnenHoehe, 0.08);
@@ -6964,7 +6964,7 @@ function RegenrinneModel(props) {
     rotation,
     scale
   } = props;
-  const rinnenTyp = Number(exprVal$1(props.typ) || "0");
+  const rinnenTyp = Number(exprVal(props.typ) || "0");
   const dachneigung = parent.dachneigung || 0;
   const farbeHex = "#808080";
   const anchors = calcSlotAnchors({
@@ -7046,7 +7046,7 @@ function PfostenModel(props) {
     scale
   } = props;
   const getVal = (v, fallback) => {
-    const valStr = exprVal$1(v);
+    const valStr = exprVal(v);
     const val = Number(valStr);
     if (v === void 0 || v === null || valStr === "" || isNaN(val))
       return fallback;
@@ -7826,9 +7826,9 @@ function renderKeil(rc, props) {
   } = rc;
   const isRightSide = effectiveSide === 1;
   const keilAbschnittVal = Number(
-    exprVal$1(props.keilAbschnitt) ?? exprVal$1(props.abschnittVorne) ?? 0
+    exprVal(props.keilAbschnitt) ?? exprVal(props.abschnittVorne) ?? 0
   );
-  const dickeVal = Number(exprVal$1(props.dicke) ?? 0.07);
+  const dickeVal = Number(exprVal(props.dicke) ?? 0.07);
   const keilZOffset = (ctx.pfostenBreite - dickeVal) / 2;
   const isInnenliegend = ctx.sparrenAuflage === 1;
   const effectiveHeightOffset = isInnenliegend ? aussensparrenHoehe > 0 ? ctx.sparrenHoehe - aussensparrenHoehe : 0 : 0;
@@ -7861,20 +7861,20 @@ function renderKeil(rc, props) {
             hoeheVorne: keilEffHoeheVorne,
             hoeheHinten: keilEffHoeheHintenExt,
             keilAbschnitt: keilAbschnittVal,
-            keilTeiler: Number(exprVal$1(props.keilTeiler) ?? 0),
-            dicke: Number(exprVal$1(props.dicke) ?? 0.07),
-            fuellungTyp: Number(exprVal$1(props.fuellungTyp) ?? exprVal$1(props.glasTyp) ?? 0),
+            keilTeiler: Number(exprVal(props.keilTeiler) ?? 0),
+            dicke: Number(exprVal(props.dicke) ?? 0.07),
+            fuellungTyp: Number(exprVal(props.fuellungTyp) ?? exprVal(props.glasTyp) ?? 0),
             material,
             glasMaterial,
             farbeHex,
             glasFarbeHex: "#ccddee",
-            opacity: Number(exprVal$1(props.opacity) ?? 0.2),
-            roughness: Number(exprVal$1(props.roughness) ?? 0),
-            metalness: Number(exprVal$1(props.metalness) ?? 0),
-            envMapIntensity: Number(exprVal$1(props.envMapIntensity) ?? 1),
-            kammergroesse: Number(exprVal$1(props.kammergroesse) || 0.05),
-            plankenHoehe: Number(exprVal$1(props.plankenHoehe) ?? 0.15),
-            plankenTiefe: Number(exprVal$1(props.plankenTiefe) ?? 0.02),
+            opacity: Number(exprVal(props.opacity) ?? 0.2),
+            roughness: Number(exprVal(props.roughness) ?? 0),
+            metalness: Number(exprVal(props.metalness) ?? 0),
+            envMapIntensity: Number(exprVal(props.envMapIntensity) ?? 1),
+            kammergroesse: Number(exprVal(props.kammergroesse) || 0.05),
+            plankenHoehe: Number(exprVal(props.plankenHoehe) ?? 0.15),
+            plankenTiefe: Number(exprVal(props.plankenTiefe) ?? 0.02),
             pfettenBreite: keilCutoutBreite,
             pfettenHoehe: keilPfettenHoehe
           }
@@ -8421,30 +8421,30 @@ function renderRahmenwand(rc, props) {
       {
         wandBreite,
         wandHoeheVorne: isSlantedWand ? sHoeheVorne : rwHoehe,
-        mitMittelbalken: Number(exprVal$1(props.mitMittelbalken) ?? 0),
-        mittelbalkenHoehe: Number(exprVal$1(props.mittelbalkenHoehe) ?? 0.5),
-        maxScheibenBreite: Number(exprVal$1(props.maxScheibenBreite) ?? 0),
-        fuellungTypOben: Number(exprVal$1(props.fuellungTypOben) ?? exprVal$1(props.glasTypOben) ?? 0),
-        fuellungTypUnten: Number(exprVal$1(props.fuellungTypUnten) ?? exprVal$1(props.glasTypUnten) ?? 0),
+        mitMittelbalken: Number(exprVal(props.mitMittelbalken) ?? 0),
+        mittelbalkenHoehe: Number(exprVal(props.mittelbalkenHoehe) ?? 0.5),
+        maxScheibenBreite: Number(exprVal(props.maxScheibenBreite) ?? 0),
+        fuellungTypOben: Number(exprVal(props.fuellungTypOben) ?? exprVal(props.glasTypOben) ?? 0),
+        fuellungTypUnten: Number(exprVal(props.fuellungTypUnten) ?? exprVal(props.glasTypUnten) ?? 0),
         material,
         glasMaterialOben,
         glasMaterialUnten,
         farbeHex,
         glasFarbeHex,
-        opacityOben: Number(exprVal$1(props.opacityOben) ?? 0.2),
-        roughnessOben: Number(exprVal$1(props.roughnessOben) ?? 0),
-        metalnessOben: Number(exprVal$1(props.metalnessOben) ?? 0),
-        envMapIntensityOben: Number(exprVal$1(props.envMapIntensityOben) ?? 1),
-        kammergroesseOben: Number(exprVal$1(props.kammergroesseOben) || 0.05),
-        opacityUnten: Number(exprVal$1(props.opacityUnten) ?? 0.2),
-        roughnessUnten: Number(exprVal$1(props.roughnessUnten) ?? 0),
-        metalnessUnten: Number(exprVal$1(props.metalnessUnten) ?? 0),
-        envMapIntensityUnten: Number(exprVal$1(props.envMapIntensityUnten) ?? 1),
-        kammergroesseUnten: Number(exprVal$1(props.kammergroesseUnten) || 0.05),
+        opacityOben: Number(exprVal(props.opacityOben) ?? 0.2),
+        roughnessOben: Number(exprVal(props.roughnessOben) ?? 0),
+        metalnessOben: Number(exprVal(props.metalnessOben) ?? 0),
+        envMapIntensityOben: Number(exprVal(props.envMapIntensityOben) ?? 1),
+        kammergroesseOben: Number(exprVal(props.kammergroesseOben) || 0.05),
+        opacityUnten: Number(exprVal(props.opacityUnten) ?? 0.2),
+        roughnessUnten: Number(exprVal(props.roughnessUnten) ?? 0),
+        metalnessUnten: Number(exprVal(props.metalnessUnten) ?? 0),
+        envMapIntensityUnten: Number(exprVal(props.envMapIntensityUnten) ?? 1),
+        kammergroesseUnten: Number(exprVal(props.kammergroesseUnten) || 0.05),
         wandHoeheHinten: isSlantedWand ? sHoeheHinten : void 0,
         aufDachneigung: isSlantedWand ? 1 : 0,
-        plankenHoehe: Number(exprVal$1(props.plankenHoehe) ?? 0.15),
-        plankenTiefe: Number(exprVal$1(props.plankenTiefe) ?? 0.02)
+        plankenHoehe: Number(exprVal(props.plankenHoehe) ?? 0.15),
+        plankenTiefe: Number(exprVal(props.plankenTiefe) ?? 0.02)
       }
     ) }),
     null
@@ -8869,7 +8869,7 @@ function renderSchiebetuer(rc, props) {
     farbeHex,
     glasFarbeHex
   } = rc;
-  const spGlasDicke = Number(exprVal$1(props.glasDicke) ?? 8e-3);
+  const spGlasDicke = Number(exprVal(props.glasDicke) ?? 8e-3);
   const stHoehe = zoneHoeheVorne - keilReductionAuto - ssReduction;
   const stZ = isSideWall ? ctx.pfostenBreite / 2 : -ctx.pfostenTiefe / 2;
   return [
@@ -8878,34 +8878,34 @@ function renderSchiebetuer(rc, props) {
       {
         wandBreite,
         wandHoeheVorne: stHoehe,
-        mitRahmen: Number(exprVal$1(props.mitRahmen) ?? 0),
-        tuertypPanels: Number(exprVal$1(props.tuertypPanels) ?? 0),
-        maxPanelBreite: Number(exprVal$1(props.maxPanelBreite) ?? 0.8),
-        festeElemente: Number(exprVal$1(props.festeElemente) ?? 0),
-        oeffnung: Number(exprVal$1(props.oeffnung) ?? 0),
-        laufrichtung: Number(exprVal$1(props.laufrichtung) ?? 0),
-        schienenSeite: Number(exprVal$1(props.schienenSeite) ?? 0),
-        buersten: Number(exprVal$1(props.buersten) ?? 1),
-        griffTyp: Number(exprVal$1(props.griffTyp) ?? 0),
-        griffAnordnung: Number(exprVal$1(props.griffAnordnung) ?? 0),
-        griffPosition: Number(exprVal$1(props.griffPosition) ?? 0),
-        griffSeite: Number(exprVal$1(props.griffSeite) ?? 2),
-        griffHoehe: Number(exprVal$1(props.griffHoehe) ?? 1),
-        fuellungTyp: Number(exprVal$1(props.fuellungTyp) ?? exprVal$1(props.glasTyp) ?? 0),
+        mitRahmen: Number(exprVal(props.mitRahmen) ?? 0),
+        tuertypPanels: Number(exprVal(props.tuertypPanels) ?? 0),
+        maxPanelBreite: Number(exprVal(props.maxPanelBreite) ?? 0.8),
+        festeElemente: Number(exprVal(props.festeElemente) ?? 0),
+        oeffnung: Number(exprVal(props.oeffnung) ?? 0),
+        laufrichtung: Number(exprVal(props.laufrichtung) ?? 0),
+        schienenSeite: Number(exprVal(props.schienenSeite) ?? 0),
+        buersten: Number(exprVal(props.buersten) ?? 1),
+        griffTyp: Number(exprVal(props.griffTyp) ?? 0),
+        griffAnordnung: Number(exprVal(props.griffAnordnung) ?? 0),
+        griffPosition: Number(exprVal(props.griffPosition) ?? 0),
+        griffSeite: Number(exprVal(props.griffSeite) ?? 2),
+        griffHoehe: Number(exprVal(props.griffHoehe) ?? 1),
+        fuellungTyp: Number(exprVal(props.fuellungTyp) ?? exprVal(props.glasTyp) ?? 0),
         glasDicke: spGlasDicke,
-        rahmenBreite: Number(exprVal$1(props.rahmenBreite) ?? 0.04),
+        rahmenBreite: Number(exprVal(props.rahmenBreite) ?? 0.04),
         material,
         glasMaterial,
         farbeHex,
         glasFarbeHex,
-        opacity: Number(exprVal$1(props.opacity) ?? 0.2),
-        roughness: Number(exprVal$1(props.roughness) ?? 0),
-        metalness: Number(exprVal$1(props.metalness) ?? 0),
-        envMapIntensity: Number(exprVal$1(props.envMapIntensity) ?? 1),
-        kammergroesse: Number(exprVal$1(props.kammergroesse) || 0.05),
+        opacity: Number(exprVal(props.opacity) ?? 0.2),
+        roughness: Number(exprVal(props.roughness) ?? 0),
+        metalness: Number(exprVal(props.metalness) ?? 0),
+        envMapIntensity: Number(exprVal(props.envMapIntensity) ?? 1),
+        kammergroesse: Number(exprVal(props.kammergroesse) || 0.05),
         zShiftDir: isSideWall ? 1 : -1,
-        plankenHoehe: Number(exprVal$1(props.plankenHoehe) ?? 0.15),
-        plankenTiefe: Number(exprVal$1(props.plankenTiefe) ?? 0.02)
+        plankenHoehe: Number(exprVal(props.plankenHoehe) ?? 0.15),
+        plankenTiefe: Number(exprVal(props.plankenTiefe) ?? 0.02)
       }
     ) }),
     null
@@ -9037,10 +9037,10 @@ function renderShutters(rc, props) {
     material,
     farbeHex
   } = rc;
-  const lamH = Number(exprVal$1(props.lamellenHoehe) ?? 0.08);
-  const isSchiebend = Number(exprVal$1(props.schiebend) ?? 0) === 1;
-  const rTiefe = Number(exprVal$1(props.rahmenTiefe) ?? 0.04);
-  const anzahlFrames = Math.max(1, Math.round(Number(exprVal$1(props.anzahlRahmen) ?? 1)));
+  const lamH = Number(exprVal(props.lamellenHoehe) ?? 0.08);
+  const isSchiebend = Number(exprVal(props.schiebend) ?? 0) === 1;
+  const rTiefe = Number(exprVal(props.rahmenTiefe) ?? 0.04);
+  const anzahlFrames = Math.max(1, Math.round(Number(exprVal(props.anzahlRahmen) ?? 1)));
   const shutHoehe = zoneHoeheVorne - keilReductionAuto - ssReduction;
   const shutZ = isSideWall ? ctx.pfostenBreite / 2 : -ctx.pfostenTiefe / 2;
   return [
@@ -9053,9 +9053,9 @@ function renderShutters(rc, props) {
         lamellenFarbeHex: "#808080",
         schiebend: isSchiebend ? 1 : 0,
         anzahlRahmen: anzahlFrames,
-        oeffnungSchiebe: Number(exprVal$1(props.oeffnungSchiebe) ?? 0),
-        oeffnungLamellen: Number(exprVal$1(props.oeffnungLamellen) ?? 0),
-        rahmenBreite: Number(exprVal$1(props.rahmenBreite) ?? 0.04),
+        oeffnungSchiebe: Number(exprVal(props.oeffnungSchiebe) ?? 0),
+        oeffnungLamellen: Number(exprVal(props.oeffnungLamellen) ?? 0),
+        rahmenBreite: Number(exprVal(props.rahmenBreite) ?? 0.04),
         rahmenTiefe: rTiefe,
         zShiftDir: isSideWall ? 1 : -1,
         material,
@@ -9331,11 +9331,11 @@ function renderSichtschutzwand(rc, props) {
     effectiveSegmentIndex,
     modelSlots
   } = rc;
-  const plHoeheStr = exprVal$1(props.plankenHoehe);
+  const plHoeheStr = exprVal(props.plankenHoehe);
   const plHoehe = plHoeheStr !== "" ? Number(plHoeheStr) : 0.15;
-  const plTiefeStr = exprVal$1(props.plankenTiefe);
+  const plTiefeStr = exprVal(props.plankenTiefe);
   const plTiefe = plTiefeStr !== "" ? Number(plTiefeStr) : 0.02;
-  const qbStr = exprVal$1(props.querbalken);
+  const qbStr = exprVal(props.querbalken);
   const qb = qbStr !== "" ? Number(qbStr) : 1;
   const maxThickness = Math.max(0.04, plTiefe + 0.02);
   const ssZ = isSideWall ? (ctx.pfostenBreite - maxThickness) / 2 : -(ctx.pfostenTiefe - maxThickness) / 2;
@@ -9380,7 +9380,7 @@ function renderSichtschutzwand(rc, props) {
         ...otherProps
       } = inst.props ?? {};
       const effectiveProps = { ...otherProps };
-      if (otherProps.segmentIndex === void 0 || Number(exprVal$1(otherProps.segmentIndex)) === -1) {
+      if (otherProps.segmentIndex === void 0 || Number(exprVal(otherProps.segmentIndex)) === -1) {
         effectiveProps.segmentIndex = effectiveSegmentIndex;
       }
       const key = `sw-aufbau-${i}|${JSON.stringify(effectiveProps)}`;
@@ -9400,7 +9400,7 @@ function renderSichtschutzwand(rc, props) {
         },
         key
       );
-      const autoAnchorVal = exprVal$1(autoAnchor);
+      const autoAnchorVal = exprVal(autoAnchor);
       if (autoAnchorVal === "1" || autoAnchorVal === "true") {
         return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           "group",
@@ -9478,17 +9478,17 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     const glasMaterial = materials.glas;
     const farbeHex = "#a0a0a0";
     const glasFarbeHex = "#ccddee";
-    const aufDachneigungVal = Number(exprVal$1(aufDachneigung)) || 0;
+    const aufDachneigungVal = Number(exprVal(aufDachneigung)) || 0;
     const keilInfo = useWandInfo();
     const eindeckungInfo = useEindeckungInfo();
     const effectiveSide = useWandSeite();
     const isSichtschutz = wandTyp === WAND_TYP.SICHTSCHUTZWAND;
-    const effectiveBreite = Number(exprVal$1(breite)) || 0;
-    const manualHoehe = Number(exprVal$1(hoehe)) || 0;
-    const segIdxStr = exprVal$1(props.segmentIndex);
+    const effectiveBreite = Number(exprVal(breite)) || 0;
+    const manualHoehe = Number(exprVal(hoehe)) || 0;
+    const segIdxStr = exprVal(props.segmentIndex);
     const effectiveSegmentIndex = segIdxStr !== "" ? Number(segIdxStr) : -1;
     const ctxSegmentIndex = Math.max(0, effectiveSegmentIndex);
-    const segAnzStr = exprVal$1(props.segmentAnzahl);
+    const segAnzStr = exprVal(props.segmentAnzahl);
     const effectiveSegmentAnzahl = segAnzStr !== "" ? Number(segAnzStr) : 0;
     const ctx = useVerandaGeometry();
     const geoMax = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => calcWandGeometry(
@@ -9542,7 +9542,7 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     const isSideWall = effectiveSide === 0 || effectiveSide === 1;
     const keilAbschnittFromCtx = effectiveSide >= 0 && effectiveSide < 4 && keilInfo?.keilAbschnitt ? keilInfo.keilAbschnitt[effectiveSide] ?? -1 : -1;
     const keilReductionAuto = keilAbschnittFromCtx >= 0 && isSideWall ? keilAbschnittFromCtx + KEIL_FRAME_SW$1 : 0;
-    const vHoeheStr = exprVal$1(props.volleHoehe);
+    const vHoeheStr = exprVal(props.volleHoehe);
     const vHoehe = vHoeheStr !== "" ? Number(vHoeheStr) : isSichtschutz ? 1 : 0;
     const effectiveHoehe = vHoehe === 1 ? 0 : manualHoehe;
     const geo = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => vHoehe === 1 || manualHoehe === 0 ? geoMax : calcWandGeometry(
@@ -9601,9 +9601,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     const zoneHoeheVorne = geo.zoneHoeheVorne;
     const zoneHoeheHinten = geo.zoneHoeheHinten;
     const ssp = props;
-    const minAH = Number(exprVal$1(ssp.minAufbauHoehe) ?? 0.2);
+    const minAH = Number(exprVal(ssp.minAufbauHoehe) ?? 0.2);
     const keilAbschnittForContext = wandTyp === WAND_TYP.KEIL ? Number(
-      exprVal$1(props.keilAbschnitt) ?? exprVal$1(props.abschnittVorne) ?? 0
+      exprVal(props.keilAbschnitt) ?? exprVal(props.abschnittVorne) ?? 0
     ) : -1;
     const reduction = keilReductionAuto;
     const fullMaxHoehe = geoMax.zoneHoeheVorne - reduction;
@@ -9611,28 +9611,28 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
     let frameThickness = 0.05;
     switch (wandTyp) {
       case WAND_TYP.KEIL:
-        frameThickness = Number(exprVal$1(props.dicke) ?? 0.07);
+        frameThickness = Number(exprVal(props.dicke) ?? 0.07);
         break;
       case WAND_TYP.SCHIEBETUER: {
         const sp = props;
-        const spGlasDicke = Number(exprVal$1(sp.glasDicke) ?? 8e-3);
-        const anzahlPanels = Number(exprVal$1(sp.tuertypPanels) ?? 4);
+        const spGlasDicke = Number(exprVal(sp.glasDicke) ?? 8e-3);
+        const anzahlPanels = Number(exprVal(sp.tuertypPanels) ?? 4);
         const nTracks = Math.min(anzahlPanels || 4, 5);
         frameThickness = nTracks * (spGlasDicke + 5e-3);
         break;
       }
       case WAND_TYP.SHUTTERS: {
         const sp = props;
-        const isSchiebend = Number(exprVal$1(sp.schiebend) ?? 0) === 1;
-        const rTiefe = Number(exprVal$1(sp.rahmenTiefe) ?? 0.04);
-        const anzahlFrames = Number(exprVal$1(sp.anzahlRahmen) ?? 1);
+        const isSchiebend = Number(exprVal(sp.schiebend) ?? 0) === 1;
+        const rTiefe = Number(exprVal(sp.rahmenTiefe) ?? 0.04);
+        const anzahlFrames = Number(exprVal(sp.anzahlRahmen) ?? 1);
         const trackSpacing = rTiefe + 0.01;
         frameThickness = isSchiebend ? trackSpacing * anzahlFrames : rTiefe;
         break;
       }
       case WAND_TYP.SICHTSCHUTZWAND: {
         const sp = props;
-        const plankenTiefe = Number(exprVal$1(sp.plankenTiefe) ?? 0.02);
+        const plankenTiefe = Number(exprVal(sp.plankenTiefe) ?? 0.02);
         frameThickness = Math.max(0.04, plankenTiefe + 0.02);
         break;
       }
@@ -10832,9 +10832,9 @@ function SenkrechtMarkiseModel(props) {
     segmentAnzahl: _sa = 0,
     materials = {}
   } = props;
-  const wsStr = exprVal$1(_ws);
-  const siStr = exprVal$1(_si);
-  const saStr = exprVal$1(_sa);
+  const wsStr = exprVal(_ws);
+  const siStr = exprVal(_si);
+  const saStr = exprVal(_sa);
   const segmentAnzahl = saStr !== "" ? Number(saStr) : 0;
   const segmentIndex = siStr !== "" ? Number(siStr) : 0;
   const kastenArtN = Number(kastenArt);
@@ -11120,9 +11120,9 @@ function createBeschattungUnterdachModel(config) {
   function BeschattungModel(props) {
     const tier = useLicenseTier();
     if (config.requiredLicense && !hasLicense(tier, config.requiredLicense)) return null;
-    const tiefe = Number(exprVal$1(props.tiefe) || 2);
-    const opacity = Number(exprVal$1(props.opacity) || 0.8);
-    const oeffnungsgrad = Number(exprVal$1(props.oeffnungsgrad) || 1);
+    const tiefe = Number(exprVal(props.tiefe) || 2);
+    const opacity = Number(exprVal(props.opacity) || 0.8);
+    const oeffnungsgrad = Number(exprVal(props.oeffnungsgrad) || 1);
     const {
       materials = {},
       position,
@@ -11142,11 +11142,11 @@ function createBeschattungUnterdachModel(config) {
     const geo = useBeschattungGeometry();
     const stoffDicke = Math.max(
       1e-3,
-      Number(exprVal$1(props.stoffDicke) || 3e-3)
+      Number(exprVal(props.stoffDicke) || 3e-3)
     );
     const maxBreite = Math.max(
       0,
-      Number(exprVal$1(props.maxBreite) || 0)
+      Number(exprVal(props.maxBreite) || 0)
     );
     const isOver = config.placement === "over";
     const beschattungTiefe = Math.min(
@@ -11166,7 +11166,7 @@ function createBeschattungUnterdachModel(config) {
       pivotZ = geo.zHintenUnterdach;
     }
     const neigungRad = geo.neigungRad;
-    const montage = Number(exprVal$1(props.montage) || -1);
+    const montage = Number(exprVal(props.montage) || -1);
     const hideLaengsprofile = montage >= 0;
     const ctx = {
       geo,
@@ -11787,11 +11787,11 @@ const stoffDynamicModel = createBeschattungUnterdachModel({
 });
 
 function HighlightPlane(props) {
-  const breite = Number(exprVal$1(props.breite)) || 0;
-  const hoehe = Number(exprVal$1(props.hoehe)) || 0;
-  const iconSize = Number(exprVal$1(props.iconSize)) || 0.15;
-  const showIcon = Number(exprVal$1(props.showIcon) ?? "1") !== 0;
-  const segmentIndex = Number(exprVal$1(props.segmentIndex) ?? "-1");
+  const breite = Number(exprVal(props.breite)) || 0;
+  const hoehe = Number(exprVal(props.hoehe)) || 0;
+  const iconSize = Number(exprVal(props.iconSize)) || 0.15;
+  const showIcon = Number(exprVal(props.showIcon) ?? "1") !== 0;
+  const segmentIndex = Number(exprVal(props.segmentIndex) ?? "-1");
   const wandSeite = useWandSeite();
   const geo = useWandGeometry(wandSeite, breite, 0, hoehe, segmentIndex);
   const width = geo.wandBreite;
