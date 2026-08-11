@@ -1842,7 +1842,7 @@ const konstruktionDynamicModel = {
     rotZ: { expression: "0" },
     dachneigung: { expression: "0" },
     dachVorsprung: { expression: "0" },
-    sparrenAuflage: "0",
+    sparrenAuflage: { expression: "0" },
     rahmenBreite: { expression: "0.1" },
     rahmenHoehe: { expression: "0.1" },
     staticTraeger: { expression: "0" },
