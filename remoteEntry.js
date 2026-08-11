@@ -1,5 +1,5 @@
 import { i as init_1, v as veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__ } from './assets/veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__-YRia8a0_.js';
-import exposesMap from './assets/virtualExposes-DrfOa1vn.js';
+import exposesMap from './assets/virtualExposes-PQ-0t4AX.js';
 import { _ as __vitePreload } from './assets/preload-helper-CqoC6PUU.js';
 
 const importMap = {

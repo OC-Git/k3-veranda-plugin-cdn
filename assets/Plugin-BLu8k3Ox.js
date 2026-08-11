@@ -11930,7 +11930,7 @@ function registerVerandaSdk() {
 registerVerandaSdk();
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "1.0.0",
+  version: "1.0.1",
   viewer: {
     sceneComponents: {
       // "oc.veranda.shadowLighting": shadowLightingSceneComponent,
