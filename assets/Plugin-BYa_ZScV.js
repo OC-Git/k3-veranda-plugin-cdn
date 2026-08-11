@@ -6907,7 +6907,7 @@ const solarEindeckungDynamicModel = {
     modulTiefe: { expression: "0" },
     modulAnzahlBreite: { expression: "0" },
     // Sparren
-    sparrenAuflage: "0",
+    sparrenAuflage: { expression: "0" },
     sparrenAnzahl: { expression: "0" },
     sparrenBreite: { expression: "0" },
     sparrenHoehe: { expression: "0" },
@@ -7461,8 +7461,8 @@ function PlankenFilling({
             material,
             fallbackColor: farbeHex,
             clippingPlanes: worldPlanes,
-            surface: "holz",
-            surfaceAxis: [0, 1, 0]
+            surface: "alu",
+            surfaceAxis: [1, 0, 0]
           }
         )
       ]
@@ -9182,7 +9182,9 @@ function SichtschutzwandPlanken({
           {
             material,
             fallbackColor: farbeHex,
-            clippingPlanes: isSlant ? worldPlanes : void 0
+            clippingPlanes: isSlant ? worldPlanes : void 0,
+            surface: "alu",
+            surfaceAxis: [1, 0, 0]
           }
         )
       ]
@@ -10114,7 +10116,7 @@ const Gestell = ({
   `gestell-laengs-${idx}`
 )) });
 
-const UNTERDACH_OFFSET = 5e-3;
+const UNTERDACH_OFFSET = 0;
 function useBeschattungGeometry(props) {
   const ctx = useVerandaGeometry();
   const eindeckungInfo = useEindeckungInfo();
@@ -10761,13 +10763,13 @@ const markiseDynamicModel = {
   label: "Markise",
   description: "Beschattung – Auf-/Unterdach-/Senkrecht-/Kassettenmarkise",
   defaultProps: {
-    markiseTyp: "0",
+    markiseTyp: { expression: "0" },
     tiefe: { expression: "0" },
     maxBreite: { expression: "0" },
     oeffnungsgrad: { expression: "1" },
-    kastenArt: "0",
+    kastenArt: { expression: "0" },
     schienenAbstand: { expression: "0" },
-    halterungen: "1",
+    halterungen: { expression: "1" },
     kassettenDurchmesser: { expression: "0" },
     kastenBreite: { expression: "0" },
     kastenHoehe: { expression: "0" },
@@ -11099,13 +11101,13 @@ const senkrechtMarkiseDynamicModel = {
   defaultProps: {
     tiefe: { expression: "0" },
     oeffnungsgrad: { expression: "1" },
-    kastenArt: "0",
+    kastenArt: { expression: "0" },
     schienenAbstand: { expression: "0" },
-    halterungen: "1",
+    halterungen: { expression: "1" },
     kassettenDurchmesser: { expression: "0" },
     kastenBreite: { expression: "0" },
     kastenHoehe: { expression: "0" },
-    anbringung: "2",
+    anbringung: { expression: "2" },
     mitKeil: { expression: "1" }
   },
   propsDialog: senkrechtMarkisePropsSchema,
