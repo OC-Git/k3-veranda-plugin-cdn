@@ -2215,21 +2215,24 @@ function LedBeleuchtungModel(props) {
     const val = Number(exprVal(v));
     return isNaN(val) ? fallback : val;
   };
-  const ledTyp = String(exprVal(props.ledTyp) || "stripes");
+  const LED_TYP_MAP = ["stripes", "strahler", "rahmen"];
+  const ledTyp = LED_TYP_MAP[Math.min(2, Math.max(0, Math.round(getVal(props.ledTyp, 0))))] ?? "stripes";
   const ledMat = materials?.led;
   const ledMatColor = ledMat?.color;
   const ledFarbe = ledMatColor ? "#" + ledMatColor.getHexString() : String(exprVal(props.ledFarbe) || "#ffffff");
   const intensitaet = getVal(props.intensitaet, 1.5);
   const strahlerJedenNten = Math.max(1, Math.round(getVal(props.strahlerJedenNten, 1)));
   const anzahlProSparren = Math.max(1, Math.round(getVal(props.anzahlProSparren, 3)));
-  const strahlerForm = String(exprVal(props.strahlerForm) || "rund");
+  const strahlerForm = getVal(props.strahlerForm, 0) >= 1 ? "eckig" : "rund";
   const strahlerDurchmesser = Math.max(0.02, getVal(props.strahlerDurchmesser, 0.08));
   const stripeJedenNten = Math.max(1, Math.round(getVal(props.stripeJedenNten, 1)));
   const stripeLaenge = Math.max(0, getVal(props.stripeLaenge, 0));
   const stripeBreite = Math.max(5e-3, getVal(props.stripeBreite, 0.04));
-  const qubusSeiten = String(exprVal(props.qubusSeiten) || "alle");
-  const montageTyp = String(exprVal(props.montageTyp) || "aufgebaut");
+  const SEITEN_MAP = ["alle", "linksRechts", "vornHinten"];
+  const qubusSeiten = SEITEN_MAP[Math.min(2, Math.max(0, Math.round(getVal(props.qubusSeiten, 0))))] ?? "alle";
+  const montageTyp = getVal(props.montageTyp, 0) >= 1 ? "eingebaut" : "aufgebaut";
   const eingebaut = montageTyp === "eingebaut";
+  const aussenSparrenLed = getVal(props.aussenSparrenLed, 0) >= 1;
   const bloomAn = getVal(props.bloomAn, 1) >= 1;
   const bloomStaerke = Math.max(0, getVal(props.bloomStaerke, 1));
   const kegelHelligkeit = Math.max(0, Math.min(1, getVal(props.kegelHelligkeit, 0.12)));
@@ -2264,6 +2267,10 @@ function LedBeleuchtungModel(props) {
     sparrenAnzahl,
     "alle"
   );
+  const outerXSet = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    if (sparrenXPos.length < 2) return /* @__PURE__ */ new Set();
+    return /* @__PURE__ */ new Set([sparrenXPos[0], sparrenXPos[sparrenXPos.length - 1]]);
+  }, [sparrenXPos]);
   const sHRaw = strahlerDurchmesser * STRAHLER_ASPECT;
   const sH = (isLamellenQuer || isLamellenLaengs) && lamellenLedData ? Math.min(sHRaw, lamellenLedData.lamellenDicke - 2e-3) : sHRaw;
   const rotX = lamellenLedData ? isLamellenQuer ? lamellenLedData.winkelRad : -lamellenLedData.neigungRad : 0;
@@ -2340,8 +2347,8 @@ function LedBeleuchtungModel(props) {
     stripeGlowHaloGeoQuer.dispose();
     strahlerGlowHaloGeo.dispose();
   }, [stripeGlowCoreGeo, stripeGlowHaloGeo, strahlerGlowCoreGeo, stripeGlowCoreGeoQuer, stripeGlowHaloGeoQuer, strahlerGlowHaloGeo]);
-  const filteredStripeX = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => sparrenXPos.filter((_, i) => i % stripeJedenNten === 0), [sparrenXPos, stripeJedenNten]);
-  const filteredStrahlerX = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => sparrenXPos.filter((_, i) => i % strahlerJedenNten === 0), [sparrenXPos, strahlerJedenNten]);
+  const filteredStripeX = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => sparrenXPos.filter((x, i) => i % stripeJedenNten === 0 && (aussenSparrenLed || !outerXSet.has(x))), [sparrenXPos, stripeJedenNten, aussenSparrenLed, outerXSet]);
+  const filteredStrahlerX = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => sparrenXPos.filter((x, i) => i % strahlerJedenNten === 0 && (aussenSparrenLed || !outerXSet.has(x))), [sparrenXPos, strahlerJedenNten, aussenSparrenLed, outerXSet]);
   const filteredLamellenQuer = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => isLamellenQuer && lamellenLedData ? lamellenLedData.positionen.filter((_, i) => i % stripeJedenNten === 0) : [], [isLamellenQuer, lamellenLedData, stripeJedenNten]);
   const filteredStrahlerQuer = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => isLamellenQuer && lamellenLedData ? lamellenLedData.positionen.filter((_, i) => i % strahlerJedenNten === 0) : [], [isLamellenQuer, lamellenLedData, strahlerJedenNten]);
   const filteredLamellenLaengs = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => isLamellenLaengs && lamellenLedData ? lamellenLedData.positionen.filter((_, i) => i % stripeJedenNten === 0) : [], [isLamellenLaengs, lamellenLedData, stripeJedenNten]);
@@ -2417,17 +2424,24 @@ function LedBeleuchtungModel(props) {
           r.current.instanceMatrix.setUsage(veranda_mf_2_plugin__loadShare__three__loadShare__.DynamicDrawUsage);
           r.current.setMatrixAt(i, dummy.matrix);
         });
+        if (aussenSparrenLed) {
+          stripeRef.current?.setColorAt(i, outerXSet.has(xPos) ? outerLedBodyColor : ledBodyColor);
+        }
       });
     }
     refs.forEach((r) => {
       r.current.instanceMatrix.needsUpdate = true;
       r.current.computeBoundingSphere();
     });
-  }, [isLamellenQuer, isLamellenLaengs, lamellenLedData, filteredLamellenQuer, filteredLamellenLaengs, filteredStripeX, rotX, rotZ, stripeMountOffsetVec, sparrenY, hoeheDiff, eingebaut, sparrenZ, sparrenTiefe, neigung, dummy]);
+    if (aussenSparrenLed && stripeRef.current?.instanceColor) {
+      stripeRef.current.instanceColor.needsUpdate = true;
+    }
+  }, [isLamellenQuer, isLamellenLaengs, lamellenLedData, filteredLamellenQuer, filteredLamellenLaengs, filteredStripeX, rotX, rotZ, stripeMountOffsetVec, sparrenY, hoeheDiff, eingebaut, sparrenZ, sparrenTiefe, neigung, dummy, aussenSparrenLed, outerXSet, outerLedBodyColor, ledBodyColor]);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     const refs = [strahlerRef, strahlerGlowCoreRef, strahlerGlowHaloRef].filter((r) => r.current);
     if (refs.length === 0) return;
     const rot = isLamellenQuer || isLamellenLaengs ? [rotX, 0, rotZ] : [0, 0, 0];
+    const isStdMode = !isLamellenQuer && !isLamellenLaengs;
     strahlerPositionen.forEach(([x, y, z], idx) => {
       dummy.position.set(x, y, z);
       dummy.rotation.set(rot[0], rot[1], rot[2]);
@@ -2436,14 +2450,24 @@ function LedBeleuchtungModel(props) {
         r.current.instanceMatrix.setUsage(veranda_mf_2_plugin__loadShare__three__loadShare__.DynamicDrawUsage);
         r.current.setMatrixAt(idx, dummy.matrix);
       });
+      if (aussenSparrenLed && isStdMode) {
+        strahlerRef.current?.setColorAt(idx, outerXSet.has(x) ? outerLedBodyColor : ledBodyColor);
+      }
     });
     refs.forEach((r) => {
       r.current.instanceMatrix.needsUpdate = true;
       r.current.computeBoundingSphere();
     });
-  }, [strahlerPositionen, isLamellenQuer, isLamellenLaengs, rotX, rotZ, dummy]);
+    if (aussenSparrenLed && isStdMode && strahlerRef.current?.instanceColor) {
+      strahlerRef.current.instanceColor.needsUpdate = true;
+    }
+  }, [strahlerPositionen, isLamellenQuer, isLamellenLaengs, rotX, rotZ, dummy, aussenSparrenLed, outerXSet, outerLedBodyColor, ledBodyColor]);
   const ledBodyColor = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
     () => new veranda_mf_2_plugin__loadShare__three__loadShare__.Color(ledFarbe).multiplyScalar(Math.max(1, bloomStaerke * 3)),
+    [ledFarbe, bloomStaerke]
+  );
+  const outerLedBodyColor = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
+    () => new veranda_mf_2_plugin__loadShare__three__loadShare__.Color(ledFarbe).multiplyScalar(Math.max(0.5, bloomStaerke * 1.5)),
     [ledFarbe, bloomStaerke]
   );
   const renderMat = () => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
@@ -2632,22 +2656,20 @@ function LedBeleuchtungModel(props) {
 }
 const ledBeleuchtungPropsSchema = {
   // ── Typ ──
+  aussenSparrenLed: {
+    type: "expression",
+    label: "Außensparren LED (0=nein, 1=ja/halbe Helligkeit)",
+    description: "(0 = keine LED an Außensparren, 1 = LED an Außensparren mit halber Helligkeit)"
+  },
   ledTyp: {
-    type: "radioGroup",
-    label: "LED Typ (stripes=Stripe, strahler=Strahler, rahmen=Rahmen)",
-    options: [
-      { value: "stripes", label: "LED Stripes" },
-      { value: "strahler", label: "LED Strahler" },
-      { value: "rahmen", label: "LED Stripe im Rahmen" }
-    ]
+    type: "expression",
+    label: "LED Typ (0=Stripe, 1=Strahler, 2=Rahmen)",
+    description: "(0 = LED Stripes, 1 = LED Strahler, 2 = LED Stripe im Rahmen)"
   },
   montageTyp: {
-    type: "radioGroup",
-    label: "Montage (aufgebaut=unter Sparren, eingebaut=in Sparren)",
-    options: [
-      { value: "aufgebaut", label: "Aufgebaut (unter Sparren)" },
-      { value: "eingebaut", label: "Eingebaut (in Sparren)" }
-    ]
+    type: "expression",
+    label: "Montage (0=unter Sparren, 1=in Sparren)",
+    description: "(0 = aufgebaut unter Sparren, 1 = eingebaut in Sparren)"
   },
   // ── Strahler ──
   strahlerJedenNten: {
@@ -2663,12 +2685,9 @@ const ledBeleuchtungPropsSchema = {
     group: "LED Strahler"
   },
   strahlerForm: {
-    type: "radioGroup",
-    label: "Strahler Form (rund/eckig)",
-    options: [
-      { value: "rund", label: "Rund" },
-      { value: "eckig", label: "Eckig" }
-    ],
+    type: "expression",
+    label: "Strahler Form (0=Rund, 1=Eckig)",
+    description: "(0 = Rund, 1 = Eckig)",
     group: "LED Strahler"
   },
   strahlerDurchmesser: {
@@ -2698,13 +2717,9 @@ const ledBeleuchtungPropsSchema = {
   },
   // ── Rahmen Stripes ──
   qubusSeiten: {
-    type: "radioGroup",
-    label: "Rahmen Seiten (alle/linksRechts/vornHinten)",
-    options: [
-      { value: "alle", label: "Alle Seiten" },
-      { value: "linksRechts", label: "Links & Rechts" },
-      { value: "vornHinten", label: "Vorne & Hinten" }
-    ],
+    type: "expression",
+    label: "Rahmen Seiten (0=alle, 1=linksRechts, 2=vornHinten)",
+    description: "(0 = Alle Seiten, 1 = Links & Rechts, 2 = Vorne & Hinten)",
     group: "Rahmen Stripes"
   },
   // ── Leuchteinstellungen ──
@@ -2747,18 +2762,19 @@ const ledStripeDynamicModel = {
   disabledForAR: true,
   requiredLicense: "Enterprise",
   defaultProps: {
-    ledTyp: "stripes",
-    montageTyp: "aufgebaut",
+    aussenSparrenLed: { expression: "0" },
+    ledTyp: { expression: "0" },
+    montageTyp: { expression: "0" },
     ledFarbe: "#ffffff",
     intensitaet: { expression: "1.5" },
     strahlerJedenNten: { expression: "1" },
     anzahlProSparren: { expression: "3" },
-    strahlerForm: "rund",
+    strahlerForm: { expression: "0" },
     strahlerDurchmesser: { expression: "0.08" },
     stripeJedenNten: { expression: "1" },
     stripeLaenge: { expression: "0" },
     stripeBreite: { expression: "0.04" },
-    qubusSeiten: "alle",
+    qubusSeiten: { expression: "0" },
     bloomAn: { expression: "1" },
     bloomStaerke: { expression: "1.0" },
     kegelHelligkeit: { expression: "0.12" }
@@ -7290,7 +7306,7 @@ const DIALOG_LABELS = {
   maxScheibenBreite: "Max. Scheibenbreite (0=ohne Limit) (m)",
   mitRahmen: "Variante (0=Ohne Rahmen, 1=Mit Rahmen)",
   tuertypPanels: "Anzahl Elemente (0=auto)",
-  festeElemente: "Feste Elemente (Anzahl, 0=alle schiebbar)",
+  festeElemente: "Feste Elemente (Anzahl, 0=alle schiebbar; Seite via Laufrichtung)",
   oeffnung: "Öffnung (0=zu, 1=offen)",
   laufrichtung: "Laufrichtung (0=Rechts, 1=Links)",
   schienenSeite: "Schienen-Seite (0=Außen, 1=Innen)",
@@ -8682,33 +8698,33 @@ function SchiebetuerWand({
   const glasH = glasTopY - glasBotY;
   const glasYOffset = 0;
   const trackSpacing = FD + 5e-3;
-  const isBiparting = !allSliding && fixedCount >= 2;
-  const fixedLeftCount = Math.ceil(fixedCount / 2);
-  const fixedRightCount = Math.floor(fixedCount / 2);
+  const slideRight = laufrichtung === 0;
   const fixedIndices = [];
-  for (let i = 0; i < fixedLeftCount; i++) fixedIndices.push(i);
-  for (let i = 0; i < fixedRightCount; i++) fixedIndices.push(panelCount - 1 - i);
+  if (slideRight) {
+    for (let i = 0; i < fixedCount; i++) fixedIndices.push(i);
+  } else {
+    for (let i = 0; i < fixedCount; i++) fixedIndices.push(panelCount - 1 - i);
+  }
   const slidingIndices = [];
   for (let i = 0; i < panelCount; i++) {
     if (!fixedIndices.includes(i)) slidingIndices.push(i);
   }
   const calcTrackZ = (index) => {
     if (allSliding) {
-      const sortedByOpening = slideRight ? [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b)) : [...slidingIndices].sort((a, b) => calcPanelX(b) - calcPanelX(a));
-      const stackIdx = sortedByOpening.indexOf(index);
-      const centeredIdx = stackIdx - (panelCount - 1) / 2;
-      return -centeredIdx * trackSpacing;
+      const sortedByOpening2 = slideRight ? [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b)) : [...slidingIndices].sort((a, b) => calcPanelX(b) - calcPanelX(a));
+      const stackIdx2 = sortedByOpening2.indexOf(index);
+      const centeredIdx = stackIdx2 - (panelCount - 1) / 2;
+      const sideSign = schienenSeite === 1 ? -1 : 1;
+      return sideSign * (-centeredIdx * trackSpacing);
     }
     const slidingZ = schienenSeite === 1 ? -FD / 2 : FD / 2;
     const fixedZ = schienenSeite === 1 ? FD / 2 : -FD / 2;
     if (fixedIndices.includes(index)) return fixedZ;
-    if (!isBiparting) return slidingZ;
-    const slidingIdx = slidingIndices.indexOf(index);
-    const halfCount = Math.ceil(slidingIndices.length / 2);
-    const groupRank = slidingIdx < halfCount ? slidingIdx : slidingIndices.length - 1 - slidingIdx;
-    return slidingZ + groupRank * trackSpacing;
+    const sortedByOpening = slideRight ? [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b)) : [...slidingIndices].sort((a, b) => calcPanelX(b) - calcPanelX(a));
+    const stackIdx = sortedByOpening.indexOf(index);
+    return slidingZ + stackIdx * trackSpacing;
   };
-  const maxGroupSize = isBiparting ? Math.ceil(slidingIndices.length / 2) : 1;
+  const maxGroupSize = slidingIndices.length;
   const totalTrackDepth = allSliding ? trackSpacing * panelCount + FD : FD * 2 + (maxGroupSize - 1) * trackSpacing;
   const calcPanelX = (i) => {
     if (hasFrame && fixedCount > 0) return innerBreite / 2 - panelWidth / 2 - i * panelWidth;
@@ -8716,17 +8732,11 @@ function SchiebetuerWand({
     return -innerBreite / 2 + panelWidth / 2 + i * step;
   };
   const openFactor = Math.max(0, Math.min(1, oeffnung));
-  const slideRight = laufrichtung === 0;
   const calcOpenOffset = (index, isSliding) => {
     if (!isSliding || openFactor === 0) return 0;
     const closedX = calcPanelX(index);
     const slidingIdx = slidingIndices.indexOf(index);
     if (slidingIdx < 0) return 0;
-    if (isBiparting) {
-      const halfCount = Math.ceil(slidingIndices.length / 2);
-      const targetX2 = slidingIdx < halfCount ? calcPanelX(0) : calcPanelX(panelCount - 1);
-      return (targetX2 - closedX) * openFactor;
-    }
     const stackTarget = slideRight ? innerBreite / 2 - panelWidth / 2 : -innerBreite / 2 + panelWidth / 2;
     const stackOffset = slidingIdx * OVERLAP;
     const targetX = slideRight ? stackTarget - slidingIdx * stackOffset : stackTarget + slidingIdx * stackOffset;
@@ -8741,28 +8751,14 @@ function SchiebetuerWand({
     const sortedByX = [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b));
     let leadingIndices = [];
     let trailingIndices = [];
-    if (isBiparting) {
-      const half = Math.ceil(sortedByX.length / 2);
-      const leftGroup = sortedByX.slice(0, half);
-      const rightGroup = sortedByX.slice(half);
-      if (leftGroup.length > 0) {
-        leadingIndices.push(leftGroup[leftGroup.length - 1]);
-        trailingIndices.push(leftGroup[0]);
-      }
-      if (rightGroup.length > 0) {
-        leadingIndices.push(rightGroup[0]);
-        trailingIndices.push(rightGroup[rightGroup.length - 1]);
-      }
+    const leftmostIdx = sortedByX[0];
+    const rightmostIdx = sortedByX[sortedByX.length - 1];
+    if (slideRight) {
+      leadingIndices = [leftmostIdx];
+      trailingIndices = [rightmostIdx];
     } else {
-      const leftmostIdx = sortedByX[0];
-      const rightmostIdx = sortedByX[sortedByX.length - 1];
-      if (slideRight) {
-        leadingIndices = [leftmostIdx];
-        trailingIndices = [rightmostIdx];
-      } else {
-        leadingIndices = [rightmostIdx];
-        trailingIndices = [leftmostIdx];
-      }
+      leadingIndices = [rightmostIdx];
+      trailingIndices = [leftmostIdx];
     }
     const isLeading = isSliding && leadingIndices.includes(index);
     const isTrailing = isSliding && trailingIndices.includes(index);
@@ -8770,18 +8766,13 @@ function SchiebetuerWand({
     const clampedGriffH = Math.min(griffHoehe, innerH - 0.3);
     const griffYRelGlas = clampedGriffH - rahmenBreite - innerH / 2;
     const griffRandAbstand = GRIFF_LOCH_RADIUS + 0.015;
-    const panelSlidingIdx = slidingIndices.indexOf(index);
-    let griffXDir;
-    if (isBiparting && isSliding) {
-      const bipHalfCount = Math.ceil(slidingIndices.length / 2);
-      griffXDir = panelSlidingIdx < bipHalfCount ? -1 : 1;
-    } else {
-      griffXDir = slideRight ? -1 : 1;
-    }
+    const griffXDir_base = slideRight ? -1 : 1;
+    let griffXDir = griffXDir_base;
     if (griffAnordnung === 1 && isTrailing && !isLeading) {
       griffXDir *= -1;
     }
-    const griffXInPanel = hasFrame ? griffXDir * (panelWidth / 2 - FW / 2) : griffPosition === 1 ? 0 : griffXDir * (panelWidth / 2 - griffRandAbstand - (allSliding ? OVERLAP : 0));
+    const griffEdge = panelWidth / 2 - griffRandAbstand - (allSliding ? OVERLAP : 0);
+    const griffXInPanel = hasFrame ? griffXDir * (panelWidth / 2 - FW / 2) : griffPosition === 1 ? -griffXDir * griffEdge : griffXDir * griffEdge;
     return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [xPos, FW, zTrack], children: [
       hasFrame && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
         [-1, 1].map((side) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [side * (panelWidth / 2 - FW / 2 + 9e-3), innerH / 2, 0], castShadow: true, receiveShadow: true, children: [
@@ -10838,12 +10829,12 @@ const AUSLAUF_H = 0.012;
 const AUSLAUF_T = 0.05;
 const AUSLAUF_RUND_R = 6e-3;
 const KEIL_FRAME_SW = 0.06;
-const StoffMesh = ({ stoffBreite, yCenter, stoffStartZ, stoffSchraeg, effektiveTiefe, material }) => {
+const StoffMesh = ({ stoffBreite, yCenter, stoffStartZ, stoffSchraeg, effektiveTiefe, stoffDicke, material }) => {
   const geo = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     const durchhang = Math.min(0.025, effektiveTiefe * 8e-3);
-    const shape = createMarkiseStoffShape(stoffSchraeg, durchhang, 3e-3);
+    const shape = createMarkiseStoffShape(stoffSchraeg, durchhang, stoffDicke);
     return new veranda_mf_2_plugin__loadShare__three__loadShare__.ExtrudeGeometry(shape, { depth: stoffBreite, bevelEnabled: false });
-  }, [stoffSchraeg, effektiveTiefe, stoffBreite]);
+  }, [stoffSchraeg, effektiveTiefe, stoffBreite, stoffDicke]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     "mesh",
     {
@@ -10875,6 +10866,9 @@ function SenkrechtMarkiseModel(props) {
     wandSeite: _ws,
     segmentIndex: _si = 0,
     segmentAnzahl: _sa = 0,
+    stoffDicke = 0,
+    schienenBreite = 0,
+    schienentiefe = 0,
     materials = {}
   } = props;
   const wsStr = exprVal(_ws);
@@ -10885,6 +10879,9 @@ function SenkrechtMarkiseModel(props) {
   const kastenArtN = Number(kastenArt);
   const halterungenN = Number(halterungen);
   const anbringungN = Number(anbringung);
+  const stoffDicke_sk = Number(stoffDicke) > 0 ? Number(stoffDicke) : 3e-3;
+  const schienenBreite_sk = Number(schienenBreite) > 0 ? Number(schienenBreite) : SCHIENE_W;
+  const schienentiefe_sk = Number(schienentiefe) > 0 ? Number(schienentiefe) : SCHIENE_H;
   const ctx = useVerandaGeometry();
   const bgeo = useBeschattungGeometry();
   const { shadingMode } = useSceneMode();
@@ -10986,18 +10983,19 @@ function SenkrechtMarkiseModel(props) {
   const railCenterZ_sk = kastenArtN === 1 ? (SCHIENE_W - kastenH_sk) / 2 : -(kassetteR_sk + SCHIENE_W) / 2;
   const groupY_sk = kassetteTopY - halfZ_sk;
   const isZwischen = anbringungN === 0;
-  const railLift_sk = isZwischen ? 0 : railAbstand;
-  const railY_sk = isZwischen ? 0 : ySign * (railLift_sk + SCHIENE_H / 2);
-  const railBotY_sk = isZwischen ? 0 : ySign * (SCHIENE_BOTTOM_H / 2);
-  const kassetteY_sk = isZwischen ? isSide ? kassetteR_sk - postHalfDepth : 0 : ySign * kassetteR_sk;
-  const kassetteYEc_sk = isZwischen ? isSide ? kastenW_sk / 2 - postHalfDepth : 0 : ySign * (kastenW_sk / 2);
+  const isInnen = anbringungN === 2;
+  const railLift_sk = isZwischen || isInnen ? 0 : railAbstand;
+  const railY_sk = isZwischen || isInnen ? 0 : ySign * (railLift_sk + schienentiefe_sk / 2);
+  const railBotY_sk = isZwischen || isInnen ? 0 : ySign * (SCHIENE_BOTTOM_H / 2);
+  const kassetteY_sk = isZwischen ? isSide ? kassetteR_sk - postHalfDepth : 0 : isInnen ? 0 : ySign * kassetteR_sk;
+  const kassetteYEc_sk = isZwischen ? isSide ? kastenW_sk / 2 - postHalfDepth : 0 : isInnen ? 0 : ySign * (kastenW_sk / 2);
   const klemmeWandY_sk = ySign * (railLift_sk + HALTER_KLEMME_H / 2);
   const klemmeSchY_sk = ySign * (HALTER_KLEMME_H / 2);
   const stabLen_sk = railLift_sk - HALTER_KLEMME_H;
   const stabY_sk = ySign * ((railLift_sk + HALTER_KLEMME_H) / 2);
-  const showHalterSk = halterungenN === 1 && !isZwischen;
+  const showHalterSk = halterungenN === 1 && anbringungN === 1;
   const schieneOuterX = markiseWidth / 2;
-  const stoffBr_sk = markiseWidth - SCHIENE_W * 2 - 5e-3;
+  const stoffBr_sk = markiseWidth - schienenBreite_sk * 2 - 5e-3;
   const backHz_sk = halfZ_sk - kassetteR_sk * 2 - 0.02;
   const frontHz_sk = -halfZ_sk + 0.04;
   const halterZsSk = [backHz_sk, frontHz_sk];
@@ -11032,10 +11030,10 @@ function SenkrechtMarkiseModel(props) {
           [-1, 1].map((side) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
             "mesh",
             {
-              position: [side * (schieneOuterX - SCHIENE_W / 2), railY_sk, railCenterZ_sk],
+              position: [side * (schieneOuterX - schienenBreite_sk / 2), railY_sk, railCenterZ_sk],
               castShadow: true,
               children: [
-                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [SCHIENE_W, SCHIENE_H, railLength_sk] }),
+                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [schienenBreite_sk, schienentiefe_sk, railLength_sk] }),
                 /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
               ]
             },
@@ -11044,10 +11042,10 @@ function SenkrechtMarkiseModel(props) {
           [-1, 1].map((side) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
             "mesh",
             {
-              position: [side * (schieneOuterX - SCHIENE_W / 2), railBotY_sk, railCenterZ_sk],
+              position: [side * (schieneOuterX - schienenBreite_sk / 2), railBotY_sk, railCenterZ_sk],
               castShadow: true,
               children: [
-                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [SCHIENE_W, SCHIENE_BOTTOM_H, railLength_sk] }),
+                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [schienenBreite_sk, SCHIENE_BOTTOM_H, railLength_sk] }),
                 /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
               ]
             },
@@ -11056,10 +11054,10 @@ function SenkrechtMarkiseModel(props) {
           [-1, 1].map((side) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
             "mesh",
             {
-              position: [side * (schieneOuterX - SCHIENE_W - FUEHRUNG_T / 2), railY_sk, railCenterZ_sk],
+              position: [side * (schieneOuterX - schienenBreite_sk - FUEHRUNG_T / 2), railY_sk, railCenterZ_sk],
               castShadow: true,
               children: [
-                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FUEHRUNG_T, SCHIENE_W, oeffnung > 0 ? railLength_sk : 0.01] }),
+                /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FUEHRUNG_T, schienenBreite_sk, oeffnung > 0 ? railLength_sk : 0.01] }),
                 /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
               ]
             },
@@ -11096,6 +11094,7 @@ function SenkrechtMarkiseModel(props) {
               stoffStartZ: stoffStartZ_sk,
               stoffSchraeg: stoffSchraeg_sk,
               effektiveTiefe: effFall,
+              stoffDicke: stoffDicke_sk,
               material: stoffMaterial
             }
           ),
@@ -11135,7 +11134,10 @@ const senkrechtMarkisePropsSchema = {
     { value: "1", label: "Außen" },
     { value: "2", label: "Innen" }
   ] },
-  mitKeil: { type: "expression", label: "Keil berücksichtigen (0=Nein, 1=Ja)" }
+  mitKeil: { type: "expression", label: "Keil berücksichtigen (0=Nein, 1=Ja)" },
+  stoffDicke: { type: "expression", label: "Stoff-Dicke (m, 0=Std 0.003)" },
+  schienenBreite: { type: "expression", label: "Schienen-Breite (m, 0=Std 0.025)" },
+  schienentiefe: { type: "expression", label: "Schienen-Tiefe (m, 0=Std 0.05)" }
 };
 const senkrechtMarkiseDynamicModel = {
   type: "veranda-senkrecht-markise",
@@ -11151,7 +11153,10 @@ const senkrechtMarkiseDynamicModel = {
     kastenBreite: { expression: "0" },
     kastenHoehe: { expression: "0" },
     anbringung: { expression: "2" },
-    mitKeil: { expression: "1" }
+    mitKeil: { expression: "1" },
+    stoffDicke: { expression: "0" },
+    schienenBreite: { expression: "0" },
+    schienentiefe: { expression: "0" }
   },
   propsDialog: senkrechtMarkisePropsSchema,
   component: SenkrechtMarkiseModel,
