@@ -7279,7 +7279,7 @@ const RADIO_OPTIONS = {
   mitRahmen: [{ value: "0", label: "Ohne Rahmen" }, { value: "1", label: "Mit Rahmen" }],
   griffPosition: [{ value: "0", label: "Links" }, { value: "1", label: "Rechts" }],
   griffSeite: [{ value: "0", label: "Innen" }, { value: "1", label: "Außen" }, { value: "2", label: "Beidseitig" }],
-  laufrichtung: [{ value: "0", label: "Rechts" }, { value: "1", label: "Links" }],
+  laufrichtung: [{ value: "0", label: "Rechts" }, { value: "1", label: "Links" }, { value: "2", label: "Mitte" }],
   schienenSeite: [{ value: "0", label: "Außen" }, { value: "1", label: "Innen" }],
   schiebend: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }],
   aufbauTyp: [{ value: "0", label: "Querbalken" }, { value: "1", label: "Planken vertikal" }],
@@ -7308,7 +7308,7 @@ const DIALOG_LABELS = {
   tuertypPanels: "Anzahl Elemente (0=auto)",
   festeElemente: "Feste Elemente (Anzahl, 0=alle schiebbar; Seite via Laufrichtung)",
   oeffnung: "Öffnung (0=zu, 1=offen)",
-  laufrichtung: "Laufrichtung (0=Rechts, 1=Links)",
+  laufrichtung: "Laufrichtung (0=Rechts, 1=Links, 2=Mitte)",
   schienenSeite: "Schienen-Seite (0=Außen, 1=Innen)",
   griffTyp: "Grifftyp (0=Rund, 1=Muschel, 2=Stahl, 3=Ohne)",
   griffAnordnung: "Griff-Anordnung (0=Erste Tür, 1=Anf.+Ende, 2=Alle)",
@@ -8698,9 +8698,15 @@ function SchiebetuerWand({
   const glasH = glasTopY - glasBotY;
   const glasYOffset = 0;
   const trackSpacing = FD + 5e-3;
+  const isBiparting = laufrichtung === 2;
   const slideRight = laufrichtung === 0;
   const fixedIndices = [];
-  if (slideRight) {
+  if (isBiparting) {
+    const fixedRight = Math.ceil(fixedCount / 2);
+    const fixedLeft = Math.floor(fixedCount / 2);
+    for (let i = 0; i < fixedRight; i++) fixedIndices.push(i);
+    for (let i = 0; i < fixedLeft; i++) fixedIndices.push(panelCount - 1 - i);
+  } else if (slideRight) {
     for (let i = 0; i < fixedCount; i++) fixedIndices.push(i);
   } else {
     for (let i = 0; i < fixedCount; i++) fixedIndices.push(panelCount - 1 - i);
@@ -8710,6 +8716,16 @@ function SchiebetuerWand({
     if (!fixedIndices.includes(i)) slidingIndices.push(i);
   }
   const calcTrackZ = (index) => {
+    const slidingZ = schienenSeite === 1 ? -FD / 2 : FD / 2;
+    const fixedZ = schienenSeite === 1 ? FD / 2 : -FD / 2;
+    if (isBiparting) {
+      if (fixedIndices.includes(index)) return fixedZ;
+      const sortedByX = [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b));
+      const halfCount = Math.floor(sortedByX.length / 2);
+      const pos = sortedByX.indexOf(index);
+      const rankInGroup = pos < halfCount ? halfCount - 1 - pos : pos - halfCount;
+      return slidingZ + rankInGroup * trackSpacing;
+    }
     if (allSliding) {
       const sortedByOpening2 = slideRight ? [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b)) : [...slidingIndices].sort((a, b) => calcPanelX(b) - calcPanelX(a));
       const stackIdx2 = sortedByOpening2.indexOf(index);
@@ -8717,15 +8733,13 @@ function SchiebetuerWand({
       const sideSign = schienenSeite === 1 ? -1 : 1;
       return sideSign * (-centeredIdx * trackSpacing);
     }
-    const slidingZ = schienenSeite === 1 ? -FD / 2 : FD / 2;
-    const fixedZ = schienenSeite === 1 ? FD / 2 : -FD / 2;
     if (fixedIndices.includes(index)) return fixedZ;
     const sortedByOpening = slideRight ? [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b)) : [...slidingIndices].sort((a, b) => calcPanelX(b) - calcPanelX(a));
     const stackIdx = sortedByOpening.indexOf(index);
     return slidingZ + stackIdx * trackSpacing;
   };
-  const maxGroupSize = slidingIndices.length;
-  const totalTrackDepth = allSliding ? trackSpacing * panelCount + FD : FD * 2 + (maxGroupSize - 1) * trackSpacing;
+  const maxGroupSize = isBiparting ? Math.ceil(slidingIndices.length / 2) : slidingIndices.length;
+  const totalTrackDepth = allSliding && !isBiparting ? trackSpacing * panelCount + FD : FD * 2 + (maxGroupSize - 1) * trackSpacing;
   const calcPanelX = (i) => {
     if (hasFrame && fixedCount > 0) return innerBreite / 2 - panelWidth / 2 - i * panelWidth;
     const step = panelWidth - OVERLAP;
@@ -8737,6 +8751,20 @@ function SchiebetuerWand({
     const closedX = calcPanelX(index);
     const slidingIdx = slidingIndices.indexOf(index);
     if (slidingIdx < 0) return 0;
+    if (isBiparting) {
+      const sortedByX = [...slidingIndices].sort((a, b) => calcPanelX(a) - calcPanelX(b));
+      const halfCount = Math.floor(sortedByX.length / 2);
+      const pos = sortedByX.indexOf(index);
+      if (pos < halfCount) {
+        const rankInGroup = halfCount - 1 - pos;
+        const targetX2 = -innerBreite / 2 + panelWidth / 2 + rankInGroup * OVERLAP;
+        return (targetX2 - closedX) * openFactor;
+      } else {
+        const rankInGroup = pos - halfCount;
+        const targetX2 = innerBreite / 2 - panelWidth / 2 - rankInGroup * OVERLAP;
+        return (targetX2 - closedX) * openFactor;
+      }
+    }
     const stackTarget = slideRight ? innerBreite / 2 - panelWidth / 2 : -innerBreite / 2 + panelWidth / 2;
     const stackOffset = slidingIdx * OVERLAP;
     const targetX = slideRight ? stackTarget - slidingIdx * stackOffset : stackTarget + slidingIdx * stackOffset;
@@ -8753,7 +8781,12 @@ function SchiebetuerWand({
     let trailingIndices = [];
     const leftmostIdx = sortedByX[0];
     const rightmostIdx = sortedByX[sortedByX.length - 1];
-    if (slideRight) {
+    if (isBiparting) {
+      const halfCount = Math.floor(sortedByX.length / 2);
+      if (halfCount > 0) leadingIndices.push(sortedByX[halfCount - 1]);
+      if (halfCount < sortedByX.length) leadingIndices.push(sortedByX[halfCount]);
+      trailingIndices = sortedByX.filter((v) => !leadingIndices.includes(v));
+    } else if (slideRight) {
       leadingIndices = [leftmostIdx];
       trailingIndices = [rightmostIdx];
     } else {
@@ -8766,8 +8799,12 @@ function SchiebetuerWand({
     const clampedGriffH = Math.min(griffHoehe, innerH - 0.3);
     const griffYRelGlas = clampedGriffH - rahmenBreite - innerH / 2;
     const griffRandAbstand = GRIFF_LOCH_RADIUS + 0.015;
-    const griffXDir_base = slideRight ? -1 : 1;
-    let griffXDir = griffXDir_base;
+    let griffXDir = slideRight ? -1 : 1;
+    if (isBiparting && isSliding) {
+      const halfCount = Math.floor(sortedByX.length / 2);
+      const pos = sortedByX.indexOf(index);
+      griffXDir = pos < halfCount ? 1 : -1;
+    }
     if (griffAnordnung === 1 && isTrailing && !isLeading) {
       griffXDir *= -1;
     }
@@ -8878,7 +8915,7 @@ function SchiebetuerWand({
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, wandHoeheVorne - FW, totalTrackDepth] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }),
-    allSliding ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW + 4e-3, 0], castShadow: true, children: [
+    allSliding || isBiparting ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW + 4e-3, 0], castShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [innerBreite, 835e-5, totalTrackDepth] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: "silver", metalness: 0.9, roughness: 0.2, anisotropy: 0.8 })
     ] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW + 4e-3, FD / 2], castShadow: true, children: [
@@ -11978,7 +12015,7 @@ function registerVerandaSdk() {
 registerVerandaSdk();
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "1.0.2",
+  version: "1.0.3",
   viewer: {
     sceneComponents: {
       // "oc.veranda.shadowLighting": shadowLightingSceneComponent,
