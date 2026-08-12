@@ -7307,6 +7307,7 @@ const DIALOG_LABELS = {
   mitRahmen: "Variante (0=Ohne Rahmen, 1=Mit Rahmen)",
   tuertypPanels: "Anzahl Elemente (0=auto)",
   festeElemente: "Feste Elemente (Anzahl, 0=alle schiebbar; Seite via Laufrichtung)",
+  schiebareElemente: "Schiebbare Elemente (Anzahl, 0=deaktiviert; hat Vorrang vor Feste Elemente)",
   oeffnung: "Öffnung (0=zu, 1=offen)",
   laufrichtung: "Laufrichtung (0=Rechts, 1=Links, 2=Mitte)",
   schienenSeite: "Schienen-Seite (0=Außen, 1=Innen)",
@@ -8626,6 +8627,7 @@ function SchiebetuerWand({
   tuertypPanels,
   maxPanelBreite,
   festeElemente,
+  schiebareElemente = 0,
   oeffnung,
   laufrichtung,
   schienenSeite,
@@ -8688,7 +8690,7 @@ function SchiebetuerWand({
   const minPanels = 2;
   const autoCount = maxPanelBreite > 0 ? Math.max(minPanels, Math.ceil(innerBreite / maxPanelBreite)) : minPanels;
   const panelCount = tuertypPanels > 0 ? Math.max(minPanels, tuertypPanels) : autoCount;
-  const fixedCount = Math.max(0, Math.min(festeElemente, panelCount - 1));
+  const fixedCount = schiebareElemente > 0 ? Math.max(0, panelCount - schiebareElemente) : Math.max(0, Math.min(festeElemente, panelCount - 1));
   const allSliding = fixedCount === 0;
   const panelWidth = hasFrame && fixedCount > 0 ? innerBreite / panelCount : innerBreite / panelCount + (panelCount - 1) * OVERLAP / panelCount;
   const innerH = wandHoeheVorne - FW;
@@ -8953,6 +8955,7 @@ function renderSchiebetuer(rc, props) {
         tuertypPanels: Number(exprVal(props.tuertypPanels) ?? 0),
         maxPanelBreite: Number(exprVal(props.maxPanelBreite) ?? 0.8),
         festeElemente: Number(exprVal(props.festeElemente) ?? 0),
+        schiebareElemente: Number(exprVal(props.schiebareElemente) ?? 0),
         oeffnung: Number(exprVal(props.oeffnung) ?? 0),
         laufrichtung: Number(exprVal(props.laufrichtung) ?? 0),
         schienenSeite: Number(exprVal(props.schienenSeite) ?? 0),
@@ -10008,6 +10011,7 @@ const schiebetuerDynamicModel = createWandModel(WAND_TYP.SCHIEBETUER, "Schiebet�
   tuertypPanels: { expression: "0" },
   maxPanelBreite: { expression: "0.8" },
   festeElemente: { expression: "0" },
+  schiebareElemente: { expression: "0" },
   oeffnung: { expression: "0" },
   laufrichtung: 0,
   schienenSeite: 0,
