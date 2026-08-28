@@ -1,9 +1,14 @@
 import { i as init_1, v as veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__ } from './assets/veranda_mf_2_plugin__mf_v__runtimeInit__mf_v__-YRia8a0_.js';
-import exposesMap from './assets/virtualExposes-B4vqxC0D.js';
+import exposesMap from './assets/virtualExposes-Bt95_MTO.js';
 import { _ as __vitePreload } from './assets/preload-helper-CqoC6PUU.js';
 
 const importMap = {
       
+        "three": async () => {
+          let pkg = await __vitePreload(() => import('./assets/three.module-wdyv8Ec4.js'),true              ?[]:void 0);
+          return pkg
+        }
+      ,
         "react/jsx-runtime": async () => {
           let pkg = await __vitePreload(() => import('./assets/jsx-runtime-5Hg6NRfr.js').then(n => n.j),true              ?[]:void 0);
           return pkg
@@ -14,13 +19,8 @@ const importMap = {
           return pkg
         }
       ,
-        "three": async () => {
-          let pkg = await __vitePreload(() => import('./assets/three.module-wdyv8Ec4.js'),true              ?[]:void 0);
-          return pkg
-        }
-      ,
         "@react-three/drei": async () => {
-          let pkg = await __vitePreload(() => import('./assets/index-BU2oKdGF.js'),true              ?[]:void 0);
+          let pkg = await __vitePreload(() => import('./assets/index-DLILRWr1.js'),true              ?[]:void 0);
           return pkg
         }
       ,
@@ -42,6 +42,32 @@ const importMap = {
     };
       const usedShared = {
       
+          "three": {
+            name: "three",
+            version: "0.177.0",
+            scope: ["default"],
+            loaded: false,
+            from: "veranda-plugin",
+            async get () {
+              usedShared["three"].loaded = true;
+              const {"three": pkgDynamicImport} = importMap; 
+              const res = await pkgDynamicImport();
+              const exportModule = {...res};
+              // All npm packages pre-built by vite will be converted to esm
+              Object.defineProperty(exportModule, "__esModule", {
+                value: true,
+                enumerable: false
+              });
+              return function () {
+                return exportModule
+              }
+            },
+            shareConfig: {
+              singleton: true,
+              requiredVersion: "*"
+            }
+          }
+        ,
           "react/jsx-runtime": {
             name: "react/jsx-runtime",
             version: "19.1.1",
@@ -77,32 +103,6 @@ const importMap = {
             async get () {
               usedShared["react"].loaded = true;
               const {"react": pkgDynamicImport} = importMap; 
-              const res = await pkgDynamicImport();
-              const exportModule = {...res};
-              // All npm packages pre-built by vite will be converted to esm
-              Object.defineProperty(exportModule, "__esModule", {
-                value: true,
-                enumerable: false
-              });
-              return function () {
-                return exportModule
-              }
-            },
-            shareConfig: {
-              singleton: true,
-              requiredVersion: "*"
-            }
-          }
-        ,
-          "three": {
-            name: "three",
-            version: "0.177.0",
-            scope: ["default"],
-            loaded: false,
-            from: "veranda-plugin",
-            async get () {
-              usedShared["three"].loaded = true;
-              const {"three": pkgDynamicImport} = importMap; 
               const res = await pkgDynamicImport();
               const exportModule = {...res};
               // All npm packages pre-built by vite will be converted to esm

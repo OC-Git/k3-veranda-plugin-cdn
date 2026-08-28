@@ -3585,18 +3585,14 @@ const GlasEindeckung = ({
         color: farbe,
         transparent: true,
         opacity,
+        depthWrite: false,
         roughness,
         metalness,
         clearcoat: 1,
         clearcoatRoughness: 0.05,
         envMapIntensity,
         ior: 1.52,
-        thickness: dicke * 40,
-        transmission: Math.max(0, 1 - opacity - 0.15),
-        attenuationDistance: 0.5,
-        attenuationColor: farbe,
-        side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide,
-        depthWrite: false
+        side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide
       }
     )
   ] });
@@ -3645,9 +3641,11 @@ const PolycarbonatEindeckung = ({
           color: farbe,
           transparent: true,
           opacity,
+          depthWrite: false,
           roughness,
           metalness,
-          envMapIntensity
+          envMapIntensity,
+          side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide
         }
       )
     ] }),
@@ -3659,9 +3657,11 @@ const PolycarbonatEindeckung = ({
           color: farbe,
           transparent: true,
           opacity,
+          depthWrite: false,
           roughness,
           metalness,
-          envMapIntensity
+          envMapIntensity,
+          side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide
         }
       )
     ] }),
@@ -5118,21 +5118,30 @@ function GlasEindeckungModel(props) {
   veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     if (!platteMaterial) return;
     const mat = platteMaterial;
+    const isPhys = platteMaterial.isMeshPhysicalMaterial === true;
+    const phys = isPhys ? platteMaterial : null;
     if (isAR) {
       mat.transparent = false;
       mat.opacity = 1;
       mat.depthWrite = true;
       mat.roughness = 0.15;
+      if (phys) {
+        phys.transmission = 0;
+        phys.clearcoat = 0;
+      }
     } else {
       mat.transparent = _opacity < 1;
       mat.opacity = _opacity;
-      mat.depthWrite = _opacity >= 1;
+      mat.depthWrite = eindeckung === "polycarbonat" ? false : _opacity >= 1;
       mat.roughness = _roughness;
+      if (phys) {
+        phys.transmission = 0;
+      }
     }
     mat.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
     mat.needsUpdate = true;
-    patchSurface(mat, "glas", { strength: isAR ? 0 : 1 });
-  }, [platteMaterial, _opacity, _roughness, isAR]);
+    if (eindeckung === "glas" && !phys) patchSurface(mat, "glas", { strength: isAR ? 0 : 1 });
+  }, [platteMaterial, _opacity, _roughness, isAR, eindeckung, _eindeckungDicke]);
   const _querbalken = Number(exprVal(querbalken)) === 1;
   const _querbalkenHoehe = Number(exprVal(querbalkenHoehe)) || sparrenHoehe;
   const _querbalkenBreite = Number(exprVal(querbalkenBreite)) || sparrenBreite;
@@ -33047,7 +33056,7 @@ registerVerandaSdk();
 mountAdminTutorial();
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "1.1.0",
+  version: "1.1.2",
   viewer: {
     sceneComponents: {
       OrbitControls: orbitControlsLimitSceneComponent
