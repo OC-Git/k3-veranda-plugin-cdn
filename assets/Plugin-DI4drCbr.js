@@ -30,6 +30,9 @@ const DEFAULT$1 = {
   sparrenHoehe: 0.12,
   setSparrenHoehe: () => {
   },
+  rinneAnDachOK: false,
+  setRinneAnDachOK: () => {
+  },
   lamellenLedData: null,
   setEindeckungInfo: () => {
   },
@@ -190,6 +193,306 @@ function useSeitenKamera(slotAnchors, height, filledInstanzen, worldPos = [0, 0,
   }, [openInstance.id, idToEntry, height, worldPos, worldRotY, setCameraPosition]);
 }
 
+/**
+ * Merges a set of geometries into a single instance. All geometries must have compatible attributes.
+ *
+ * @param {Array<BufferGeometry>} geometries - The geometries to merge.
+ * @param {boolean} [useGroups=false] - Whether to use groups or not.
+ * @return {?BufferGeometry} The merged geometry. Returns `null` if the merge does not succeed.
+ */
+function mergeGeometries$1( geometries, useGroups = false ) {
+
+	const isIndexed = geometries[ 0 ].index !== null;
+
+	const attributesUsed = new Set( Object.keys( geometries[ 0 ].attributes ) );
+	const morphAttributesUsed = new Set( Object.keys( geometries[ 0 ].morphAttributes ) );
+
+	const attributes = {};
+	const morphAttributes = {};
+
+	const morphTargetsRelative = geometries[ 0 ].morphTargetsRelative;
+
+	const mergedGeometry = new veranda_mf_2_plugin__loadShare__three__loadShare__.BufferGeometry();
+
+	let offset = 0;
+
+	for ( let i = 0; i < geometries.length; ++ i ) {
+
+		const geometry = geometries[ i ];
+		let attributesCount = 0;
+
+		// ensure that all geometries are indexed, or none
+
+		if ( isIndexed !== ( geometry.index !== null ) ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ' + i + '. All geometries must have compatible attributes; make sure index attribute exists among all geometries, or in none of them.' );
+			return null;
+
+		}
+
+		// gather attributes, exit early if they're different
+
+		for ( const name in geometry.attributes ) {
+
+			if ( ! attributesUsed.has( name ) ) {
+
+				console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ' + i + '. All geometries must have compatible attributes; make sure "' + name + '" attribute exists among all geometries, or in none of them.' );
+				return null;
+
+			}
+
+			if ( attributes[ name ] === undefined ) attributes[ name ] = [];
+
+			attributes[ name ].push( geometry.attributes[ name ] );
+
+			attributesCount ++;
+
+		}
+
+		// ensure geometries have the same number of attributes
+
+		if ( attributesCount !== attributesUsed.size ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ' + i + '. Make sure all geometries have the same number of attributes.' );
+			return null;
+
+		}
+
+		// gather morph attributes, exit early if they're different
+
+		if ( morphTargetsRelative !== geometry.morphTargetsRelative ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ' + i + '. .morphTargetsRelative must be consistent throughout all geometries.' );
+			return null;
+
+		}
+
+		for ( const name in geometry.morphAttributes ) {
+
+			if ( ! morphAttributesUsed.has( name ) ) {
+
+				console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ' + i + '.  .morphAttributes must be consistent throughout all geometries.' );
+				return null;
+
+			}
+
+			if ( morphAttributes[ name ] === undefined ) morphAttributes[ name ] = [];
+
+			morphAttributes[ name ].push( geometry.morphAttributes[ name ] );
+
+		}
+
+		if ( useGroups ) {
+
+			let count;
+
+			if ( isIndexed ) {
+
+				count = geometry.index.count;
+
+			} else if ( geometry.attributes.position !== undefined ) {
+
+				count = geometry.attributes.position.count;
+
+			} else {
+
+				console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ' + i + '. The geometry must have either an index or a position attribute' );
+				return null;
+
+			}
+
+			mergedGeometry.addGroup( offset, count, i );
+
+			offset += count;
+
+		}
+
+	}
+
+	// merge indices
+
+	if ( isIndexed ) {
+
+		let indexOffset = 0;
+		const mergedIndex = [];
+
+		for ( let i = 0; i < geometries.length; ++ i ) {
+
+			const index = geometries[ i ].index;
+
+			for ( let j = 0; j < index.count; ++ j ) {
+
+				mergedIndex.push( index.getX( j ) + indexOffset );
+
+			}
+
+			indexOffset += geometries[ i ].attributes.position.count;
+
+		}
+
+		mergedGeometry.setIndex( mergedIndex );
+
+	}
+
+	// merge attributes
+
+	for ( const name in attributes ) {
+
+		const mergedAttribute = mergeAttributes( attributes[ name ] );
+
+		if ( ! mergedAttribute ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed while trying to merge the ' + name + ' attribute.' );
+			return null;
+
+		}
+
+		mergedGeometry.setAttribute( name, mergedAttribute );
+
+	}
+
+	// merge morph attributes
+
+	for ( const name in morphAttributes ) {
+
+		const numMorphTargets = morphAttributes[ name ][ 0 ].length;
+
+		if ( numMorphTargets === 0 ) break;
+
+		mergedGeometry.morphAttributes = mergedGeometry.morphAttributes || {};
+		mergedGeometry.morphAttributes[ name ] = [];
+
+		for ( let i = 0; i < numMorphTargets; ++ i ) {
+
+			const morphAttributesToMerge = [];
+
+			for ( let j = 0; j < morphAttributes[ name ].length; ++ j ) {
+
+				morphAttributesToMerge.push( morphAttributes[ name ][ j ][ i ] );
+
+			}
+
+			const mergedMorphAttribute = mergeAttributes( morphAttributesToMerge );
+
+			if ( ! mergedMorphAttribute ) {
+
+				console.error( 'THREE.BufferGeometryUtils: .mergeGeometries() failed while trying to merge the ' + name + ' morphAttribute.' );
+				return null;
+
+			}
+
+			mergedGeometry.morphAttributes[ name ].push( mergedMorphAttribute );
+
+		}
+
+	}
+
+	return mergedGeometry;
+
+}
+
+/**
+ * Merges a set of attributes into a single instance. All attributes must have compatible properties and types.
+ * Instances of {@link InterleavedBufferAttribute} are not supported.
+ *
+ * @param {Array<BufferAttribute>} attributes - The attributes to merge.
+ * @return {?BufferAttribute} The merged attribute. Returns `null` if the merge does not succeed.
+ */
+function mergeAttributes( attributes ) {
+
+	let TypedArray;
+	let itemSize;
+	let normalized;
+	let gpuType = -1;
+	let arrayLength = 0;
+
+	for ( let i = 0; i < attributes.length; ++ i ) {
+
+		const attribute = attributes[ i ];
+
+		if ( TypedArray === undefined ) TypedArray = attribute.array.constructor;
+		if ( TypedArray !== attribute.array.constructor ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeAttributes() failed. BufferAttribute.array must be of consistent array types across matching attributes.' );
+			return null;
+
+		}
+
+		if ( itemSize === undefined ) itemSize = attribute.itemSize;
+		if ( itemSize !== attribute.itemSize ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeAttributes() failed. BufferAttribute.itemSize must be consistent across matching attributes.' );
+			return null;
+
+		}
+
+		if ( normalized === undefined ) normalized = attribute.normalized;
+		if ( normalized !== attribute.normalized ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeAttributes() failed. BufferAttribute.normalized must be consistent across matching attributes.' );
+			return null;
+
+		}
+
+		if ( gpuType === -1 ) gpuType = attribute.gpuType;
+		if ( gpuType !== attribute.gpuType ) {
+
+			console.error( 'THREE.BufferGeometryUtils: .mergeAttributes() failed. BufferAttribute.gpuType must be consistent across matching attributes.' );
+			return null;
+
+		}
+
+		arrayLength += attribute.count * itemSize;
+
+	}
+
+	const array = new TypedArray( arrayLength );
+	const result = new veranda_mf_2_plugin__loadShare__three__loadShare__.BufferAttribute( array, itemSize, normalized );
+	let offset = 0;
+
+	for ( let i = 0; i < attributes.length; ++ i ) {
+
+		const attribute = attributes[ i ];
+		if ( attribute.isInterleavedBufferAttribute ) {
+
+			const tupleOffset = offset / itemSize;
+			for ( let j = 0, l = attribute.count; j < l; j ++ ) {
+
+				for ( let c = 0; c < itemSize; c ++ ) {
+
+					const value = attribute.getComponent( j, c );
+					result.setComponent( j + tupleOffset, c, value );
+
+				}
+
+			}
+
+		} else {
+
+			array.set( attribute.array, offset );
+
+		}
+
+		offset += attribute.count * itemSize;
+
+	}
+
+	if ( gpuType !== undefined ) {
+
+		result.gpuType = gpuType;
+
+	}
+
+	return result;
+
+}
+
+function mergeGeometries(geos) {
+  if (geos.length === 0) return new veranda_mf_2_plugin__loadShare__three__loadShare__.BufferGeometry();
+  const merged = mergeGeometries$1(geos, false);
+  merged.clearGroups();
+  return merged;
+}
 function ensureCCWWinding(geom, shape) {
   const pts = shape.getPoints(8);
   let area = 0;
@@ -406,6 +709,7 @@ function calcSlotAnchors(geo) {
     pfostenBreite = 0.1,
     pfostenTiefe = 0.1,
     staticTraeger = 0,
+    rinneAnDachOK = false,
     staticTraegerHoehe = 0.08,
     rinnenHoehe = 0.08,
     rinnenBreite = 0.12,
@@ -423,7 +727,7 @@ function calcSlotAnchors(geo) {
   const hasDV = dachVorsprung > 0;
   const hasStaticTraeger = Number(staticTraeger) === 1;
   const hasSchwelle = Number(schwelle) === 1;
-  const rinneY = hasDV ? hasSchwelle ? schwelleOK - schwelleHoehe / 2 - rinnenHoehe / 2 : schwelleOK - sparrenHoehe / 2 - rinnenHoehe / 2 : hasStaticTraeger ? innenliegend ? hoeheVorne - sparrenHoehe : hoeheVorne : hoeheVorne - sparrenHoehe;
+  const rinneY = hasDV ? hasSchwelle ? schwelleOK - schwelleHoehe / 2 - rinnenHoehe / 2 : innenliegend && rinneAnDachOK ? schwelleOK - rinnenHoehe : schwelleOK - sparrenHoehe / 2 - rinnenHoehe / 2 : hasStaticTraeger ? innenliegend ? rinneAnDachOK ? hoeheVorne - rinnenHoehe : hoeheVorne - sparrenHoehe : hoeheVorne : innenliegend && rinneAnDachOK ? hoeheVorne - rinnenHoehe : hoeheVorne - sparrenHoehe;
   const schwelleVorderkante = schwelleBreite >= pfostenTiefe ? -depth / 2 : -depth / 2 + pfostenTiefe - schwelleBreite;
   const rinneZ = innenliegend ? schwelleVorderkante : -depth / 2;
   const rinnenLaenge = isQubus ? width + pfostenBreite : width;
@@ -1145,6 +1449,10 @@ function useKonstruktionState(pfostenAnzahlVorneInit, pfostenAnzahlHintenInit) {
     },
     []
   );
+  const [rinneAnDachOK, setRinneAnDachOKState] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
+  const setRinneAnDachOK = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback((v) => {
+    setRinneAnDachOKState((p) => p === v ? p : v);
+  }, []);
   const [lamellenLedData, setLamellenLedDataState] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(null);
   const setLamellenLedData = veranda_mf_2_plugin__loadShare__react__loadShare__.useCallback((data) => {
     setLamellenLedDataState(data);
@@ -1175,6 +1483,8 @@ function useKonstruktionState(pfostenAnzahlVorneInit, pfostenAnzahlHintenInit) {
     setSparrenAuflage,
     sparrenHoehe,
     setSparrenHoehe,
+    rinneAnDachOK,
+    setRinneAnDachOK,
     lamellenLedData,
     setLamellenLedData
   };
@@ -1188,7 +1498,7 @@ const konstruktionPropsSchema = {
   },
   // Abmessungen & Position
   width: { type: "expression", label: "Gesamtbreite (m)", group: "Abmessungen & Position", description: "Außenbreite der Konstruktion von links nach rechts." },
-  height: { type: "expression", label: "Durchgangshöhe (m)", group: "Abmessungen & Position", description: "Lichte Höhe vorne (Unterkante Dach / Sparren-Oberkante minus Sparrenhöhe)." },
+  height: { type: "expression", label: "Höhe hinten / an der Wand (m)", group: "Abmessungen & Position", description: "Höhe an der Hauswand (hinten). Die Höhe vorne ergibt sich aus Tiefe und Dachneigung: vorne = hinten − tan(Dachneigung) × Tiefe." },
   depth: { type: "expression", label: "Gesamttiefe (m)", group: "Abmessungen & Position", description: "Außentiefe der Konstruktion von vorne nach hinten." },
   posX: { type: "expression", label: "Position X (m)", group: "Abmessungen & Position", description: "Versatz in Metern entlang der X-Achse (links/rechts)." },
   posY: { type: "expression", label: "Position Y (m)", group: "Abmessungen & Position", description: "Versatz in Metern entlang der Y-Achse (hoch/runter)." },
@@ -1369,6 +1679,8 @@ function KonstruktionModel(props) {
     setSparrenAuflage,
     sparrenHoehe,
     setSparrenHoehe,
+    rinneAnDachOK,
+    setRinneAnDachOK,
     lamellenLedData,
     setLamellenLedData
   } = state;
@@ -1516,8 +1828,8 @@ function KonstruktionModel(props) {
     if (forcedSegmentIndex !== void 0 && existingSegIdx === -1) {
       effectiveProps.segmentIndex = forcedSegmentIndex;
     }
-    const propsKey = JSON.stringify(effectiveProps);
-    const key = `${fallbackKey}|${propsKey}`;
+    const modelId = inst.model?.id;
+    const key = modelId !== void 0 ? String(modelId) : fallbackKey;
     const ma = inst.modelAction;
     const wandSeite = slotKey ? WAND_SEITE_BY_SLOT[slotKey] : void 0;
     const segAnzStr = exprVal(effectiveProps.segmentAnzahl);
@@ -1582,6 +1894,8 @@ function KonstruktionModel(props) {
       setSparrenAuflage,
       sparrenHoehe,
       setSparrenHoehe,
+      rinneAnDachOK,
+      setRinneAnDachOK,
       lamellenLedData,
       setEindeckungInfo,
       setLamellenLedData
@@ -1708,9 +2022,9 @@ function useLicenseTier() {
   return productToTier(app?.product);
 }
 
-const TIER_ORDER = { Basic: 0, Pro: 1, Enterprise: 2 };
+const TIER_ORDER$1 = { Basic: 0, Pro: 1, Enterprise: 2 };
 function hasLicense(current, required) {
-  return TIER_ORDER[current] >= TIER_ORDER[required];
+  return TIER_ORDER$1[current] >= TIER_ORDER$1[required];
 }
 
 function useDachGeometrie(input) {
@@ -1905,6 +2219,7 @@ function BillboardGlow({
   const resolvedPower = power ?? GLOW_POWER[textureType];
   const glowTexture = useGlowTexture({ power: resolvedPower });
   const geometry = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => new veranda_mf_2_plugin__loadShare__three__loadShare__.PlaneGeometry(size, size), [size]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => geometry.dispose(), [geometry]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.Billboard, { position, follow: true, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("mesh", { geometry, renderOrder: 1, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     "meshBasicMaterial",
     {
@@ -2010,7 +2325,7 @@ function DownLight({ position, ...rest }) {
     const [x, y, z] = position;
     lightRef.current.target.position.set(x, y - 2, z);
     lightRef.current.target.updateMatrixWorld();
-  });
+  }, [position[0], position[1], position[2]]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("spotLight", { ref: lightRef, position, ...rest });
 }
 function LedBeleuchtungModel(props) {
@@ -2355,7 +2670,6 @@ function LedBeleuchtungModel(props) {
           ref: stripeRef,
           args: [null, null, stripeCount],
           count: stripeCount,
-          castShadow: true,
           children: [
             isLamellenQuer ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [actualStripeLen, stripeHEffective, stripeBreite] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [stripeBreite, stripeHEffective, actualStripeLen] }),
             renderMat()
@@ -2395,7 +2709,6 @@ function LedBeleuchtungModel(props) {
           ref: strahlerRef,
           args: [null, null, totalStrahlerCount],
           count: totalStrahlerCount,
-          castShadow: true,
           children: [
             strahlerForm === "rund" ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("cylinderGeometry", { args: [strahlerDurchmesser / 2, strahlerDurchmesser / 2, sH, 16] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [strahlerDurchmesser, sH, strahlerDurchmesser] }),
             renderMat()
@@ -2688,7 +3001,6 @@ function HouseTransparencyGroup({
   const materialsRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef([]);
   const meshMaterialMapRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(/* @__PURE__ */ new Map());
   const dirtyRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(true);
-  const loggedRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
   const instanceKey = (slotInstances ?? []).map((inst, i) => String(inst.model?.id ?? i)).join("|");
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
     const originals = originalPropsRef.current;
@@ -2729,10 +3041,6 @@ function HouseTransparencyGroup({
       if (found.length > 0) {
         materialsRef.current = found;
         dirtyRef.current = false;
-        console.log("[HouseTransparency] Materialien eingesammelt:", found.length, "| enabled:", enabled);
-      } else if (!loggedRef.current) {
-        console.log("[HouseTransparency] group.children:", group.children.length, "| slotInstances:", slotInstances?.length ?? 0);
-        loggedRef.current = true;
       }
     }
     let materialChanged = false;
@@ -2756,7 +3064,6 @@ function HouseTransparencyGroup({
       materialsRef.current = [];
       meshMaterialMapRef.current = /* @__PURE__ */ new Map();
       dirtyRef.current = true;
-      loggedRef.current = false;
       return;
     }
     const materials = materialsRef.current;
@@ -2767,13 +3074,6 @@ function HouseTransparencyGroup({
       const angleRad = Math.atan2(camera.position.x - _center.x, camera.position.z - _center.z);
       const angleDeg = normalizeAngleDeg(angleRad * 180 / Math.PI + 180);
       transparency = berechneTransparenz(angleDeg, beginAngle, endAngle, transition, maxTransparency);
-      if (!loggedRef.current) {
-        console.log("[HouseTransparency] angleDeg:", angleDeg.toFixed(1), "| transparency:", transparency.toFixed(3), "| range:", beginAngle, "-", endAngle);
-        loggedRef.current = true;
-      }
-    } else if (!loggedRef.current) {
-      console.log("[HouseTransparency] enabled=false, materials:", materials.length);
-      loggedRef.current = true;
     }
     const originals = originalPropsRef.current;
     for (const mat of materials) {
@@ -2804,62 +3104,38 @@ function HouseTransparencyGroup({
   }) });
 }
 
-function makeNightSkyTexture() {
-  const W = 2048, H = 1024;
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#05080f";
-  ctx.fillRect(0, 0, W, H);
-  let s = 305419896;
-  const rand = () => {
-    s = Math.imul(s, 1664525) + 1013904223 | 0;
-    return (s >>> 0) / 4294967295;
-  };
-  for (let i = 0; i < 2500; i++) {
-    const x = rand() * W;
-    const y = rand() * (H * 0.48);
-    const r = 0.05 + rand() * 5e-3;
-    ctx.globalAlpha = 0.5 + rand() * 0.5;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-  }
-  ctx.globalAlpha = Math.min(1, (0.5 + rand() * 0.5) * 3);
-  return new veranda_mf_2_plugin__loadShare__three__loadShare__.CanvasTexture(canvas);
-}
-const NIGHT_SKY_TEX = makeNightSkyTexture();
 function SceneSkyBackground() {
   const { isNight, lightPosition, lightColor } = useSceneEnvironment();
-  if (isNight) {
-    const [lx, ly, lz] = lightPosition;
-    const len = Math.sqrt(lx * lx + ly * ly + lz * lz) || 1;
-    const md = 60;
-    const moonPos = [lx / len * md, ly / len * md, lz / len * md];
-    return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { renderOrder: 999, children: [
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("sphereGeometry", { args: [500, 32, 32] }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshBasicMaterial", { map: NIGHT_SKY_TEX, side: veranda_mf_2_plugin__loadShare__three__loadShare__.BackSide, depthWrite: false })
-      ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: moonPos, children: [
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("sphereGeometry", { args: [3, 16, 16] }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshStandardMaterial", { color: 0, emissive: lightColor, emissiveIntensity: 2 })
-      ] })
-    ] });
-  }
-  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-    veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_drei__loadShare__.Sky,
-    {
-      sunPosition: lightPosition,
-      turbidity: 4,
-      rayleigh: 3,
-      mieCoefficient: 5e-3,
-      mieDirectionalG: 0.8,
-      distance: 80
+  if (!isNight) return null;
+  const [lx, ly, lz] = lightPosition;
+  const len = Math.sqrt(lx * lx + ly * ly + lz * lz) || 1;
+  const md = 60;
+  const moonPos = [lx / len * md, ly / len * md, lz / len * md];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: moonPos, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("sphereGeometry", { args: [3, 16, 16] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshStandardMaterial", { color: 0, emissive: lightColor, emissiveIntensity: 2 })
+  ] });
+}
+
+function SceneEnvApplier() {
+  const { scene } = veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useThree();
+  const { envTexture } = useSceneEnvironment();
+  const origEnv = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(void 0);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
+    const tex = envTexture ?? null;
+    if (!tex) return;
+    if (origEnv.current === void 0) {
+      origEnv.current = scene.environment;
     }
-  );
+    scene.environment = tex;
+    return () => {
+      if (scene.environment === tex) {
+        scene.environment = origEnv.current ?? null;
+        origEnv.current = void 0;
+      }
+    };
+  }, [scene, envTexture]);
+  return null;
 }
 
 function SceneEnvironmentModel(props) {
@@ -2898,25 +3174,165 @@ function SceneEnvironmentModel(props) {
     const lightColor = mat?.color ? "#" + mat.color.getHexString() : fallbackLightColor;
     const envMat = isNight ? mats.night : mats.city;
     return {
-      intensity: isNight ? 0.4 : 3 + t * 3,
+      intensity: isNight ? 0.4 : 2 + t * 2,
       lightColor,
       lightPosition,
-      envIntensity: isNight ? 0 : getNum(props.envIntensity, 0.1),
-      ambientIntensity: isNight ? 0.06 : 0.8 + t * 0.6,
+      envIntensity: isNight ? 0 : getNum(props.envIntensity, 0.6),
+      ambientIntensity: isNight ? 0.12 : 0.25 + t * 0.15,
       ambientColor,
-      hemiIntensity: isNight ? 0.05 : 0.5 + t * 0.5,
+      hemiIntensity: isNight ? 0.1 : 0.2 + t * 0.2,
       shadowBias: getNum(props.shadowBias, -2e-4),
       isNight,
       envTexture: envMat?.envMap ?? null,
       _provided: true
     };
-  }, [props, mats]);
+  }, [props.sonnenstand, props.envIntensity, props.shadowBias, mats.sonne, mats.mond, mats.city, mats.night]);
+  const skyTexture = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const raw = exprVal(props.sonnenstand);
+    const stunde = raw !== "" ? Number(String(raw).replace(",", ".")) : 12;
+    const elev = Math.cos((stunde - 12) * (Math.PI / 12));
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    const lerp = (a, b, t) => Math.round(a + (b - a) * clamp(t));
+    const mix = (c1, c2, t) => `rgb(${lerp(c1[0], c2[0], t)},${lerp(c1[1], c2[1], t)},${lerp(c1[2], c2[2], t)})`;
+    const DAY_TOP = [26, 90, 176];
+    const DAY_BOT = [190, 228, 248];
+    const DUSK_TOP = [12, 6, 32];
+    const DUSK_MID = [170, 55, 15];
+    const DUSK_BOT = [240, 150, 40];
+    const NGT_TOP = [0, 0, 2];
+    const W = 512, H = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    if (elev > 0.25) {
+      const t = clamp((elev - 0.25) / 0.75);
+      grad.addColorStop(0, mix(DUSK_TOP, DAY_TOP, t));
+      grad.addColorStop(0.5, mix([80, 140, 200], [90, 160, 220], t));
+      grad.addColorStop(0.75, mix([160, 110, 70], DAY_BOT, t));
+      grad.addColorStop(1, mix([130, 100, 70], [180, 145, 110], t));
+    } else if (elev > -0.15) {
+      const t = (elev + 0.15) / 0.4;
+      grad.addColorStop(0, mix(NGT_TOP, DUSK_TOP, t));
+      grad.addColorStop(0.45, mix([4, 3, 8], DUSK_MID, t));
+      grad.addColorStop(0.75, mix([6, 8, 18], DUSK_BOT, t));
+      grad.addColorStop(1, mix([4, 4, 6], [70, 50, 30], t));
+    } else {
+      const depth = clamp((-elev - 0.15) / 0.85);
+      const glow = 1 - depth * 0.6;
+      grad.addColorStop(0, `rgb(0,0,${lerp(2, 0, depth)})`);
+      grad.addColorStop(0.45, `rgb(${lerp(3, 1, depth)},${lerp(5, 2, depth)},${lerp(10, 4, depth)})`);
+      grad.addColorStop(0.75, `rgb(${Math.round(10 * glow)},${Math.round(16 * glow)},${Math.round(32 * glow)})`);
+      grad.addColorStop(1, `rgb(2,2,4)`);
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    if (elev < -0.1) {
+      const alpha = clamp((-elev - 0.1) / 0.6);
+      let s = 305419896;
+      const rand = () => {
+        s = Math.imul(s, 1664525) + 1013904223 | 0;
+        return (s >>> 0) / 4294967295;
+      };
+      const count = Math.round(1200 * alpha);
+      const imgData = ctx.getImageData(0, 0, W, H);
+      const px = imgData.data;
+      for (let i = 0; i < count; i++) {
+        const x = Math.round(rand() * (W - 1));
+        const y = Math.round(H * (0.14 + rand() * 0.34));
+        const br = (0.55 + rand() * 0.45) * alpha;
+        const warm = rand() > 0.85;
+        const idx = (y * W + x) * 4;
+        px[idx] = warm ? Math.round(255 * br) : Math.round(255 * br);
+        px[idx + 1] = warm ? Math.round(232 * br) : Math.round(255 * br);
+        px[idx + 2] = warm ? Math.round(176 * br) : Math.round(255 * br);
+        px[idx + 3] = 255;
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+    if (elev > 0.1) {
+      const ca = clamp((elev - 0.1) / 0.4);
+      let s = 2882396451;
+      const rand = () => {
+        s = Math.imul(s, 1664525) + 1013904223 | 0;
+        return (s >>> 0) / 4294967295;
+      };
+      for (let c = 0; c < 6; c++) {
+        const cx = (0.03 + rand() * 0.94) * W;
+        const cy = H * (0.4 + rand() * 0.09);
+        const cw = 160 + rand() * 260;
+        const ch = 28 + rand() * 36;
+        const op = (0.7 + rand() * 0.25) * ca;
+        for (let i = 0; i < 7; i++) {
+          const ox = (rand() - 0.5) * cw * 1.2;
+          const oy = (rand() - 0.5) * ch * 0.4;
+          const r = ch * (0.7 + rand() * 0.8);
+          const g2 = ctx.createRadialGradient(cx + ox, cy + oy, 0, cx + ox, cy + oy, r);
+          g2.addColorStop(0, `rgba(255,255,255,${op.toFixed(2)})`);
+          g2.addColorStop(0.55, `rgba(240,245,255,${(op * 0.35).toFixed(2)})`);
+          g2.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = g2;
+          ctx.beginPath();
+          ctx.ellipse(cx + ox, cy + oy, r * 2.2, r * 0.65, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    const tex = new veranda_mf_2_plugin__loadShare__three__loadShare__.CanvasTexture(canvas);
+    tex.mapping = veranda_mf_2_plugin__loadShare__three__loadShare__.EquirectangularReflectionMapping;
+    tex.colorSpace = veranda_mf_2_plugin__loadShare__three__loadShare__.SRGBColorSpace;
+    return tex;
+  }, [props.sonnenstand]);
+  const origBackground = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(void 0);
+  const hiddenSkyMeshes = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef([]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
+    if (origBackground.current === void 0) {
+      origBackground.current = scene.background;
+    }
+    return () => {
+      hiddenSkyMeshes.current.forEach((m) => {
+        m.visible = true;
+      });
+      hiddenSkyMeshes.current = [];
+      skyMeshesHidden.current = false;
+      if (origBackground.current !== void 0) {
+        scene.background = origBackground.current;
+        origBackground.current = void 0;
+      }
+    };
+  }, [scene]);
+  const skyMeshesHidden = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
+  const hostBgActiveRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
+  const [hostBgActive, setHostBgActive] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
+  veranda_mf_2_plugin__loadShare___mf_0_react_mf_2_three_mf_1_fiber__loadShare__.useFrame(() => {
+    if (!skyMeshesHidden.current) {
+      scene.children.forEach((c) => {
+        if (c.type === "Mesh" && !c.userData["oc.veranda"]) {
+          const mat = c.material;
+          if (mat.side === veranda_mf_2_plugin__loadShare__three__loadShare__.BackSide && c.visible) {
+            c.visible = false;
+            hiddenSkyMeshes.current.push(c);
+          }
+        }
+      });
+      if (hiddenSkyMeshes.current.length > 0) skyMeshesHidden.current = true;
+    }
+    const bg = scene.background;
+    const hostImage = !!bg && bg !== skyTexture && bg !== origBackground.current && bg.isTexture === true && !bg.isCubeTexture && bg.mapping === veranda_mf_2_plugin__loadShare__three__loadShare__.UVMapping;
+    if (hostImage !== hostBgActiveRef.current) {
+      hostBgActiveRef.current = hostImage;
+      setHostBgActive(hostImage);
+    }
+    if (!hostImage && bg !== skyTexture) scene.background = skyTexture;
+  }, 1e3);
   const orbitFrei = numVal(props.orbitAzimuthAktiv, 0) > 0;
   const gradExpr = exprVal(props.orbitAzimuthGrad);
   const orbitAzimuthGrad = gradExpr !== "" ? Number(gradExpr.replace(",", ".")) : 85;
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     gl.shadowMap.enabled = true;
     gl.shadowMap.type = veranda_mf_2_plugin__loadShare__three__loadShare__.PCFSoftShadowMap;
+    gl.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   }, [gl]);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     orbitLimitStore.set(orbitFrei, orbitAzimuthGrad);
@@ -2985,7 +3401,8 @@ function SceneEnvironmentModel(props) {
         args: [8900331, 12888189, envValues.hemiIntensity]
       }
     ),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneSkyBackground, {}),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneEnvApplier, {}),
+    !hostBgActive && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SceneSkyBackground, {}),
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
       HouseTransparencyGroup,
       {
@@ -3134,10 +3551,14 @@ const PfostenKlassisch = ({
   material,
   position
 }) => {
-  if (material) {
-    material.side = 2;
-    material.needsUpdate = true;
-  }
+  const prevMat = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(void 0);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    if (material && material !== prevMat.current) {
+      material.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
+      material.needsUpdate = true;
+      prevMat.current = material;
+    }
+  }, [material]);
   const gueltig = !isNaN(breite) && !isNaN(tiefe) && !isNaN(hoehe) && hoehe > 0;
   const geometry = useCachedGeometryOrNull(
     gueltig ? `pfostenKlassisch|${gkey(breite)}|${gkey(tiefe)}|${gkey(hoehe)}` : null,
@@ -3199,6 +3620,7 @@ const WAND_TYP = {
   KEIL: 0,
   RAHMENWAND: 1,
   SCHIEBETUER: 2,
+  FLIEGENGITTER: 3,
   SHUTTERS: 4,
   SICHTSCHUTZWAND: 5,
   SENKRECHTMARKISE: 6
@@ -3329,12 +3751,11 @@ const RegenrinneBase = ({
         rotation: [0, Math.PI / 2, 0],
         position: [-width / 2, 0, 0],
         frustumCulled: false,
-        castShadow: true,
         receiveShadow: true,
         children: bodyMaterialNode
       }
     ),
-    capPositions.map((x, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [x, 0, 0], rotation: [0, Math.PI / 2, 0], frustumCulled: false, castShadow: true, receiveShadow: true, children: [
+    capPositions.map((x, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [x, 0, 0], rotation: [0, Math.PI / 2, 0], frustumCulled: false, receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: capGeoms[i], attach: "geometry", dispose: null }),
       capMaterialNode
     ] }, i))
@@ -3516,10 +3937,14 @@ const Sparren = ({
   material,
   position = [0, 0, 0]
 }) => {
-  if (material) {
-    material.side = 2;
-    material.needsUpdate = true;
-  }
+  const prevMat = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(void 0);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    if (material && material !== prevMat.current) {
+      material.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
+      material.needsUpdate = true;
+      prevMat.current = material;
+    }
+  }, [material]);
   const geom = useCachedGeometry(
     `sparren|${gkey(breite)}|${gkey(hoehe)}|${gkey(tiefe)}|${gkey(hoeheDiff)}`,
     () => {
@@ -3627,11 +4052,22 @@ const PolycarbonatEindeckung = ({
     () => [-breite / 2 + STEG_DICKE / 2, breite / 2 - STEG_DICKE / 2, ...stegePositionen],
     [breite, STEG_DICKE, stegePositionen]
   );
-  const stegGeometry = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
-    () => new veranda_mf_2_plugin__loadShare__three__loadShare__.BoxGeometry(STEG_DICKE, innenHoehe, tiefe),
-    [STEG_DICKE, innenHoehe, tiefe]
-  );
+  const stegGeometry = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const parts = allStegX.map((x) => {
+      const g = new veranda_mf_2_plugin__loadShare__three__loadShare__.BoxGeometry(STEG_DICKE, innenHoehe, tiefe);
+      g.translate(x, 0, 0);
+      return g;
+    });
+    const merged = mergeGeometries(parts);
+    for (const p of parts) p.dispose();
+    return merged;
+  }, [allStegX, STEG_DICKE, innenHoehe, tiefe]);
   veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => stegGeometry.dispose(), [stegGeometry]);
+  const stegMaterial = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(
+    () => new veranda_mf_2_plugin__loadShare__three__loadShare__.MeshPhysicalMaterial({ color: farbe, roughness }),
+    [farbe, roughness]
+  );
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => stegMaterial.dispose(), [stegMaterial]);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position, rotation, children: [
     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "poly", position: [0, dicke / 2 - WAND_DICKE / 2, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, receiveShadow: true, material, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [breite, WAND_DICKE, tiefe] }),
@@ -3665,10 +4101,16 @@ const PolycarbonatEindeckung = ({
         }
       )
     ] }),
-    allStegX.map((x, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { name: "polySteg", position: [x, 0, 0], castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3, receiveShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: stegGeometry, attach: "geometry", dispose: null }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: farbe, roughness })
-    ] }, i))
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      "mesh",
+      {
+        name: "polySteg",
+        geometry: stegGeometry,
+        material: stegMaterial,
+        castShadow: opacity >= SHADOW_OPACITY_THRESHOLD$3,
+        receiveShadow: true
+      }
+    )
   ] });
 };
 const WelleEindeckung = ({
@@ -3680,13 +4122,16 @@ const WelleEindeckung = ({
   farbe,
   position,
   rotation,
+  ausrichtung = 0,
   material
 }) => {
+  const profilBreite = ausrichtung === 1 ? tiefe : breite;
+  const extrusionstiefe = ausrichtung === 1 ? breite : tiefe;
   const geometry = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     const step = 0.01;
     const amp = amplitude / 200;
     const freq = 1 / (frequenz / 620);
-    const halfBreite = breite / 2;
+    const halfBreite = profilBreite / 2;
     const shape = new veranda_mf_2_plugin__loadShare__three__loadShare__.Shape();
     let x = -halfBreite;
     shape.moveTo(x, dicke / 2 + amp * Math.cos(x * freq));
@@ -3701,19 +4146,20 @@ const WelleEindeckung = ({
     shape.closePath();
     const geom = new veranda_mf_2_plugin__loadShare__three__loadShare__.ExtrudeGeometry(shape, {
       steps: 2,
-      depth: tiefe,
+      depth: extrusionstiefe,
       bevelEnabled: false
     });
-    geom.translate(0, 0, -tiefe / 2);
+    geom.translate(0, 0, -extrusionstiefe / 2);
     geom.clearGroups();
     ensureCCWWinding(geom, shape);
     return geom;
-  }, [breite, tiefe, dicke, amplitude, frequenz]);
+  }, [profilBreite, extrusionstiefe, dicke, amplitude, frequenz]);
+  const meshRotation = ausrichtung === 1 ? [rotation[0], rotation[1] + Math.PI / 2, rotation[2]] : rotation;
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     "mesh",
     {
       position,
-      rotation,
+      rotation: meshRotation,
       geometry,
       frustumCulled: false,
       castShadow: true,
@@ -3739,8 +4185,11 @@ const TrapezEindeckung = ({
   farbe,
   position,
   rotation,
+  ausrichtung = 0,
   material
 }) => {
+  const profilBreite = ausrichtung === 1 ? tiefe : breite;
+  const extrusionstiefe = ausrichtung === 1 ? breite : tiefe;
   const geometry = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     const amp = amplitude / 100;
     const freq = frequenz / 100;
@@ -3750,7 +4199,7 @@ const TrapezEindeckung = ({
     const bottomFlatWidth = freq * bottomFlatRatio;
     const remainingWidthForSlopes = freq - topFlatWidth - bottomFlatWidth;
     const slopeWidth = Math.max(0.01, remainingWidthForSlopes / 2);
-    const halfBreite = breite / 2;
+    const halfBreite = profilBreite / 2;
     const rightPoints = [];
     rightPoints.push([0, 0]);
     let x = bottomFlatWidth / 2;
@@ -3804,19 +4253,20 @@ const TrapezEindeckung = ({
     shape.closePath();
     const geom = new veranda_mf_2_plugin__loadShare__three__loadShare__.ExtrudeGeometry(shape, {
       steps: 2,
-      depth: tiefe,
+      depth: extrusionstiefe,
       bevelEnabled: false
     });
-    geom.translate(0, 0, -tiefe / 2);
+    geom.translate(0, 0, -extrusionstiefe / 2);
     geom.clearGroups();
     ensureCCWWinding(geom, shape);
     return geom;
-  }, [breite, tiefe, dicke, amplitude, frequenz]);
+  }, [profilBreite, extrusionstiefe, dicke, amplitude, frequenz]);
+  const meshRotation = ausrichtung === 1 ? [rotation[0], rotation[1] + Math.PI / 2, rotation[2]] : rotation;
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     "mesh",
     {
       position,
-      rotation,
+      rotation: meshRotation,
       geometry,
       frustumCulled: false,
       castShadow: true,
@@ -3852,6 +4302,7 @@ const Eindeckung = ({
   kammergroesse = 0.05,
   amplitude = 4,
   frequenz = 10,
+  ausrichtung = 0,
   material
 }) => {
   if (typ === "ohne") return null;
@@ -3914,6 +4365,7 @@ const Eindeckung = ({
           farbe: metallFarbe,
           position,
           rotation,
+          ausrichtung,
           material
         }
       );
@@ -3929,6 +4381,7 @@ const Eindeckung = ({
           farbe: metallFarbe,
           position,
           rotation,
+          ausrichtung,
           material
         }
       );
@@ -4006,7 +4459,6 @@ const Wandanschluss = ({
         position: [0, yPos, zPos],
         rotation: [0, Math.PI / 2, 0],
         frustumCulled: false,
-        castShadow: true,
         receiveShadow: true,
         children: material ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: material, attach: "material" }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           "meshPhysicalMaterial",
@@ -4032,7 +4484,6 @@ const Wandanschluss = ({
           yPos + dachEndeY - gummiHoehe / 2,
           zPos - dachEndeZ
         ],
-        castShadow: true,
         children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
             "boxGeometry",
@@ -4063,10 +4514,14 @@ const Winkelprofil = ({
   gummiDicke = GUMMI_DICKE,
   material
 }) => {
-  if (material) {
-    material.side = 2;
-    material.needsUpdate = true;
-  }
+  const prevMat = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(void 0);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    if (material && material !== prevMat.current) {
+      material.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
+      material.needsUpdate = true;
+      prevMat.current = material;
+    }
+  }, [material]);
   const W = BLECH_STAERKE;
   const g = glasNeig;
   const dx = Math.cos(g);
@@ -4103,7 +4558,6 @@ const Winkelprofil = ({
         position: [0, yPos, zPos],
         rotation: [0, Math.PI / 2, 0],
         frustumCulled: false,
-        castShadow: true,
         receiveShadow: true,
         children: material ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: material, attach: "material" }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
           "meshPhysicalMaterial",
@@ -4118,7 +4572,7 @@ const Winkelprofil = ({
         )
       }
     ),
-    gummiDicke > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, yPos + dachEndeY - gH / 2, zPos - dachEndeZ], castShadow: true, children: [
+    gummiDicke > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, yPos + dachEndeY - gH / 2, zPos - dachEndeZ], children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [breite, gH, GUMMI_DICKE] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: GUMMI_MAT, attach: "material" })
     ] })
@@ -4136,10 +4590,14 @@ const Stirnblech = ({
   armNachAußen = false,
   material
 }) => {
-  if (material) {
-    material.side = 2;
-    material.needsUpdate = true;
-  }
+  const prevMat = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(void 0);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    if (material && material !== prevMat.current) {
+      material.side = veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide;
+      material.needsUpdate = true;
+      prevMat.current = material;
+    }
+  }, [material]);
   const geom = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
     const tanNeig = Math.tan(neigung);
     const xDir = armNachAußen ? -1 : 1;
@@ -4168,7 +4626,6 @@ const Stirnblech = ({
       position: [0, yPos, zPos],
       rotation: [0, -Math.PI / 2, 0],
       frustumCulled: false,
-      castShadow: true,
       receiveShadow: true,
       children: material ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: material, attach: "material" }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
         "meshPhysicalMaterial",
@@ -4257,10 +4714,14 @@ const Glasleisten = ({
   leistenFarbe,
   material
 }) => {
-  if (material) {
-    material.side = 2;
-    material.needsUpdate = true;
-  }
+  const prevMat = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(void 0);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    if (material && material !== prevMat.current) {
+      material.side = 2;
+      material.needsUpdate = true;
+      prevMat.current = material;
+    }
+  }, [material]);
   const glasOKVorne = sparrenOKVorne + eindeckungDicke;
   const glasOKHinten = sparrenOKHinten + eindeckungDicke;
   const hDiff = glasOKHinten - glasOKVorne;
@@ -4290,7 +4751,6 @@ const Glasleisten = ({
       {
         position: [xPos, yInnen, leistenZMitte],
         rotation: [-neig, 0, 0],
-        castShadow: true,
         receiveShadow: true,
         children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: leistenGeom, attach: "geometry", dispose: null }),
@@ -4321,7 +4781,6 @@ const Glasleisten = ({
         {
           position: [xPos, glasOKVorne + hDiff / 2 + yKorrektur, zMitte],
           rotation: [-neig, 0, 0],
-          castShadow: true,
           receiveShadow: true,
           children: [
             /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geom, attach: "geometry", dispose: null }),
@@ -4460,7 +4919,6 @@ const VornAbschlussleiste = ({
       geometry: geom,
       position: [0, glasOKVorne, zPos - VORN_BLECH],
       rotation: [-glasNeig, -Math.PI / 2, 0],
-      castShadow: true,
       receiveShadow: true,
       children: material ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: material, attach: "material" }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
         "meshPhysicalMaterial",
@@ -4870,7 +5328,6 @@ const Seitenabschluss = ({
       position: [xPos, yPos, zPos],
       rotation: [-neigung, 0, 0],
       frustumCulled: false,
-      castShadow: true,
       receiveShadow: true,
       children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
         MaterialFallback,
@@ -5334,6 +5791,7 @@ function MetallEindeckungModel(props) {
     eindeckungDicke = 8e-3,
     amplitude = 38,
     frequenz = 76,
+    ausrichtung = 0,
     // Anschlüsse
     wandanschluss = 1,
     wandanschlussHoehe = 0.046,
@@ -5351,6 +5809,8 @@ function MetallEindeckungModel(props) {
     aussenBalken = 0,
     aussenBalkenBreite = 0,
     aussenBalkenHoehe = 0,
+    metallFarbe: metallFarbeProp,
+    anschlussFarbe: anschlussFarbeProp,
     // K3 System
     materials = {},
     position,
@@ -5362,7 +5822,6 @@ function MetallEindeckungModel(props) {
   const depth = parent.isQubus ? parent.innerDepth || 0 : parent.depth || Number(exprVal(props.depth)) || 3;
   const height = parent.height || 0;
   const dachneigung = parent.eindeckungDachneigung ?? parent.dachneigung;
-  const sparrenHoehe = parent.sparrenHoehe || 0.12;
   const profilMaterial = materials.profil;
   const eindeckungMaterial = materials.eindeckung ?? materials.metall;
   const eindeckungProfilMaterial = materials["eindeckung-profil"] ?? eindeckungMaterial;
@@ -5373,9 +5832,11 @@ function MetallEindeckungModel(props) {
   const _balkenAnzahl = Number(exprVal(balkenAnzahl));
   const _balkenBreite = Number(exprVal(balkenBreite));
   const _balkenHoehe = Number(exprVal(balkenHoehe));
+  const sparrenHoehe = _balkenHoehe;
   const _eindeckungDicke = Number(exprVal(eindeckungDicke));
   const _amplitude = Number(exprVal(amplitude));
   const _frequenz = Number(exprVal(frequenz));
+  const _ausrichtung = Number(exprVal(ausrichtung)) === 1 ? 1 : 0;
   const _wandanschlussHoehe = Number(exprVal(wandanschlussHoehe));
   const _wandanschlussTiefe = Number(exprVal(wandanschlussTiefe));
   const _stirnblechHoehe = Number(exprVal(stirnblechHoehe));
@@ -5420,7 +5881,7 @@ function MetallEindeckungModel(props) {
       setUnterEindeckungHoehe(0);
       setAussensparrenHoehe(0);
       setSparrenAuflage(0);
-      setSparrenHoeheCtx(0.12);
+      setSparrenHoeheCtx(0);
     };
   }, [
     _eindeckungDicke,
@@ -5439,20 +5900,24 @@ function MetallEindeckungModel(props) {
     setSparrenAuflage,
     setSparrenHoeheCtx
   ]);
-  const metallFarbeHex = "#808080";
+  const metallFarbeHex = metallFarbeProp != null ? `#${metallFarbeProp.toString(16).padStart(6, "0")}` : "#808080";
+  const anschlussFarbeHex = anschlussFarbeProp != null ? `#${anschlussFarbeProp.toString(16).padStart(6, "0")}` : metallFarbeHex;
   const dachVS_m = 0;
+  const hasDV = parent.dachVorsprung > 0;
   const pfostenTiefe_m = parent.pfostenTiefe;
   const schwEff_m = !parent.isQubus && Number(exprVal(parent.schwelle)) === 1 ? Math.max(parent.schwelleBreite, pfostenTiefe_m) : 0;
   const pfEff_m = !parent.isQubus && Number(exprVal(parent.pfette)) === 1 ? parent.pfettenBreite : 0;
-  const zInnenV_m = sparrenAuflage === 1 ? -depth / 2 + dachVS_m + schwEff_m : -depth / 2;
+  const zInnenV_m = sparrenAuflage === 1 ? -depth / 2 + dachVS_m + schwEff_m : hasDV ? -depth / 2 + pfostenTiefe_m : -depth / 2;
   const zInnenH_m = sparrenAuflage === 1 ? depth / 2 - pfEff_m : depth / 2;
   const innerD_m = Math.max(0.01, zInnenH_m - zInnenV_m);
   const zCenter_m = (zInnenV_m + zInnenH_m) / 2;
   const steig_m = depth > 0 ? (hoeheHinten - hoeheVorne) / depth : 0;
   const hVorne_m = sparrenAuflage === 1 ? hoeheVorne + steig_m * (dachVS_m + schwEff_m) : hoeheVorne;
   const hHinten_m = sparrenAuflage === 1 ? hoeheHinten - steig_m * pfEff_m : hoeheHinten;
+  const auflageDeltaZ = hasDV ? pfostenTiefe_m : 0;
+  const hAuflageVorne = hoeheVorne + steig_m * auflageDeltaZ;
   const sparrenOberkante = sparrenAuflage === 0 ? {
-    vorne: hoeheVorne + sparrenHoehe,
+    vorne: hAuflageVorne + sparrenHoehe,
     hinten: hoeheHinten + sparrenHoehe
   } : sparrenAuflage === 1 ? { vorne: hVorne_m, hinten: hHinten_m } : { vorne: hoeheVorne, hinten: hoeheHinten };
   const metallOKVorne = sparrenOberkante.vorne + metallPeakOffset + auflageOffset;
@@ -5590,6 +6055,7 @@ function MetallEindeckungModel(props) {
             metallFarbe: metallFarbeHex,
             amplitude: _amplitude,
             frequenz: _frequenz,
+            ausrichtung: _ausrichtung,
             material: eindeckungMaterial
           }
         ) }),
@@ -5598,7 +6064,7 @@ function MetallEindeckungModel(props) {
           {
             wandanschlussHoehe: _wandanschlussHoehe,
             wandanschlussTiefe: _wandanschlussTiefe,
-            farbe: metallFarbeHex,
+            farbe: anschlussFarbeHex,
             leistenHoehe: 0,
             glasNeig,
             anschlussBreite: eindeckungBreite,
@@ -5612,7 +6078,7 @@ function MetallEindeckungModel(props) {
           {
             stirnblechHoehe: _stirnblechHoehe,
             stirnblechTiefe: sparrenAuflage !== 1 ? _stirnblechTiefe : parent.schwelleBreite + _stirnblechTiefe,
-            farbe: metallFarbeHex,
+            farbe: anschlussFarbeHex,
             anschlussBreite: eindeckungBreite,
             yPos: metallOKVorne + BLECH_STAERKE + 2e-3,
             zPos: sparrenAuflage !== 1 ? zInnenV_m - (BLECH_STAERKE * 2 + 2e-3) : -depth / 2 + pfostenTiefe_m - (parent.schwelleBreite + BLECH_STAERKE * 2 + 2e-3),
@@ -5626,7 +6092,7 @@ function MetallEindeckungModel(props) {
             {
               seitenabschlussHoehe: effSeitenHoehe,
               seitenabschlussTiefe: effSeitenTiefe,
-              farbe: metallFarbeHex,
+              farbe: anschlussFarbeHex,
               material: eindeckungProfilMaterial,
               xPos: -(eindeckungBreite / 2 + seitenLuft),
               yPos: seitenYPos_m,
@@ -5642,7 +6108,7 @@ function MetallEindeckungModel(props) {
             {
               seitenabschlussHoehe: effSeitenHoehe,
               seitenabschlussTiefe: effSeitenTiefe,
-              farbe: metallFarbeHex,
+              farbe: anschlussFarbeHex,
               material: eindeckungProfilMaterial,
               xPos: eindeckungBreite / 2 + seitenLuft,
               yPos: seitenYPos_m,
@@ -5665,6 +6131,14 @@ const metallEindeckungPropsSchema = {
     options: [
       { value: "0", label: "Welle" },
       { value: "1", label: "Trapez" }
+    ]
+  },
+  ausrichtung: {
+    type: "radioGroup",
+    label: "Rippenausrichtung",
+    options: [
+      { value: "0", label: "Tiefe → Breite" },
+      { value: "1", label: "Breite → Tiefe" }
     ]
   },
   eindeckungDicke: { type: "expression", label: "Dicke (m)" },
@@ -5710,6 +6184,7 @@ const metallEindeckungDynamicModel = {
     balkenBreite: { expression: "0.06" },
     balkenHoehe: { expression: "0.08" },
     eindeckung: { expression: "0" },
+    ausrichtung: { expression: "0" },
     eindeckungDicke: { expression: "0.008" },
     amplitude: { expression: "4" },
     frequenz: { expression: "10" },
@@ -5773,18 +6248,22 @@ function LamellenEindeckungModel(props) {
   const qubusOffset = 0;
   const hoeheVorne = baseHVorne - qubusOffset;
   const hoeheHinten = baseHHinten - qubusOffset;
-  const { setEindeckungInfo, setLamellenLedData, setSparrenAuflage, setSparrenHoehe: setSparrenHoeheCtx, setAussensparrenHoehe } = useEindeckungInfo();
+  const { setEindeckungInfo, setLamellenLedData, setSparrenAuflage, setSparrenHoehe: setSparrenHoeheCtx, setAussensparrenHoehe, setUnterEindeckungHoehe, setRinneAnDachOK } = useEindeckungInfo();
   veranda_mf_2_plugin__loadShare__react__loadShare__.useLayoutEffect(() => {
     setEindeckungInfo(0, 0, Number(extension) === 1, Number(wandanschlussTiefe), 0, qubusOffset);
     setSparrenAuflage(1);
-    setSparrenHoeheCtx(parent.sparrenHoehe);
+    setSparrenHoeheCtx(rahmenHoehe);
+    setUnterEindeckungHoehe(rahmenHoehe);
     setAussensparrenHoehe(0);
+    setRinneAnDachOK(true);
     return () => {
       setSparrenAuflage(0);
-      setSparrenHoeheCtx(0.12);
+      setSparrenHoeheCtx(0);
+      setUnterEindeckungHoehe(0);
       setAussensparrenHoehe(0);
+      setRinneAnDachOK(false);
     };
-  }, [extension, wandanschlussTiefe, qubusOffset, setEindeckungInfo, setSparrenAuflage, setSparrenHoeheCtx, setAussensparrenHoehe, parent.sparrenHoehe]);
+  }, [extension, wandanschlussTiefe, qubusOffset, rahmenHoehe, setEindeckungInfo, setSparrenAuflage, setSparrenHoeheCtx, setUnterEindeckungHoehe, setAussensparrenHoehe, setRinneAnDachOK]);
   const profilMaterial = materials.profil;
   const lamelleMaterial = materials.lamelle;
   const farbeHex = "#808080";
@@ -5890,6 +6369,60 @@ function LamellenEindeckungModel(props) {
     () => isLaengs ? [-neigungRad, 0, winkelRad] : [winkelRad, 0, 0],
     [isLaengs, neigungRad, winkelRad]
   );
+  const mergedLamellenGeometry = veranda_mf_2_plugin__loadShare__react__loadShare__.useMemo(() => {
+    const [gRotX, gRotY, gRotZ] = lamellenGroupRotation;
+    const groupQuat = new veranda_mf_2_plugin__loadShare__three__loadShare__.Quaternion().setFromEuler(
+      new veranda_mf_2_plugin__loadShare__three__loadShare__.Euler(gRotX, gRotY, gRotZ)
+    );
+    const parts = [];
+    const partMatrix = new veranda_mf_2_plugin__loadShare__three__loadShare__.Matrix4();
+    const instanceMatrix = new veranda_mf_2_plugin__loadShare__three__loadShare__.Matrix4();
+    const tmpQuat = new veranda_mf_2_plugin__loadShare__three__loadShare__.Quaternion();
+    const tmpEuler = new veranda_mf_2_plugin__loadShare__three__loadShare__.Euler();
+    const unitScale = new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3(1, 1, 1);
+    const instancePos = new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3();
+    const partPos = new veranda_mf_2_plugin__loadShare__three__loadShare__.Vector3();
+    for (let i = 0; i < lamellenPos.length; i++) {
+      const { x, y, z } = lamellenPos[i];
+      for (let k = 0; k < numSegmente; k++) {
+        const pos = !isLaengs ? [-(lamellenLaenge / 2) + k * (segmentLaenge + rahmenBreite) + segmentLaenge / 2, y, z] : (() => {
+          const zSeg = zInnenvorne + rahmenBreite + k * (segmentLaenge + rahmenBreite) + segmentLaenge / 2;
+          const tSeg = (zSeg - zInnenvorne) / innerDepth;
+          const ySeg = railCenterY.vorne + tSeg * (railCenterY.hinten - railCenterY.vorne);
+          return [x, ySeg, zSeg];
+        })();
+        instancePos.set(pos[0], pos[1], pos[2]);
+        instanceMatrix.compose(instancePos, groupQuat, unitScale);
+        for (const part of lamellenParts) {
+          const geo = part.geometry === "cylinder" ? new veranda_mf_2_plugin__loadShare__three__loadShare__.CylinderGeometry(part.args[0], part.args[1], part.args[2], part.args[3]) : new veranda_mf_2_plugin__loadShare__three__loadShare__.BoxGeometry(part.args[0], part.args[1], part.args[2]);
+          tmpEuler.set(part.rotation[0], part.rotation[1], part.rotation[2]);
+          tmpQuat.setFromEuler(tmpEuler);
+          partPos.set(part.position[0], part.position[1], part.position[2]);
+          partMatrix.compose(partPos, tmpQuat, unitScale);
+          partMatrix.premultiply(instanceMatrix);
+          geo.applyMatrix4(partMatrix);
+          parts.push(geo);
+        }
+      }
+    }
+    const merged = mergeGeometries(parts);
+    for (const p of parts) p.dispose();
+    return merged;
+  }, [
+    lamellenPos,
+    lamellenParts,
+    lamellenGroupRotation,
+    numSegmente,
+    isLaengs,
+    lamellenLaenge,
+    segmentLaenge,
+    rahmenBreite,
+    zInnenvorne,
+    innerDepth,
+    railCenterY.vorne,
+    railCenterY.hinten
+  ]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => () => mergedLamellenGeometry.dispose(), [mergedLamellenGeometry]);
   const lamelleMat = /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
     MaterialFallback,
     {
@@ -6241,30 +6774,15 @@ function LamellenEindeckungModel(props) {
         `mittel-laengs-${mi}`
       );
     }),
-    lamellenPos.flatMap(
-      ({ x, y, z }, i) => Array.from({ length: numSegmente }, (_, k) => {
-        const pos = !isLaengs ? [-(lamellenLaenge / 2) + k * (segmentLaenge + rahmenBreite) + segmentLaenge / 2, y, z] : (() => {
-          const zSeg = zInnenvorne + rahmenBreite + k * (segmentLaenge + rahmenBreite) + segmentLaenge / 2;
-          const tSeg = (zSeg - zInnenvorne) / innerDepth;
-          const ySeg = railCenterY.vorne + tSeg * (railCenterY.hinten - railCenterY.vorne);
-          return [x, ySeg, zSeg];
-        })();
-        return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: pos, rotation: lamellenGroupRotation, children: lamellenParts.map((part) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
-          "mesh",
-          {
-            position: part.position,
-            rotation: part.rotation,
-            castShadow: true,
-            receiveShadow: part.receiveShadow,
-            frustumCulled: false,
-            children: [
-              part.geometry === "cylinder" ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("cylinderGeometry", { args: part.args }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: part.args }),
-              lamelleMat
-            ]
-          },
-          part.key
-        )) }, `${i}-s${k}`);
-      })
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      "mesh",
+      {
+        geometry: mergedLamellenGeometry,
+        castShadow: true,
+        receiveShadow: true,
+        frustumCulled: false,
+        children: lamelleMat
+      }
     ),
     (() => {
       const gesamtBreite = aussenBreite;
@@ -6656,16 +7174,15 @@ function SolarEindeckungModel(props) {
   const isInn_s = _sparrenAuflage === 1;
   const isAufdach = _sparrenAuflage === 2;
   const aufdachOffset = isAufdach ? eindeckungInfo.unterEindeckungHoehe > 0 ? eindeckungInfo.unterEindeckungHoehe : _sparrenHoehe : 0;
-  const dachVS_s = parent.dachVorsprung ?? 0;
   const pfostTiefe_s = parent.pfostenTiefe;
   const schwEff_s = !parent.isQubus && isInn_s && Number(parent.schwelle) === 1 ? Math.max(parent.schwelleBreite, pfostTiefe_s) : 0;
   const pfEff_s = !parent.isQubus && isInn_s && Number(parent.pfette) === 1 ? parent.pfettenBreite : 0;
-  const zInnenV_s = isInn_s ? -depth / 2 + dachVS_s + schwEff_s : -depth / 2;
+  const zInnenV_s = isInn_s ? -depth / 2 + schwEff_s : -depth / 2;
   const zInnenH_s = isInn_s ? depth / 2 - pfEff_s : depth / 2;
   const innerD_s = Math.max(0.01, zInnenH_s - zInnenV_s);
   const zCenter_s = (zInnenV_s + zInnenH_s) / 2;
   const steig_s = depth > 0 ? (hoeheHinten - hoeheVorne) / depth : 0;
-  const hVorne_s = isInn_s ? hoeheVorne + steig_s * (dachVS_s + schwEff_s) : hoeheVorne;
+  const hVorne_s = isInn_s ? hoeheVorne + steig_s * schwEff_s : hoeheVorne;
   const hHinten_s = isInn_s ? hoeheHinten - steig_s * pfEff_s : hoeheHinten;
   const sparrenOKVorne = isInn_s ? hVorne_s : isAufdach ? hoeheVorne + aufdachOffset : hoeheVorne + _sparrenHoehe;
   const sparrenOKHinten = isInn_s ? hHinten_s : isAufdach ? hoeheHinten + aufdachOffset : hoeheHinten + _sparrenHoehe;
@@ -7002,6 +7519,7 @@ function RegenrinneModel(props) {
     return val;
   };
   const parent = useVerandaGeometry();
+  const eindeckungInfo = useEindeckungInfo();
   const width = parent.width || Number(exprVal(props.width)) || 4;
   const depth = parent.depth || Number(exprVal(props.depth)) || 3;
   const height = parent.height || 0;
@@ -7017,13 +7535,19 @@ function RegenrinneModel(props) {
   const rinnenTyp = Number(exprVal(props.typ) || "0");
   const dachneigung = parent.dachneigung || 0;
   const farbeHex = "#808080";
+  const hasActiveEindeckung = eindeckungInfo.unterEindeckungHoehe > 0;
+  const effectiveSparrenHoehe = hasActiveEindeckung ? eindeckungInfo.sparrenHoehe : parent.sparrenHoehe;
+  const effectiveSparrenAuflage = hasActiveEindeckung ? eindeckungInfo.sparrenAuflage : parent.sparrenAuflage;
   const anchors = calcSlotAnchors({
     ...parent,
     width,
     depth,
     height,
     rinnenBreite,
-    rinnenHoehe
+    rinnenHoehe,
+    sparrenHoehe: effectiveSparrenHoehe,
+    sparrenAuflage: effectiveSparrenAuflage,
+    rinneAnDachOK: eindeckungInfo.rinneAnDachOK
   });
   const rinnePosition = anchors.rinne.position;
   const rinnenLaenge = anchors.rinne.size.breite;
@@ -7255,6 +7779,7 @@ const WAND_TYPE_MAP = {
   [WAND_TYP.KEIL]: "veranda-wand-keil",
   [WAND_TYP.RAHMENWAND]: "veranda-wand-rahmenwand",
   [WAND_TYP.SCHIEBETUER]: "veranda-wand-schiebetuer",
+  [WAND_TYP.FLIEGENGITTER]: "veranda-wand-fliegengitter",
   [WAND_TYP.SHUTTERS]: "veranda-wand-shutters",
   [WAND_TYP.SICHTSCHUTZWAND]: "veranda-wand-sichtschutzwand",
   [WAND_TYP.SENKRECHTMARKISE]: "veranda-wand-senkrechtmarkise"
@@ -7272,7 +7797,8 @@ const RADIO_OPTIONS = {
   schienenSeite: [{ value: "0", label: "Außen" }, { value: "1", label: "Innen" }],
   schiebend: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }],
   aufbauTyp: [{ value: "0", label: "Querbalken" }, { value: "1", label: "Planken vertikal" }],
-  querbalken: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }]
+  querbalken: [{ value: "0", label: "Nein" }, { value: "1", label: "Ja" }],
+  anbringung: [{ value: "0", label: "Zwischen Pfosten" }, { value: "1", label: "Außen" }, { value: "2", label: "Innen" }]
 };
 const DIALOG_LABELS = {
   breite: "Breite (0=auto aus Veranda) (m)",
@@ -7330,7 +7856,14 @@ const DIALOG_LABELS = {
   envMapIntensityUnten: "EnvMap-Intensität unten (Multiplikator)",
   oeffnungSchiebe: "Öffnung Schiebe (0=zu, 1=offen)",
   oeffnungLamellen: "Öffnung Lamellen (0=zu, 1=offen)",
-  rahmenTiefe: "Rahmen-Tiefe (m)"
+  rahmenTiefe: "Rahmen-Tiefe (m)",
+  maschenweite: "Maschenweite Netz (m)",
+  fliegengitter: "Fliegengitter (0=ohne, 1=mit)",
+  fliegengitterElemente: "Fliegengitter Anzahl Elemente (0=auto)",
+  fliegengitterOeffnung: "Fliegengitter Öffnung (0=zu, 1=offen)",
+  fliegengitterAbstand: "Fliegengitter Abstand zur Schiebetür (m)",
+  fliegengitterSeite: "Fliegengitter Seite (0=Innen, 1=Außen)",
+  anbringung: "Anbringung (0=Zwischen Pfosten, 1=Außen, 2=Innen)"
 };
 function buildBaseDialogKeys(wandTyp) {
   if (wandTyp === WAND_TYP.KEIL || wandTyp === WAND_TYP.SCHIEBETUER) {
@@ -8255,23 +8788,23 @@ function RahmenwandWand({
     const glasExtCfg = { depth: glasD, bevelEnabled: false, steps: 1 };
     const glasZ = (FT - glasD) / 2;
     return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, 0, -FT / 2], children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { ref: (g) => g?.clearGroups(), args: [bottomShape, extCfg] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { ref: (g) => g?.clearGroups(), args: [topShape, extCfg] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { ref: (g) => g?.clearGroups(), args: [leftShape, extCfg] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { ref: (g) => g?.clearGroups(), args: [rightShape, extCfg] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
-      barShape && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
+      barShape && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { ref: (g) => g?.clearGroups(), args: [barShape, extCfg] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
@@ -8355,7 +8888,7 @@ function RahmenwandWand({
           !glasMaterialUnten && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: glasFarbeHex, transparent: true, opacity: opacityUnten, roughness: roughnessUnten, metalness: metalnessUnten, envMapIntensity: envMapIntensityUnten, clearcoat: 1, clearcoatRoughness: 0.05 })
         ] }, `bot-${i}`);
       }),
-      dividerShapes.map((s, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
+      dividerShapes.map((s, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { ref: (g) => g?.clearGroups(), args: [s, extCfg] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }, i))
@@ -8366,7 +8899,6 @@ function RahmenwandWand({
       "mesh",
       {
         position: [0, wandHoeheVorne / 2 - FT / 2, 0],
-        castShadow: true,
         receiveShadow: true,
         children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, FT, FT] }),
@@ -8378,7 +8910,6 @@ function RahmenwandWand({
       "mesh",
       {
         position: [0, -wandHoeheVorne / 2 + FT / 2, 0],
-        castShadow: true,
         receiveShadow: true,
         children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, FT, FT] }),
@@ -8390,7 +8921,6 @@ function RahmenwandWand({
       "mesh",
       {
         position: [-wandBreite / 2 + FT / 2, 0, 0],
-        castShadow: true,
         receiveShadow: true,
         children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FT, wandHoeheVorne, FT] }),
@@ -8398,11 +8928,11 @@ function RahmenwandWand({
         ]
       }
     ),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - FT / 2, 0, 0], castShadow: true, receiveShadow: true, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - FT / 2, 0, 0], receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FT, wandHoeheVorne, FT] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }),
-    isTyp2 && barH > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, barCenterY, 0], castShadow: true, receiveShadow: true, children: [
+    isTyp2 && barH > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, barCenterY, 0], receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [innerW, FT, FT] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }),
@@ -8496,7 +9026,7 @@ function RahmenwandWand({
     }),
     Array.from({ length: divCount }, (_, i) => {
       const divCenterX = -innerW / 2 + (i + 1) * (panelW + FT) - FT / 2;
-      return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [divCenterX, 0, 0], castShadow: true, receiveShadow: true, children: [
+      return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [divCenterX, 0, 0], receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FT, innerH, FT] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }, i);
@@ -8581,6 +9111,167 @@ function renderRahmenwand(rc, props) {
     null
   ];
 }
+
+const FG_PROFIL_TIEFE = 0.02;
+const FG_SCHIEBETUER_RAHMEN = 0.03;
+const FG_SCHIEBETUER_MAX_PANEL = 1;
+const FG_TRACK_GAP = 4e-3;
+const FG_TRACK_SPACING = FG_PROFIL_TIEFE + FG_TRACK_GAP;
+const FG_OVERLAP = 0.03;
+const FG_MIN_PANELS = 2;
+const FG_TEXTURE_CELLS = 8;
+function calcFliegengitterPanelCount(breite, rahmenBreite, anzahlElemente, maxPanelBreite) {
+  if (anzahlElemente > 0) return Math.max(FG_MIN_PANELS, Math.round(anzahlElemente));
+  const innerBreite = Math.max(0, breite - 2 * rahmenBreite);
+  return maxPanelBreite > 0 ? Math.max(FG_MIN_PANELS, Math.ceil(innerBreite / maxPanelBreite)) : FG_MIN_PANELS;
+}
+function calcFliegengitterDepth(panelCount, laufrichtung) {
+  const tracks = laufrichtung === 2 ? Math.ceil(panelCount / 2) : panelCount;
+  return tracks * FG_TRACK_SPACING + FG_TRACK_GAP;
+}
+let netzTexture = null;
+let netzMaterial = null;
+function getNetzMaterial() {
+  if (netzMaterial) return netzMaterial;
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const c = canvas.getContext("2d");
+  c.fillStyle = "rgba(42,42,42,0.12)";
+  c.fillRect(0, 0, size, size);
+  c.fillStyle = "rgba(42,42,42,1)";
+  const step = size / FG_TEXTURE_CELLS;
+  for (let i = 0; i < FG_TEXTURE_CELLS; i++) {
+    c.fillRect(i * step, 0, 1, size);
+    c.fillRect(0, i * step, size, 1);
+  }
+  netzTexture = new veranda_mf_2_plugin__loadShare__three__loadShare__.CanvasTexture(canvas);
+  netzTexture.wrapS = veranda_mf_2_plugin__loadShare__three__loadShare__.RepeatWrapping;
+  netzTexture.wrapT = veranda_mf_2_plugin__loadShare__three__loadShare__.RepeatWrapping;
+  netzTexture.colorSpace = veranda_mf_2_plugin__loadShare__three__loadShare__.SRGBColorSpace;
+  netzTexture.anisotropy = 4;
+  netzMaterial = new veranda_mf_2_plugin__loadShare__three__loadShare__.MeshStandardMaterial({
+    color: "#ffffff",
+    map: netzTexture,
+    transparent: true,
+    roughness: 0.9,
+    metalness: 0,
+    side: veranda_mf_2_plugin__loadShare__three__loadShare__.DoubleSide,
+    depthWrite: false
+  });
+  netzMaterial.name = "fliegengitter-netz";
+  return netzMaterial;
+}
+function applyNetzUV(g, w, h, rx, ry) {
+  const pos = g.attributes.position;
+  const uv = g.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    uv.setXY(i, (pos.getX(i) / w + 0.5) * rx, (pos.getY(i) / h + 0.5) * ry);
+  }
+  uv.needsUpdate = true;
+}
+function NetzFlaeche({ w, h, maschenweite }) {
+  const tile = Math.max(1e-3, maschenweite) * FG_TEXTURE_CELLS;
+  const rx = w / tile;
+  const ry = h / tile;
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("mesh", { material: getNetzMaterial(), receiveShadow: true, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+    "planeGeometry",
+    {
+      args: [w, h],
+      userData: { rx, ry },
+      onUpdate: (g) => applyNetzUV(g, w, h, rx, ry)
+    }
+  ) });
+}
+function FliegengitterElement({
+  breite,
+  hoehe,
+  panelCount,
+  oeffnung,
+  laufrichtung,
+  rahmenBreite,
+  maschenweite,
+  material,
+  farbeHex
+}) {
+  const FW = rahmenBreite;
+  const PW = FW * 0.75;
+  const depth = calcFliegengitterDepth(panelCount, laufrichtung);
+  const innerBreite = breite - 2 * FW;
+  const innerH = hoehe - 2 * FW;
+  const isBiparting = laufrichtung === 2;
+  const slideRight = laufrichtung === 0;
+  const openFactor = Math.max(0, Math.min(1, oeffnung));
+  const panels = React.useMemo(() => {
+    const pw2 = innerBreite / panelCount + (panelCount - 1) * FG_OVERLAP / panelCount;
+    const step = pw2 - FG_OVERLAP;
+    const half = Math.floor(panelCount / 2);
+    const result = [];
+    for (let i = 0; i < panelCount; i++) {
+      const closedX = -innerBreite / 2 + pw2 / 2 + i * step;
+      let targetX;
+      let track;
+      let trackCount;
+      if (isBiparting) {
+        const leftGroup = i < half;
+        const rank = leftGroup ? half - 1 - i : i - half;
+        targetX = leftGroup ? -innerBreite / 2 + pw2 / 2 + rank * FG_OVERLAP : innerBreite / 2 - pw2 / 2 - rank * FG_OVERLAP;
+        track = rank;
+        trackCount = Math.ceil(panelCount / 2);
+      } else {
+        const rank = slideRight ? i : panelCount - 1 - i;
+        targetX = slideRight ? innerBreite / 2 - pw2 / 2 - (panelCount - 1 - i) * FG_OVERLAP : -innerBreite / 2 + pw2 / 2 + i * FG_OVERLAP;
+        track = rank;
+        trackCount = panelCount;
+      }
+      const z = (track - (trackCount - 1) / 2) * FG_TRACK_SPACING;
+      result.push({ x: closedX + (targetX - closedX) * openFactor, z });
+    }
+    return { pw: pw2, items: result };
+  }, [innerBreite, panelCount, isBiparting, slideRight, openFactor]);
+  const { pw } = panels;
+  const netzW = Math.max(0.01, pw - 2 * PW);
+  const netzH = Math.max(0.01, innerH - 2 * PW);
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [breite, FW, depth] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, hoehe - FW / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [breite, FW, depth] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-breite / 2 + FW / 2, hoehe / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, hoehe - 2 * FW, depth] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+    ] }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [breite / 2 - FW / 2, hoehe / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, hoehe - 2 * FW, depth] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+    ] }),
+    panels.items.map((p, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [p.x, FW + innerH / 2, p.z], children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, innerH / 2 - PW / 2, 0], castShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [pw, PW, FG_PROFIL_TIEFE] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, -innerH / 2 + PW / 2, 0], castShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [pw, PW, FG_PROFIL_TIEFE] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-pw / 2 + PW / 2, 0, 0], castShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [PW, innerH - 2 * PW, FG_PROFIL_TIEFE] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [pw / 2 - PW / 2, 0, 0], castShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [PW, innerH - 2 * PW, FG_PROFIL_TIEFE] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(NetzFlaeche, { w: netzW, h: netzH, maschenweite })
+    ] }, i))
+  ] });
+}
+const FliegengitterElementMemo = React.memo(FliegengitterElement);
 
 const GRIFF_LOCH_RADIUS = 0.02;
 const SHADOW_OPACITY_THRESHOLD = 0.5;
@@ -8722,7 +9413,12 @@ function SchiebetuerWand({
   kammergroesse = 0.05,
   plankenHoehe = 0.15,
   plankenTiefe = 0.02,
-  zShiftDir = 1
+  zShiftDir = 1,
+  fliegengitter = 0,
+  fliegengitterElemente = 0,
+  fliegengitterOeffnung = 0,
+  fliegengitterAbstand = 0.01,
+  fliegengitterSeite = 0
 }) {
   const glasD = Math.max(4e-3, glasDicke);
   const FW = rahmenBreite;
@@ -8885,25 +9581,25 @@ function SchiebetuerWand({
     const griffXInPanel = hasFrame ? griffXDir * (panelWidth / 2 - FW / 2) : griffPosition === 1 ? -griffXDir * griffEdge : griffXDir * griffEdge;
     return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [xPos, FW, zTrack], children: [
       hasFrame && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-        [-1, 1].map((side) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [side * (panelWidth / 2 - FW / 2 + 9e-3), innerH / 2, 0], castShadow: true, receiveShadow: true, children: [
+        [-1, 1].map((side) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [side * (panelWidth / 2 - FW / 2 + 9e-3), innerH / 2, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, glasH, FD] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] }, `vert-${side}`)),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, innerH - GLAS_LOG_H / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, innerH - GLAS_LOG_H / 2, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [gurtW, GLAS_LOG_H, FD] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, GLAS_LOG_H / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, GLAS_LOG_H / 2, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [gurtW, GLAS_LOG_H, FD] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] })
       ] }),
       !hasFrame && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, innerH - GLAS_LOG_H / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, innerH - GLAS_LOG_H / 2, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [gurtW, GLAS_LOG_H, FD] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, GLAS_LOG_H / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, GLAS_LOG_H / 2, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [gurtW, GLAS_LOG_H, FD] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] })
@@ -8971,31 +9667,60 @@ function SchiebetuerWand({
       showHandle && griffTyp === 2 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(SchiebetuerGriff, { griffSeite, mountingDepth: hasFrame ? FD : glasD, xPos: griffXInPanel, yPos: clampedGriffH - FW })
     ] }, `panel-${index}`);
   };
-  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, 0, zShiftDir * (-totalTrackDepth / 2)], children: [
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW / 2, 0], castShadow: true, receiveShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, FW, totalTrackDepth] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
-    ] }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, wandHoeheVorne - FW / 2, 0], castShadow: true, receiveShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, FW, totalTrackDepth] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
-    ] }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-wandBreite / 2 + FW / 2, wandHoeheVorne / 2, 0], castShadow: true, receiveShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, wandHoeheVorne - FW, totalTrackDepth] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
-    ] }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - FW / 2, wandHoeheVorne / 2, 0], castShadow: true, receiveShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, wandHoeheVorne - FW, totalTrackDepth] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
-    ] }),
-    allSliding || isBiparting ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW + 4e-3, 0], castShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [innerBreite, 835e-5, totalTrackDepth] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: "silver", metalness: 0.9, roughness: 0.2, anisotropy: 0.8 })
-    ] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW + 4e-3, FD / 2], castShadow: true, children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [innerBreite, 835e-5, FD] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: "silver", metalness: 0.9, roughness: 0.2, anisotropy: 0.8 })
-    ] }),
-    Array.from({ length: panelCount }, (_, i) => renderPanel(i, calcTrackZ(i), !fixedIndices.includes(i)))
+  let fgBreite = wandBreite;
+  let fgX = 0;
+  if (fixedCount > 0 && slidingIndices.length > 0) {
+    const xs = slidingIndices.map(calcPanelX);
+    const minX = Math.max(-innerBreite / 2, Math.min(...xs) - panelWidth / 2);
+    const maxX = Math.min(innerBreite / 2, Math.max(...xs) + panelWidth / 2);
+    fgBreite = maxX - minX;
+    fgX = (minX + maxX) / 2;
+  }
+  const fgCount = calcFliegengitterPanelCount(fgBreite, FG_SCHIEBETUER_RAHMEN, fliegengitterElemente, FG_SCHIEBETUER_MAX_PANEL);
+  const fgDepth = calcFliegengitterDepth(fgCount, laufrichtung);
+  const fgAbstand = Math.max(0, fliegengitterAbstand);
+  const fgZ = fliegengitterSeite === 1 ? zShiftDir * (fgAbstand + fgDepth / 2) : zShiftDir * -(totalTrackDepth + fgAbstand + fgDepth / 2);
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+    fliegengitter === 1 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [fgX, 0, fgZ], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      FliegengitterElementMemo,
+      {
+        breite: fgBreite,
+        hoehe: wandHoeheVorne,
+        panelCount: fgCount,
+        oeffnung: fliegengitterOeffnung,
+        laufrichtung,
+        rahmenBreite: FG_SCHIEBETUER_RAHMEN,
+        maschenweite: 4e-3,
+        material,
+        farbeHex
+      }
+    ) }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, 0, zShiftDir * (-totalTrackDepth / 2)], children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, FW, totalTrackDepth] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, wandHoeheVorne - FW / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, FW, totalTrackDepth] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-wandBreite / 2 + FW / 2, wandHoeheVorne / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, wandHoeheVorne - FW, totalTrackDepth] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - FW / 2, wandHoeheVorne / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [FW, wandHoeheVorne - FW, totalTrackDepth] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
+      ] }),
+      allSliding || isBiparting ? /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW + 4e-3, 0], castShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [innerBreite, 835e-5, totalTrackDepth] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: "silver", metalness: 0.9, roughness: 0.2, anisotropy: 0.8 })
+      ] }) : /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, FW + 4e-3, FD / 2], castShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [innerBreite, 835e-5, FD] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: "silver", metalness: 0.9, roughness: 0.2, anisotropy: 0.8 })
+      ] }),
+      Array.from({ length: panelCount }, (_, i) => renderPanel(i, calcTrackZ(i), !fixedIndices.includes(i)))
+    ] })
   ] });
 }
 const SchiebetuerWandMemo = React.memo(SchiebetuerWand);
@@ -9050,7 +9775,12 @@ function renderSchiebetuer(rc, props) {
         kammergroesse: Number(exprVal(props.kammergroesse) || 0.05),
         zShiftDir: isSideWall ? 1 : -1,
         plankenHoehe: Number(exprVal(props.plankenHoehe) ?? 0.15),
-        plankenTiefe: Number(exprVal(props.plankenTiefe) ?? 0.02)
+        plankenTiefe: Number(exprVal(props.plankenTiefe) ?? 0.02),
+        fliegengitter: Number(exprVal(props.fliegengitter) ?? 0),
+        fliegengitterElemente: Number(exprVal(props.fliegengitterElemente) ?? 0),
+        fliegengitterOeffnung: Number(exprVal(props.fliegengitterOeffnung) ?? 0),
+        fliegengitterAbstand: Number(exprVal(props.fliegengitterAbstand) ?? 0.01),
+        fliegengitterSeite: Number(exprVal(props.fliegengitterSeite) ?? 0)
       }
     ) }),
     null
@@ -9109,19 +9839,19 @@ function ShuttersWand({
   };
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, 0, zShiftDir * (-totalTrackDepth / 2)], children: [
     isSliding && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, wandHoeheVorne - rahmenBreite / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, wandHoeheVorne - rahmenBreite / 2, 0], receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, rahmenBreite, totalTrackDepth] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, rahmenBreite / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, rahmenBreite / 2, 0], receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, rahmenBreite, totalTrackDepth] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-wandBreite / 2 + rahmenBreite / 2, wandHoeheVorne / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-wandBreite / 2 + rahmenBreite / 2, wandHoeheVorne / 2, 0], receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [rahmenBreite, wandHoeheVorne, totalTrackDepth] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] }),
-      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - rahmenBreite / 2, wandHoeheVorne / 2, 0], castShadow: true, receiveShadow: true, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - rahmenBreite / 2, wandHoeheVorne / 2, 0], receiveShadow: true, children: [
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [rahmenBreite, wandHoeheVorne, totalTrackDepth] }),
         /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
       ] })
@@ -9132,19 +9862,19 @@ function ShuttersWand({
       const frameHeight = isSliding ? wandHoeheVorne - 2 * rahmenBreite : wandHoeheVorne;
       const frameY = isSliding ? wandHoeheVorne / 2 : wandHoeheVorne / 2;
       return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [xPos, frameY, zPos], children: [
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, frameHeight / 2 - rahmenBreite / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, frameHeight / 2 - rahmenBreite / 2, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [frameW, rahmenBreite, rahmenTiefe] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, -frameHeight / 2 + rahmenBreite / 2, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, -frameHeight / 2 + rahmenBreite / 2, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [frameW, rahmenBreite, rahmenTiefe] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-frameW / 2 + rahmenBreite / 2, 0, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-frameW / 2 + rahmenBreite / 2, 0, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [rahmenBreite, frameHeight - 2 * rahmenBreite, rahmenTiefe] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] }),
-        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [frameW / 2 - rahmenBreite / 2, 0, 0], castShadow: true, receiveShadow: true, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [frameW / 2 - rahmenBreite / 2, 0, 0], receiveShadow: true, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [rahmenBreite, frameHeight - 2 * rahmenBreite, rahmenTiefe] }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
         ] }),
@@ -9444,19 +10174,19 @@ function SichtschutzwandWand({
   const aufbauSlotIds = new Set(Object.values(SICHTSCHUTZWAND_AUFBAU_SLOTS).map((s) => s.id));
   const aufbauInstances = Object.entries(slots ?? {}).filter(([k]) => aufbauSlotIds.has(k)).flatMap(([, v]) => v);
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { children: [
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-wandBreite / 2 + RahmenBreite / 2, wandHoehe / 2, 0], castShadow: true, receiveShadow: true, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [-wandBreite / 2 + RahmenBreite / 2, wandHoehe / 2, 0], receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [RahmenBreite, wandHoehe, RahmenBreite] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - RahmenBreite / 2, hoeheR / 2, 0], castShadow: true, receiveShadow: true, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [wandBreite / 2 - RahmenBreite / 2, hoeheR / 2, 0], receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [RahmenBreite, hoeheR, RahmenBreite] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }),
-    hasTopBeam && !isSlant && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, wandHoehe - topBeamHeight / 2, 0], castShadow: true, receiveShadow: true, children: [
+    hasTopBeam && !isSlant && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, wandHoehe - topBeamHeight / 2, 0], receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [wandBreite, topBeamHeight, beamDepth] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }),
-    hasTopBeam && isSlant && topBeamShapeSlant && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, 0, -beamDepth / 2], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, receiveShadow: true, children: [
+    hasTopBeam && isSlant && topBeamShapeSlant && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, 0, -beamDepth / 2], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { receiveShadow: true, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("extrudeGeometry", { ref: (g) => g?.clearGroups(), args: [topBeamShapeSlant, topBeamExtrudeSettings] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material, fallbackColor: farbeHex })
     ] }) }),
@@ -9609,6 +10339,50 @@ function renderSichtschutzwand(rc, props) {
       }
     ) }),
     aufbauTopLevel
+  ];
+}
+
+function renderFliegengitter(rc, props) {
+  const {
+    isSideWall,
+    wandBreite,
+    zoneHoeheVorne,
+    keilReductionAuto,
+    ssReduction,
+    ctx,
+    material,
+    farbeHex
+  } = rc;
+  const hoehe = zoneHoeheVorne - keilReductionAuto - ssReduction;
+  const rahmenBreite = Number(exprVal(props.rahmenBreite) ?? 0.03);
+  const laufrichtung = Number(exprVal(props.laufrichtung) ?? 0);
+  const panelCount = calcFliegengitterPanelCount(
+    wandBreite,
+    rahmenBreite,
+    Number(exprVal(props.tuertypPanels) ?? 0),
+    Number(exprVal(props.maxPanelBreite) ?? 1)
+  );
+  const depth = calcFliegengitterDepth(panelCount, laufrichtung);
+  const zShiftDir = isSideWall ? 1 : -1;
+  const postHalf = isSideWall ? ctx.pfostenBreite / 2 : ctx.pfostenTiefe / 2;
+  const anbringung = Number(exprVal(props.anbringung) ?? 0);
+  const z = anbringung === 1 ? zShiftDir * (postHalf + depth / 2) : anbringung === 2 ? -zShiftDir * (postHalf + depth / 2) : zShiftDir * (postHalf - depth / 2);
+  return [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("group", { position: [0, ssReduction, z], children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+      FliegengitterElementMemo,
+      {
+        breite: wandBreite,
+        hoehe,
+        panelCount,
+        oeffnung: Number(exprVal(props.oeffnung) ?? 0),
+        laufrichtung,
+        rahmenBreite,
+        maschenweite: Number(exprVal(props.maschenweite) ?? 4e-3),
+        material,
+        farbeHex
+      }
+    ) }),
+    null
   ];
 }
 
@@ -9797,6 +10571,26 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
         const anzahlPanels = Number(exprVal(sp.tuertypPanels) ?? 4);
         const nTracks = Math.min(anzahlPanels || 4, 5);
         frameThickness = nTracks * (spGlasDicke + 5e-3);
+        if (Number(exprVal(sp.fliegengitter) ?? 0) === 1 && Number(exprVal(sp.fliegengitterSeite) ?? 0) !== 1) {
+          const fgCount = calcFliegengitterPanelCount(
+            wandBreite,
+            FG_SCHIEBETUER_RAHMEN,
+            Number(exprVal(sp.fliegengitterElemente) ?? 0),
+            FG_SCHIEBETUER_MAX_PANEL
+          );
+          frameThickness += calcFliegengitterDepth(fgCount, Number(exprVal(sp.laufrichtung) ?? 0)) + Number(exprVal(sp.fliegengitterAbstand) ?? 0.01);
+        }
+        break;
+      }
+      case WAND_TYP.FLIEGENGITTER: {
+        const sp = props;
+        const fgCount = calcFliegengitterPanelCount(
+          wandBreite,
+          Number(exprVal(sp.rahmenBreite) ?? 0.03),
+          Number(exprVal(sp.tuertypPanels) ?? 0),
+          Number(exprVal(sp.maxPanelBreite) ?? 1)
+        );
+        frameThickness = calcFliegengitterDepth(fgCount, Number(exprVal(sp.laufrichtung) ?? 0));
         break;
       }
       case WAND_TYP.SHUTTERS: {
@@ -9957,6 +10751,9 @@ function createWandModel(wandTyp, label, extraDefaultProps, materialSlots, requi
         break;
       case WAND_TYP.SCHIEBETUER:
         [innerContent, aufbauTopLevel] = renderSchiebetuer(rc, props);
+        break;
+      case WAND_TYP.FLIEGENGITTER:
+        [innerContent, aufbauTopLevel] = renderFliegengitter(rc, props);
         break;
       case WAND_TYP.SHUTTERS:
         [innerContent, aufbauTopLevel] = renderShutters(rc, props);
@@ -10125,8 +10922,23 @@ const schiebetuerDynamicModel = createWandModel(WAND_TYP.SCHIEBETUER, "Schiebet�
   griffSeite: 2,
   griffHoehe: { expression: "1.0" },
   glasDicke: { expression: "0.008" },
-  rahmenBreite: { expression: "0.04" }
+  rahmenBreite: { expression: "0.04" },
+  fliegengitter: { expression: "0" },
+  fliegengitterElemente: { expression: "0" },
+  fliegengitterOeffnung: { expression: "0" },
+  fliegengitterAbstand: { expression: "0.01" },
+  fliegengitterSeite: { expression: "0" }
 }, void 0, "Pro", thumbnail("schiebetuer"));
+
+const fliegengitterDynamicModel = createWandModel(WAND_TYP.FLIEGENGITTER, "Fliegengitter", {
+  tuertypPanels: { expression: "0" },
+  maxPanelBreite: { expression: "1.0" },
+  oeffnung: { expression: "0" },
+  laufrichtung: 0,
+  rahmenBreite: { expression: "0.03" },
+  maschenweite: { expression: "0.004" },
+  anbringung: 0
+}, ["profil"], "Pro", thumbnail("fliegengitter"));
 
 const shuttersDynamicModel = createWandModel(WAND_TYP.SHUTTERS, "Shutters", {
   lamellenHoehe: 0.08,
@@ -10717,35 +11529,35 @@ function MarkiseModel(props) {
       userData: { modelId: props.id },
       name: props.name,
       children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, yMitte, zCenter], rotation: [-neigungRad, 0, 0], children: [
-        !isKassette && geoSchiene && schienePos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, castShadow: true, receiveShadow: true, frustumCulled: false, children: [
+        !isKassette && geoSchiene && schienePos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, receiveShadow: true, frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoSchiene, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `schiene-${i}`)),
-        !isKassette && geoBoden && bodenPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, castShadow: true, receiveShadow: true, frustumCulled: false, children: [
+        !isKassette && geoBoden && bodenPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, receiveShadow: true, frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoBoden, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `boden-${i}`)),
-        !isKassette && geoFuehrung && fuehrungPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, castShadow: true, frustumCulled: false, children: [
+        !isKassette && geoFuehrung && fuehrungPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoFuehrung, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `fuehrung-${i}`)),
-        !isKassette && geoEndkappe && endkappePos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, rotation: [0, 0, Math.PI / 2], castShadow: true, frustumCulled: false, children: [
+        !isKassette && geoEndkappe && endkappePos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, rotation: [0, 0, Math.PI / 2], frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoEndkappe, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `endkappe-${i}`)),
-        klemmePos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, castShadow: true, frustumCulled: false, children: [
+        klemmePos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoKlemme, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `klemme-${i}`)),
-        geoStab && stabPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, castShadow: true, frustumCulled: false, children: [
+        geoStab && stabPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoStab, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `stab-${i}`)),
-        winkelHPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, castShadow: true, frustumCulled: false, children: [
+        winkelHPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoWinkelH, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `winkelH-${i}`)),
-        winkelVPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, castShadow: true, frustumCulled: false, children: [
+        winkelVPos.map((pos, i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: pos, frustumCulled: false, children: [
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("primitive", { object: geoWinkelV, attach: "geometry", dispose: null }),
           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
         ] }, `winkelV-${i}`)),
@@ -10829,7 +11641,6 @@ function MarkiseModel(props) {
                         position: [railX, 0, -halfZ],
                         geometry: geoKassetteRails,
                         frustumCulled: false,
-                        castShadow: true,
                         children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
                       }
                     ),
@@ -10844,7 +11655,6 @@ function MarkiseModel(props) {
                           0,
                           0
                         ],
-                        castShadow: true,
                         children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
                       }
                     ),
@@ -10854,7 +11664,6 @@ function MarkiseModel(props) {
                         position: [railX, 2e-3, fabZKass - 0.025],
                         geometry: geoKassetteHolder,
                         frustumCulled: false,
-                        castShadow: true,
                         children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                           "meshPhysicalMaterial",
                           {
@@ -10869,7 +11678,6 @@ function MarkiseModel(props) {
                       "mesh",
                       {
                         position: [lx, kBoxH + 3e-3, cordCenterZ],
-                        castShadow: true,
                         children: [
                           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [2e-3, 2e-3, cordLen] }),
                           /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
@@ -10895,7 +11703,6 @@ function MarkiseModel(props) {
                       rotation: [0, Math.PI / 2, 0],
                       geometry: geoKassetteCap,
                       frustumCulled: false,
-                      castShadow: true,
                       receiveShadow: true,
                       children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
                     },
@@ -10930,7 +11737,6 @@ function MarkiseModel(props) {
                     args: [segW, 0.015, 0.05],
                     radius: 25e-4,
                     position: [0, kBoxH + 0.01, fabZKass],
-                    castShadow: true,
                     children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
                   }
                 )
@@ -11043,15 +11849,15 @@ const markisePropsSchema = {
   },
   kassettenDurchmesser: {
     type: "expression",
-    label: "Kassettendurchmesser – Aufdach (m, 0=Std)"
+    label: "Kassettendurchmesser – Rund (m, 0=Std)"
   },
   kastenBreite: {
     type: "expression",
-    label: "Kastenbreite – Aufdach (m, 0=Std)"
+    label: "Kastenbreite – Eckig (m, 0=Std)"
   },
   kastenHoehe: {
     type: "expression",
-    label: "Kastenhoehe – Aufdach (m, 0=Std)"
+    label: "Kastenhoehe – Eckig (m, 0=Std)"
   }
 };
 const markiseDynamicModel = {
@@ -11355,7 +12161,6 @@ function SenkrechtMarkiseModel(props) {
                   railY_sk,
                   railCenterZ_sk
                 ],
-                castShadow: true,
                 children: [
                   /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                     "boxGeometry",
@@ -11376,7 +12181,6 @@ function SenkrechtMarkiseModel(props) {
                   railBotY_sk,
                   railCenterZ_sk
                 ],
-                castShadow: true,
                 children: [
                   /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                     "boxGeometry",
@@ -11397,7 +12201,6 @@ function SenkrechtMarkiseModel(props) {
                   railY_sk,
                   railCenterZ_sk
                 ],
-                castShadow: true,
                 children: [
                   /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                     "boxGeometry",
@@ -11420,7 +12223,7 @@ function SenkrechtMarkiseModel(props) {
                 {
                   position: [side * (schieneOuterX - SCHIENE_W / 2), 0, hz],
                   children: [
-                    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, klemmeWandY_sk, 0], castShadow: true, children: [
+                    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, klemmeWandY_sk, 0], children: [
                       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                         "boxGeometry",
                         {
@@ -11429,7 +12232,7 @@ function SenkrechtMarkiseModel(props) {
                       ),
                       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
                     ] }),
-                    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, klemmeSchY_sk, 0], castShadow: true, children: [
+                    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, klemmeSchY_sk, 0], children: [
                       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                         "boxGeometry",
                         {
@@ -11438,7 +12241,7 @@ function SenkrechtMarkiseModel(props) {
                       ),
                       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
                     ] }),
-                    stabLen_sk > 1e-3 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, stabY_sk, 0], castShadow: true, children: [
+                    stabLen_sk > 1e-3 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [0, stabY_sk, 0], children: [
                       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                         "boxGeometry",
                         {
@@ -11465,7 +12268,7 @@ function SenkrechtMarkiseModel(props) {
               }
             ),
             oeffnung > 0 && stoffSchraeg_sk > 0.01 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("group", { position: [0, railY_sk, auslaufZ_sk + AUSLAUF_T / 2], children: [
-              /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { castShadow: true, children: [
+              /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { children: [
                 /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("boxGeometry", { args: [stoffBr_sk, AUSLAUF_H, AUSLAUF_T] }),
                 /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: profilMaterial })
               ] }),
@@ -11474,7 +12277,6 @@ function SenkrechtMarkiseModel(props) {
                 {
                   position: [0, 0, -AUSLAUF_T / 2],
                   rotation: [0, 0, Math.PI / 2],
-                  castShadow: true,
                   children: [
                     /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                       "cylinderGeometry",
@@ -11793,7 +12595,6 @@ function PlisseeContent({ ctx, allProps }) {
                   0,
                   beschattungTiefe / 2 - 0.03
                 ],
-                castShadow: true,
                 children: [
                   /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                     "boxGeometry",
@@ -11850,7 +12651,6 @@ function PlisseeContent({ ctx, allProps }) {
                   0,
                   beschattungTiefe / 2 - effektiveTiefe
                 ],
-                castShadow: true,
                 children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(MaterialFallback, { material: gestellMaterial, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
                   "meshPhysicalMaterial",
                   {
@@ -11868,7 +12668,7 @@ function PlisseeContent({ ctx, allProps }) {
         `plissee-panel-${gIdx}`
       );
     }),
-    drahtPositionen.map(([x, y, z], i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [x, y, z], rotation: [Math.PI / 2, 0, 0], castShadow: true, frustumCulled: false, children: [
+    drahtPositionen.map(([x, y, z], i) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("mesh", { position: [x, y, z], rotation: [Math.PI / 2, 0, 0], frustumCulled: false, children: [
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("cylinderGeometry", { args: [7e-4, 7e-4, beschattungTiefe, 6] }),
       /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("meshPhysicalMaterial", { color: "#b8b8b8", roughness: 0.1, metalness: 0.95 })
     ] }, `draht-${i}`))
@@ -12421,9 +13221,9 @@ const STEPS = [
     noSpotlightClick: true
   },
   {
-    title: "Prop: Durchgangshöhe",
-    text: "Lichte Hoehe am vorderen Rand der Veranda in Metern. Beispiel: 2.5 (= 2,5 m).",
-    selector: "[data-cy='expressionInput-Durchgangshöhe (m)']",
+    title: "Prop: Höhe hinten",
+    text: "Höhe an der Hauswand (hinten) in Metern. Die Höhe vorne ergibt sich automatisch aus Tiefe und Dachneigung. Beispiel: 2.5 (= 2,5 m).",
+    selector: "[data-cy='expressionInput-Höhe hinten / an der Wand (m)']",
     tooltipSide: "right",
     noSpotlightClick: true
   },
@@ -13093,6 +13893,15 @@ function TutorialOverlay({ onDismiss, initialStep = 0, prefixStep }) {
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    const body = document.body;
+    const savedBodyOverflow = body.style.overflow;
+    const savedBodyPR = body.style.paddingRight;
+    return () => {
+      body.style.overflow = savedBodyOverflow;
+      body.style.paddingRight = savedBodyPR;
+    };
+  }, []);
   const current = steps[step];
   const spotRect = (() => {
     if (current.getElement) {
@@ -13283,33 +14092,443 @@ function makeStore(key) {
 }
 const adminTutorialStore = makeStore(KEY_ADMIN);
 
+const TIER_ORDER = { Basic: 0, Pro: 1, Enterprise: 2 };
+const LICENSE_MANIFEST = [
+  // =========================================================
+  // === Pro-Tier: Werte (auf Basic gesperrt) ===
+  // =========================================================
+  { key: "klinker", entityType: "value", minTier: "Pro", description: "Fassade Klinker" },
+  { key: "carport", entityType: "value", minTier: "Pro", description: "Konstruktion Carport" },
+  { key: "ja", entityType: "value", minTier: "Pro", description: "Animation Aktiviert (Wert ja)" },
+  // =========================================================
+  // === Pro-Tier: Variablen (auf Basic gesperrt) ===
+  // =========================================================
+  { id: 332739, entityType: "variable", minTier: "Pro", description: "Merkmal: Glasfarbe" },
+  { id: 332728, entityType: "variable", minTier: "Pro", description: "Merkmal: Markise ein/aus fahren (Beschattung Animation)" },
+  // =========================================================
+  // === Enterprise-Tier: Werte (auf Basic+Pro gesperrt) ===
+  // =========================================================
+  { key: "lamelle", entityType: "value", minTier: "Enterprise", description: "Eindeckung Lamellen" },
+  { key: "solar", entityType: "value", minTier: "Enterprise", description: "Eindeckung Solar" },
+  { key: "welle", entityType: "value", minTier: "Enterprise", description: "Eindeckung Welle" },
+  { key: "trapez", entityType: "value", minTier: "Enterprise", description: "Eindeckung Trapez" },
+  { key: "qubus", entityType: "value", minTier: "Enterprise", description: "Konstruktion Qubus" },
+  // =========================================================
+  // === Enterprise-Tier: Variablen (auf Basic+Pro gesperrt) ===
+  // =========================================================
+  { key: "watermark", entityType: "variable", minTier: "Enterprise", description: "Merkmal: Wasserzeichen" },
+  { id: 332736, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Lamellen auf / zu" },
+  { id: 332737, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Einfahrtiefe" },
+  { id: 332738, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Eindeckungs Farbe" },
+  { id: 332741, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Ausrichtung" },
+  { id: 332742, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Einfahr Richtung" },
+  { id: 332746, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Öffnen (Seitenelement Animation)" },
+  { id: 332766, entityType: "variable", minTier: "Enterprise", description: "Merkmal: LED-Beleuchtung" },
+  { id: 332767, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Helligkeit" },
+  { id: 332768, entityType: "variable", minTier: "Enterprise", description: "Merkmal: LED-Stripe im Rahmen" },
+  { id: 332769, entityType: "variable", minTier: "Enterprise", description: "Merkmal: Lichtfarbe" },
+  // =========================================================
+  // === Enterprise-Tier: Regelzeilen (ruleItems) ===
+  // =========================================================
+  { id: 1938461, entityType: "ruleitem", minTier: "Enterprise", description: "Grundmodell→Eindeckungsmodel: Qubus+Lamellen" },
+  { id: 1938462, entityType: "ruleitem", minTier: "Enterprise", description: "Grundmodell→Eindeckungsmodel: Qubus+Solar" },
+  { id: 1938463, entityType: "ruleitem", minTier: "Enterprise", description: "Grundmodell→Eindeckungsmodel: Qubus+Trapez" },
+  { id: 1938464, entityType: "ruleitem", minTier: "Enterprise", description: "Grundmodell→Eindeckungsmodel: Qubus+Welle" },
+  { id: 1938495, entityType: "ruleitem", minTier: "Enterprise", description: "Grundmodell→Dachvorsprung: Qubus" },
+  { id: 1938497, entityType: "ruleitem", minTier: "Enterprise", description: "Qubus→Versteckt (Regel 186242)" },
+  { id: 1938498, entityType: "ruleitem", minTier: "Enterprise", description: "Dachneigung Min/Max: Qubus+Welle/Lamellen/Trapez" },
+  { id: 1938499, entityType: "ruleitem", minTier: "Enterprise", description: "Eindeckung→Beschattung Versteckt: Lamellen/Solar/Trapez/Welle" },
+  // Regel 186227 "Eindeckung → Verstecken": Z1+Z2 löschen (Z3 Glasfarbe bleibt, da Glasfarbe Pro)
+  { id: 1938443, entityType: "ruleitem", minTier: "Enterprise", description: "Eindeckung→Verstecken Z1: Solar/Welle/Trapez→Lamellen auf/zu, Einfahrtiefe, Ausrichtung, Einfahr Richtung" },
+  { id: 1938493, entityType: "ruleitem", minTier: "Enterprise", description: "Eindeckung→Verstecken Z2: Solar→Eindeckungs Farbe" },
+  { id: 1938529, entityType: "ruleitem", minTier: "Enterprise", description: "Qubus→Versteckt (Regel 186258)" },
+  { id: 1938635, entityType: "ruleitem", minTier: "Enterprise", description: "Dachneigung Min/Max: Welle/Lamellen/Trapez" },
+  { id: 1938667, entityType: "ruleitem", minTier: "Enterprise", description: "Grundmodell→Versteckt: Qubus" },
+  // =========================================================
+  // === Enterprise-Tier: Regeln (komplett Enterprise-only) ===
+  // =========================================================
+  { id: 186242, entityType: "rule", minTier: "Enterprise", description: "Qubus → Versteckt" },
+  { id: 186243, entityType: "rule", minTier: "Enterprise", description: "Eindeckung → Beschattung Versteckt" },
+  { id: 186258, entityType: "rule", minTier: "Enterprise", description: "Qubus → Versteckt (2)" }
+  // 186227 bleibt — nur Zeilen 1938443/1938493 werden migriert
+];
+
+function getToken() {
+  const configured = "https://k3-test-api.objectcode.de";
+  {
+    const val = localStorage.getItem(configured + "$token");
+    if (val) return val;
+  }
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.endsWith("$token")) return localStorage.getItem(key);
+  }
+  return null;
+}
+function getBaseUrl() {
+  return "https://k3-test-api.objectcode.de";
+}
+async function k3Request(method, path) {
+  const baseUrl = getBaseUrl();
+  const token = getToken();
+  const res = await fetch(`${baseUrl}/api/v1.0${path}`, {
+    method,
+    headers: {
+      ...token ? { Authorization: `Bearer ${token}` } : {},
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    }
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`K3 API ${method} ${path} → ${res.status}: ${text}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+async function findIdByKey(type, key, appId) {
+  const result = await k3Request("GET", `/${type}?key=${encodeURIComponent(key)}`);
+  if (!Array.isArray(result) || result.length === 0) return null;
+  const match = result.find((r) => r.key === key && r.appId === appId);
+  return match?.id ?? null;
+}
+async function existsById(type, id) {
+  try {
+    await k3Request("GET", `/${type}/${id}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function trashById(type, id) {
+  await k3Request("DELETE", `/${type}/${id}`);
+}
+async function undeleteById(type, id) {
+  await k3Request("GET", `/${type}/${id}/undelete`);
+}
+async function findInTrashByKey(type, key, appId) {
+  const result = await k3Request("GET", `/${type}/trash`);
+  if (!Array.isArray(result)) return null;
+  const match = result.find((r) => r.key === key && r.appId === appId);
+  return match?.id ?? null;
+}
+
+function computeMigrationPlan(from, to, manifest) {
+  const fromRank = TIER_ORDER[from];
+  const toRank = TIER_ORDER[to];
+  if (toRank < fromRank) {
+    return {
+      toTrash: manifest.filter((e) => TIER_ORDER[e.minTier] > toRank),
+      toRestore: []
+    };
+  } else {
+    return {
+      toTrash: [],
+      toRestore: manifest.filter(
+        (e) => TIER_ORDER[e.minTier] > fromRank && TIER_ORDER[e.minTier] <= toRank
+      )
+    };
+  }
+}
+async function executeMigration(plan, appId, onProgress) {
+  const all = [...plan.toTrash, ...plan.toRestore];
+  const total = all.length;
+  let done = 0;
+  for (const entry of plan.toTrash) {
+    const label = entry.key ?? `id:${entry.id}`;
+    onProgress({ done, total, currentKey: label });
+    let id = null;
+    if (entry.id !== void 0) {
+      id = await existsById(entry.entityType, entry.id) ? entry.id : null;
+    } else if (entry.key) {
+      id = await findIdByKey(entry.entityType, entry.key, appId);
+    }
+    if (id !== null) {
+      try {
+        await trashById(entry.entityType, id);
+      } catch {
+      }
+    }
+    done++;
+  }
+  for (const entry of plan.toRestore) {
+    const label = entry.key ?? `id:${entry.id}`;
+    onProgress({ done, total, currentKey: label });
+    let id = null;
+    if (entry.id !== void 0) {
+      id = entry.id;
+    } else if (entry.key) {
+      id = await findInTrashByKey(entry.entityType, entry.key, appId);
+    }
+    if (id !== null) {
+      try {
+        await undeleteById(entry.entityType, id);
+      } catch {
+      }
+    }
+    done++;
+  }
+  onProgress({ done, total, currentKey: "" });
+}
+
+const TIERS = ["Basic", "Pro", "Enterprise"];
+const btnBase = {
+  border: "none",
+  borderRadius: 8,
+  padding: "8px 16px",
+  fontSize: 13,
+  cursor: "pointer",
+  fontWeight: 600
+};
+function LicenseMigrationPanel() {
+  const app = veranda_mf_2_plugin__loadShare__k3_mf_2_plugin_mf_2_api__loadShare__.useApp();
+  const detectedTier = useLicenseTier();
+  const [sourceTier, setSourceTier] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(detectedTier);
+  const [targetTier, setTargetTier] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(detectedTier);
+  const [phase, setPhase] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState("idle");
+  const [plan, setPlan] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(null);
+  const [progress, setProgress] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(null);
+  const [error, setError] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(null);
+  function handlePreview() {
+    const computed = computeMigrationPlan(sourceTier, targetTier, LICENSE_MANIFEST);
+    setPlan(computed);
+    setPhase("previewing");
+  }
+  async function handleRun() {
+    if (!plan || !app) return;
+    setPhase("running");
+    setError(null);
+    try {
+      await executeMigration(plan, app.id, setProgress);
+      setPhase("done");
+    } catch (e) {
+      setError(String(e));
+      setPhase("error");
+    }
+  }
+  function handleReset() {
+    setPhase("idle");
+    setPlan(null);
+    setProgress(null);
+    setError(null);
+  }
+  const isDowngrade = TIER_ORDER[targetTier] < TIER_ORDER[sourceTier];
+  return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { paddingTop: 16 }, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 14, fontWeight: 600, marginBottom: 8, color: "#111" }, children: "Lizenz-Migration" }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 13, color: "#555", marginBottom: 12 }, children: "Merkmale, Werte, Regeln und Regelzeilen zwischen Lizenz-Tiers migrieren." }),
+    phase === "idle" && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { fontSize: 12, color: "#777", marginBottom: 8 }, children: [
+        "Erkannter Tier: ",
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("strong", { children: detectedTier })
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("label", { style: { fontSize: 13, color: "#444", minWidth: 60 }, children: "Von:" }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          "select",
+          {
+            value: sourceTier,
+            onChange: (e) => setSourceTier(e.target.value),
+            style: { fontSize: 13, padding: "4px 8px", borderRadius: 6, border: "1px solid #ccc" },
+            children: TIERS.map((t) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("option", { value: t, children: t }, t))
+          }
+        )
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("label", { style: { fontSize: 13, color: "#444", minWidth: 60 }, children: "Nach:" }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          "select",
+          {
+            value: targetTier,
+            onChange: (e) => setTargetTier(e.target.value),
+            style: { fontSize: 13, padding: "4px 8px", borderRadius: 6, border: "1px solid #ccc" },
+            children: TIERS.map((t) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("option", { value: t, children: t }, t))
+          }
+        )
+      ] }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        "button",
+        {
+          onClick: handlePreview,
+          disabled: targetTier === sourceTier,
+          style: {
+            ...btnBase,
+            background: targetTier === sourceTier ? "#ccc" : "#2563eb",
+            color: "#fff",
+            cursor: targetTier === sourceTier ? "default" : "pointer"
+          },
+          children: "Vorschau"
+        }
+      )
+    ] }),
+    phase === "previewing" && plan && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 8, color: isDowngrade ? "#b91c1c" : "#15803d" }, children: isDowngrade ? `Downgrade: ${sourceTier} → ${targetTier}` : `Upgrade: ${sourceTier} → ${targetTier}` }),
+      plan.toTrash.length > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { marginBottom: 12 }, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { fontSize: 12, color: "#b91c1c", fontWeight: 600, marginBottom: 4 }, children: [
+          "In Papierkorb (",
+          plan.toTrash.length,
+          "):"
+        ] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("ul", { style: { fontSize: 12, color: "#555", margin: 0, paddingLeft: 16 }, children: plan.toTrash.map((e) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("li", { children: [
+          e.description,
+          " ",
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("span", { style: { color: "#999" }, children: [
+            "(",
+            e.key ?? e.id,
+            ")"
+          ] })
+        ] }, e.id != null ? `id-${e.id}` : `key-${e.key}`)) })
+      ] }),
+      plan.toRestore.length > 0 && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { marginBottom: 12 }, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { fontSize: 12, color: "#15803d", fontWeight: 600, marginBottom: 4 }, children: [
+          "Wiederherstellen (",
+          plan.toRestore.length,
+          "):"
+        ] }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("ul", { style: { fontSize: 12, color: "#555", margin: 0, paddingLeft: 16 }, children: plan.toRestore.map((e) => /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("li", { children: [
+          e.description,
+          " ",
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("span", { style: { color: "#999" }, children: [
+            "(",
+            e.key ?? e.id,
+            ")"
+          ] })
+        ] }, e.id != null ? `id-${e.id}` : `key-${e.key}`)) })
+      ] }),
+      isDowngrade && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 12, color: "#92400e", background: "#fef3c7", borderRadius: 6, padding: "8px 10px", marginBottom: 12 }, children: "Achtung: Gelöschte Elemente landen im K3-Papierkorb und können wiederhergestellt werden." }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { display: "flex", gap: 8 }, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          "button",
+          {
+            onClick: handleRun,
+            style: { ...btnBase, background: isDowngrade ? "#b91c1c" : "#15803d", color: "#fff" },
+            children: "Migration starten"
+          }
+        ),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+          "button",
+          {
+            onClick: handleReset,
+            style: { ...btnBase, background: "#f3f4f6", color: "#374151" },
+            children: "Abbrechen"
+          }
+        )
+      ] })
+    ] }),
+    phase === "running" && progress && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { fontSize: 13, color: "#555" }, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { marginBottom: 6, fontWeight: 600 }, children: [
+        "Migration läuft… ",
+        progress.done,
+        " / ",
+        progress.total
+      ] }),
+      progress.currentKey && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 12, color: "#999" }, children: progress.currentKey }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: {
+        marginTop: 8,
+        height: 6,
+        borderRadius: 4,
+        background: "#e5e7eb",
+        overflow: "hidden"
+      }, children: /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: {
+        height: "100%",
+        borderRadius: 4,
+        background: "#2563eb",
+        width: `${progress.total > 0 ? progress.done / progress.total * 100 : 0}%`,
+        transition: "width 0.2s"
+      } }) })
+    ] }),
+    phase === "done" && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 13, color: "#15803d", fontWeight: 600, marginBottom: 8 }, children: "Migration abgeschlossen." }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("button", { onClick: handleReset, style: { ...btnBase, background: "#f3f4f6", color: "#374151" }, children: "Zurück" })
+    ] }),
+    phase === "error" && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 13, color: "#b91c1c", fontWeight: 600, marginBottom: 6 }, children: "Fehler bei der Migration:" }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 12, color: "#555", background: "#fee2e2", borderRadius: 6, padding: "8px 10px", marginBottom: 10 }, children: error }),
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { display: "flex", gap: 8 }, children: [
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("button", { onClick: handleRun, style: { ...btnBase, background: "#b91c1c", color: "#fff" }, children: "Erneut versuchen" }),
+        /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("button", { onClick: handleReset, style: { ...btnBase, background: "#f3f4f6", color: "#374151" }, children: "Abbrechen" })
+      ] })
+    ] })
+  ] });
+}
+
+const KEY_ASSISTANT_HIDDEN$1 = "oc.veranda.assistant-fab-hidden";
 function TutorialSettings() {
   const [running, setRunning] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(() => !adminTutorialStore.seen());
+  const [assistantHidden, setAssistantHidden] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(() => {
+    try {
+      return localStorage.getItem(KEY_ASSISTANT_HIDDEN$1) === "true";
+    } catch {
+      return false;
+    }
+  });
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    function checkState() {
+      try {
+        setAssistantHidden(localStorage.getItem(KEY_ASSISTANT_HIDDEN$1) === "true");
+      } catch {
+      }
+    }
+    window.addEventListener("oc-show-assistant-fab", checkState);
+    return () => window.removeEventListener("oc-show-assistant-fab", checkState);
+  }, []);
+  function restoreAssistant() {
+    try {
+      localStorage.removeItem(KEY_ASSISTANT_HIDDEN$1);
+    } catch {
+    }
+    setAssistantHidden(false);
+    window.dispatchEvent(new CustomEvent("oc-show-assistant-fab"));
+  }
   function handleDismiss(dontShowAgain) {
     if (dontShowAgain) adminTutorialStore.markDone();
     setRunning(false);
   }
+  function handleStartTutorial() {
+    restoreAssistant();
+    setRunning(true);
+  }
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { padding: "16px 0", fontFamily: "inherit" }, children: [
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 14, fontWeight: 600, marginBottom: 8, color: "#111" }, children: "Willkommens-Tutorial & Hilfe-Assistent" }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 13, color: "#555", marginBottom: 12 }, children: "Führt durch die wichtigsten Bereiche des Konfigurators und bietet kontextbezogene Unterstützung." }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }, children: [
+      /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        "button",
+        {
+          onClick: handleStartTutorial,
+          style: {
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            fontSize: 13,
+            cursor: "pointer",
+            fontWeight: 600,
+            background: "#2563eb",
+            color: "#fff"
+          },
+          children: "Tutorial starten"
+        }
+      ),
+      assistantHidden && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+        "button",
+        {
+          onClick: restoreAssistant,
+          style: {
+            border: "1px solid #cbd5e1",
+            borderRadius: 8,
+            padding: "8px 14px",
+            fontSize: 13,
+            cursor: "pointer",
+            fontWeight: 600,
+            background: "#f8fafc",
+            color: "#0f172a"
+          },
+          children: "Assistent-Button wieder einblenden"
+        }
+      )
+    ] }),
     running && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(TutorialOverlay, { onDismiss: handleDismiss }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 14, fontWeight: 600, marginBottom: 8, color: "#111" }, children: "Willkommens-Tutorial" }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("div", { style: { fontSize: 13, color: "#555", marginBottom: 12 }, children: "Führt durch die wichtigsten Bereiche des Konfigurators." }),
-    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-      "button",
-      {
-        onClick: () => setRunning(true),
-        style: {
-          border: "none",
-          borderRadius: 8,
-          padding: "8px 16px",
-          fontSize: 13,
-          cursor: "pointer",
-          fontWeight: 600,
-          background: "#2563eb",
-          color: "#fff"
-        },
-        children: "Tutorial starten"
-      }
-    )
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("hr", { style: { border: "none", borderTop: "1px solid #e5e7eb", margin: "16px 0" } }),
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(LicenseMigrationPanel, {})
   ] });
 }
 
@@ -13386,6 +14605,7 @@ const MODEL_TYPES = {
   keil: "veranda-wand-keil",
   rahmenwand: "veranda-wand-rahmenwand",
   schiebetuer: "veranda-wand-schiebetuer",
+  fliegengitter: "veranda-wand-fliegengitter",
   shutters: "veranda-wand-shutters",
   sichtschutzwand: "veranda-wand-sichtschutzwand",
   senkrechtMarkise: "veranda-wand-senkrechtmarkise",
@@ -13465,7 +14685,7 @@ Markise, Plissee, Faltmarkise (Stoff) teilen diesen Slot. Die Aktionsregel-Bedin
     title: `Slot: ${KONSTRUKTION_SLOTS.wandLinks.name}`,
     intro: `Wand-Slot für die linke Seite. In K3: '[Produktname] > ${KONSTRUKTION_SLOTS.wandLinks.name}'.
 
-Alle Wandmodelle (Keil, Rahmenwand, Schiebetür, Shutters, Sichtschutzwand, Senkrecht-Markise) können in Wand-Slots geladen werden. Jede Wandseite hat einen eigenen Slot.`,
+Alle Wandmodelle (Keil, Rahmenwand, Schiebetür, Fliegengitter, Shutters, Sichtschutzwand, Senkrecht-Markise) können in Wand-Slots geladen werden. Jede Wandseite hat einen eigenen Slot.`,
     steps: [
       {
         heading: "Bedingung auf Wandauswahl",
@@ -13680,6 +14900,13 @@ const MODEL_TYPE_CONTEXTS = {
     docsUrl: DOCS + "#2-modelle",
     docsLabel: "Handbuch: Modelle"
   },
+  [MODEL_TYPES.fliegengitter]: {
+    title: "Fliegengitter",
+    intro: "Fliegengitter-Schiebeanlage. Pro-Lizenz. Wand-Slot je Seite, einzeln einsetzbar.\n\nKombiniert mit Schiebetür: in der Schiebetür 'Fliegengitter' = 1 setzen (fester Wert oder Merkmal) → Gitter sitzt innen hinter den Schienen.",
+    steps: [SLOT_ZUWEISUNG_STEP],
+    docsUrl: DOCS + "#2-modelle",
+    docsLabel: "Handbuch: Modelle"
+  },
   [MODEL_TYPES.shutters]: {
     title: "Shutters",
     intro: "Außenjalousien. Pro-Lizenz. Wand-Slot je Seite.\n\nLamellenbreite und Anzahl per Props. Bedingung auf Auswahl-Merkmal 'Wandelement'.",
@@ -13874,6 +15101,7 @@ function matchModelLabel(text) {
   if (t.includes("konstruktion") || t.includes("veranda") || t.includes("qubus")) return MODEL_TYPE_CONTEXTS[MODEL_TYPES.konstruktion];
   if (t.includes("pfosten") || t.includes("stützstruktur")) return MODEL_TYPE_CONTEXTS[MODEL_TYPES.pfosten];
   if (t.includes("rinne") || t.includes("regen")) return MODEL_TYPE_CONTEXTS[MODEL_TYPES.regenrinne];
+  if (t.includes("fliegengitter") || t.includes("insekt")) return MODEL_TYPE_CONTEXTS[MODEL_TYPES.fliegengitter];
   if (t.includes("schiebetür") || t.includes("schiebetuer")) return MODEL_TYPE_CONTEXTS[MODEL_TYPES.schiebetuer];
   if (t.includes("sichtschutz")) return MODEL_TYPE_CONTEXTS[MODEL_TYPES.sichtschutzwand];
   if (t.includes("rahmenwand") || t.includes("rahmen") && t.includes("wand")) return MODEL_TYPE_CONTEXTS[MODEL_TYPES.rahmenwand];
@@ -14313,6 +15541,10 @@ function AssistantDialog({ onClose, onOpenTutorial }) {
 
 const ICON_HELP = "data:image/png;base64,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";
 
+const KEY_ASSISTANT_POS = "oc.veranda.assistant-fab-pos";
+const KEY_ASSISTANT_HIDDEN = "oc.veranda.assistant-fab-hidden";
+const FAB_SIZE = 56;
+const PADDING = 12;
 function findStep(contextKey) {
   const idx = STEPS.findIndex((s) => s.contextKey === contextKey);
   return idx >= 0 ? idx : 0;
@@ -14342,17 +15574,102 @@ function buildPrefixStep(href) {
     tooltipSide: "bottom"
   };
 }
-function AdminTutorialRoot() {
+function getDefaultPos() {
+  const maxX = typeof window !== "undefined" ? window.innerWidth - FAB_SIZE - 24 : 24;
+  const maxY = typeof window !== "undefined" ? window.innerHeight - FAB_SIZE - 24 : 24;
+  return {
+    x: Math.max(PADDING, maxX),
+    y: Math.max(PADDING, maxY)
+  };
+}
+function loadSavedPos() {
+  try {
+    const raw = localStorage.getItem(KEY_ASSISTANT_POS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
+        const maxX = Math.max(PADDING, window.innerWidth - FAB_SIZE - PADDING);
+        const maxY = Math.max(PADDING, window.innerHeight - FAB_SIZE - PADDING);
+        return {
+          x: Math.min(Math.max(PADDING, parsed.x), maxX),
+          y: Math.min(Math.max(PADDING, parsed.y), maxY)
+        };
+      }
+    }
+  } catch {
+  }
+  return getDefaultPos();
+}
+function AdminTutorialRoot({ onFullyDone }) {
   const initialAutoShow = !adminTutorialStore.seen() && window.location.href.includes("edit/settings/plugin");
   const [overlayOpen, setOverlayOpen] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(initialAutoShow);
   const [assistantOpen, setAssistantOpen] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
-  const [fabHidden, setFabHidden] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
+  const [fabHidden, setFabHidden] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(() => {
+    try {
+      return localStorage.getItem(KEY_ASSISTANT_HIDDEN) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [pos, setPos] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(loadSavedPos);
+  const [isDragging, setIsDragging] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
+  const [isHovered, setIsHovered] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
+  const [closeHovered, setCloseHovered] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
+  const [showUndoToast, setShowUndoToast] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(false);
   const [startStep, setStartStep] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(0);
   const [prefixStep, setPrefixStep] = veranda_mf_2_plugin__loadShare__react__loadShare__.useState(void 0);
+  const dragRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef({
+    active: false,
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    origX: 0,
+    origY: 0,
+    hasMoved: false
+  });
+  const currentPosRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(pos);
+  const justDraggedRef = veranda_mf_2_plugin__loadShare__react__loadShare__.useRef(false);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    currentPosRef.current = pos;
+  }, [pos]);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    function handleResize() {
+      setPos((prev) => {
+        const maxX = Math.max(PADDING, window.innerWidth - FAB_SIZE - PADDING);
+        const maxY = Math.max(PADDING, window.innerHeight - FAB_SIZE - PADDING);
+        const clampedX = Math.min(Math.max(PADDING, prev.x), maxX);
+        const clampedY = Math.min(Math.max(PADDING, prev.y), maxY);
+        if (clampedX !== prev.x || clampedY !== prev.y) {
+          const next = { x: clampedX, y: clampedY };
+          currentPosRef.current = next;
+          return next;
+        }
+        return prev;
+      });
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    function handleShowFab() {
+      setFabHidden(false);
+      setShowUndoToast(false);
+      try {
+        localStorage.removeItem(KEY_ASSISTANT_HIDDEN);
+      } catch {
+      }
+    }
+    window.addEventListener("oc-show-assistant-fab", handleShowFab);
+    return () => window.removeEventListener("oc-show-assistant-fab", handleShowFab);
+  }, []);
+  veranda_mf_2_plugin__loadShare__react__loadShare__.useEffect(() => {
+    if (!showUndoToast) return;
+    const timer = setTimeout(() => setShowUndoToast(false), 6e3);
+    return () => clearTimeout(timer);
+  }, [showUndoToast]);
   function handleDismiss(dontShowAgain) {
     if (dontShowAgain) {
       adminTutorialStore.markDone();
-      setFabHidden(true);
     }
     setOverlayOpen(false);
   }
@@ -14361,7 +15678,92 @@ function AdminTutorialRoot() {
     setPrefixStep(buildPrefixStep(window.location.href));
     setOverlayOpen(true);
   }
-  if (fabHidden) return null;
+  function handleRemove(e) {
+    if (e) e.stopPropagation();
+    setFabHidden(true);
+    setShowUndoToast(true);
+    try {
+      localStorage.setItem(KEY_ASSISTANT_HIDDEN, "true");
+    } catch {
+    }
+  }
+  function handleUndo() {
+    setFabHidden(false);
+    setShowUndoToast(false);
+    try {
+      localStorage.removeItem(KEY_ASSISTANT_HIDDEN);
+    } catch {
+    }
+  }
+  const handlePointerDown = (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest("[data-close-btn]")) return;
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+    }
+    dragRef.current = {
+      active: true,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: currentPosRef.current.x,
+      origY: currentPosRef.current.y,
+      hasMoved: false
+    };
+    setIsDragging(true);
+  };
+  const handlePointerMove = (e) => {
+    if (!dragRef.current.active) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    if (!dragRef.current.hasMoved && Math.hypot(dx, dy) > 4) {
+      dragRef.current.hasMoved = true;
+    }
+    if (dragRef.current.hasMoved) {
+      const maxX = Math.max(PADDING, window.innerWidth - FAB_SIZE - PADDING);
+      const maxY = Math.max(PADDING, window.innerHeight - FAB_SIZE - PADDING);
+      const nextX = Math.min(Math.max(PADDING, dragRef.current.origX + dx), maxX);
+      const nextY = Math.min(Math.max(PADDING, dragRef.current.origY + dy), maxY);
+      const nextPos = { x: nextX, y: nextY };
+      currentPosRef.current = nextPos;
+      setPos(nextPos);
+    }
+  };
+  const handlePointerUp = (e) => {
+    if (!dragRef.current.active) return;
+    try {
+      e.currentTarget.releasePointerCapture(dragRef.current.pointerId);
+    } catch {
+    }
+    const moved = dragRef.current.hasMoved;
+    dragRef.current.active = false;
+    setIsDragging(false);
+    if (moved) {
+      justDraggedRef.current = true;
+      try {
+        localStorage.setItem(KEY_ASSISTANT_POS, JSON.stringify(currentPosRef.current));
+      } catch {
+      }
+    }
+  };
+  const handlePointerCancel = (e) => {
+    if (!dragRef.current.active) return;
+    try {
+      e.currentTarget.releasePointerCapture(dragRef.current.pointerId);
+    } catch {
+    }
+    dragRef.current.active = false;
+    setIsDragging(false);
+  };
+  const handleClick = () => {
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      return;
+    }
+    setAssistantOpen(true);
+  };
   return /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.Fragment, { children: [
     overlayOpen && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(TutorialOverlay, { onDismiss: handleDismiss, initialStep: startStep, prefixStep }),
     assistantOpen && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
@@ -14371,37 +15773,151 @@ function AdminTutorialRoot() {
         onOpenTutorial: openTutorial
       }
     ),
-    !overlayOpen && !assistantOpen && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
-      "button",
+    !overlayOpen && !assistantOpen && !fabHidden && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+      "div",
       {
-        onClick: () => setAssistantOpen(true),
-        title: "Assistent",
-        "aria-label": "Assistent",
-        onMouseEnter: (e) => {
-          e.currentTarget.style.transform = "scale(1.3)";
+        onPointerDown: handlePointerDown,
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerUp,
+        onPointerCancel: handlePointerCancel,
+        onMouseEnter: () => setIsHovered(true),
+        onMouseLeave: () => setIsHovered(false),
+        style: {
+          position: "fixed",
+          left: pos.x,
+          top: pos.y,
+          zIndex: 99998,
+          width: FAB_SIZE,
+          height: FAB_SIZE,
+          touchAction: "none",
+          userSelect: "none"
         },
-        onMouseLeave: (e) => {
-          e.currentTarget.style.transform = "scale(1)";
-        },
+        children: [
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+            "button",
+            {
+              "data-close-btn": "true",
+              onClick: (e) => {
+                e.stopPropagation();
+                handleRemove(e);
+              },
+              onPointerDown: (e) => {
+                e.stopPropagation();
+              },
+              title: "Assistent entfernen",
+              "aria-label": "Assistent entfernen",
+              onMouseEnter: () => setCloseHovered(true),
+              onMouseLeave: () => setCloseHovered(false),
+              style: {
+                position: "absolute",
+                top: -4,
+                right: -4,
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                border: "2px solid #ffffff",
+                backgroundColor: closeHovered ? "#dc2626" : "#475569",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "14px",
+                fontWeight: "bold",
+                lineHeight: 1,
+                padding: 0,
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
+                zIndex: 2,
+                transition: "background-color 0.15s ease, transform 0.15s ease",
+                transform: closeHovered ? "scale(1.15)" : "scale(1)"
+              },
+              children: "×"
+            }
+          ),
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+            "button",
+            {
+              onClick: handleClick,
+              title: "Assistent (ziehen zum Verschieben, Klick zum Öffnen)",
+              "aria-label": "Assistent",
+              style: {
+                width: "100%",
+                height: "100%",
+                borderRadius: "50%",
+                border: "none",
+                padding: 0,
+                cursor: isDragging ? "grabbing" : "grab",
+                boxShadow: isDragging ? "0 8px 26px rgba(0,0,0,0.42)" : isHovered ? "0 6px 22px rgba(0,0,0,0.32)" : "0 4px 20px rgba(0,0,0,0.28)",
+                backgroundImage: `url(${ICON_HELP})`,
+                backgroundSize: "cover",
+                backgroundPosition: "50% 50%",
+                backgroundRepeat: "no-repeat",
+                userSelect: "none",
+                transition: isDragging ? "none" : "transform 0.18s ease, box-shadow 0.18s ease",
+                transform: isDragging ? "scale(1.08)" : isHovered ? "scale(1.1)" : "scale(1)"
+              }
+            }
+          )
+        ]
+      }
+    ),
+    showUndoToast && /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsxs(
+      "div",
+      {
         style: {
           position: "fixed",
           bottom: 24,
           right: 24,
-          zIndex: 99998,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-          backgroundImage: `url(${ICON_HELP})`,
-          backgroundSize: "cover",
-          backgroundPosition: "50% 50%",
-          backgroundRepeat: "no-repeat",
-          userSelect: "none",
-          transition: "transform 0.18s ease"
-        }
+          zIndex: 99999,
+          background: "#1e293b",
+          color: "#fff",
+          padding: "10px 14px",
+          borderRadius: 8,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.3)",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          fontSize: 13,
+          fontFamily: "system-ui, -apple-system, sans-serif"
+        },
+        children: [
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx("span", { children: "Hilfe-Assistent ausgeblendet" }),
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+            "button",
+            {
+              onClick: handleUndo,
+              style: {
+                background: "#2563eb",
+                color: "#fff",
+                border: "none",
+                borderRadius: 4,
+                padding: "4px 10px",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer"
+              },
+              children: "Rückgängig"
+            }
+          ),
+          /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(
+            "button",
+            {
+              onClick: () => setShowUndoToast(false),
+              title: "Schließen",
+              "aria-label": "Schließen",
+              style: {
+                background: "transparent",
+                color: "#94a3b8",
+                border: "none",
+                fontSize: 16,
+                cursor: "pointer",
+                padding: "0 2px",
+                lineHeight: 1
+              },
+              children: "×"
+            }
+          )
+        ]
       }
     )
   ] });
@@ -14409,9 +15925,16 @@ function AdminTutorialRoot() {
 function mountAdminTutorial() {
   const href = window.location.href;
   if (!href.includes("/admin/") && !href.includes("/edit/")) return;
+  document.documentElement.style.overflow = "hidden";
   const container = document.createElement("div");
   document.body.appendChild(container);
-  clientExports.createRoot(container).render(/* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(AdminTutorialRoot, {}));
+  const root = clientExports.createRoot(container);
+  root.render(
+    /* @__PURE__ */ veranda_mf_2_plugin__loadShare__react_mf_1_jsx_mf_2_runtime__loadShare__.jsx(AdminTutorialRoot, { onFullyDone: () => {
+      root.unmount();
+      container.remove();
+    } })
+  );
 }
 
 const SlotLayoutContext = React.createContext(null);
@@ -33032,13 +34555,13 @@ async function exportAR({ platform, scene }) {
 }
 
 const FORBIDDEN_MAP = {
-  "veranda-free": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "ja", "nein", "qubus"],
-  "veranda-basic": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "ja", "qubus"],
-  "veranda-pro": ["lamelle", "solar", "welle", "trapez", "qubus"],
+  "veranda-free": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "ja", "nein", "qubus", "carport", "watermark"],
+  "veranda-basic": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "ja", "qubus", "carport", "watermark"],
+  "veranda-pro": ["lamelle", "solar", "welle", "trapez", "qubus", "watermark"],
   "veranda-enterprise": [],
-  "free": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "ja", "nein", "qubus"],
-  "basic": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "qubus", "ja"],
-  "pro": ["lamelle", "solar", "welle", "trapez", "qubus", "ja"],
+  "free": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "ja", "nein", "qubus", "carport", "watermark"],
+  "basic": ["klinker", "lamelle", "solar", "welle", "trapez", "unterdach", "aufdach", "plissee", "stoff", "integrierteBox", "keil", "rahmenwand", "schiebetuer", "plankenwand", "senkrechtmarkise", "rahmenSchiebetuer", "shutters", "seitenwandLinks", "seitenwandRechts", "seitenwandMittig", "wandHinten", "qubus", "carport", "watermark"],
+  "pro": ["lamelle", "solar", "welle", "trapez", "qubus", "watermark"],
   "enterprise": []
 };
 function preprocessForbiddenValues(app) {
@@ -33056,7 +34579,7 @@ registerVerandaSdk();
 mountAdminTutorial();
 const Plugin = {
   id: "oc.veranda.plugin",
-  version: "1.1.2",
+  version: "1.1.32",
   viewer: {
     sceneComponents: {
       OrbitControls: orbitControlsLimitSceneComponent
@@ -33083,6 +34606,7 @@ const Plugin = {
       keilDynamicModel,
       rahmenwandDynamicModel,
       schiebetuerDynamicModel,
+      fliegengitterDynamicModel,
       shuttersDynamicModel,
       senkrechtMarkiseDynamicModel,
       sichtschutzwandDynamicModel,
